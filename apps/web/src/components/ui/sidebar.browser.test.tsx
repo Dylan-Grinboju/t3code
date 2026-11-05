@@ -3,7 +3,6 @@ import { page, userEvent } from "vite-plus/test/browser";
 import { describe, expect, it, vi } from "vite-plus/test";
 
 import { Link } from "@tanstack/react-router";
-import { SidebarDisplayOptions } from "../sidebar/SidebarDisplayOptions";
 import { render } from "../../../test/render";
 import { Sidebar, SidebarProvider, SidebarRail, SidebarTrigger, useSidebar } from "./sidebar";
 
@@ -76,6 +75,20 @@ describe("Sidebar", () => {
   });
 });
 
+function DisplaySettingsControls() {
+  const { setDisplayMode, setHoverEnabled } = useSidebar();
+  return (
+    <>
+      <button type="button" onClick={() => setDisplayMode("strip")}>
+        Use status strip
+      </button>
+      <button type="button" onClick={() => setHoverEnabled(false)}>
+        Turn off hover
+      </button>
+    </>
+  );
+}
+
 function DisplayModeHarness() {
   return (
     <SidebarProvider displayModes>
@@ -83,7 +96,7 @@ function DisplayModeHarness() {
         <Link to="/">Switch chat</Link>
       </Sidebar>
       <SidebarTrigger />
-      <SidebarDisplayOptions />
+      <DisplaySettingsControls />
       <button type="button" style={{ position: "fixed", left: 600, top: 100 }}>
         Chat content
       </button>
@@ -123,6 +136,7 @@ describe("Sidebar display modes", () => {
 
       await userEvent.hover(edge);
       await vi.waitFor(() => expect(sidebar.inert).toBe(false));
+      expect(wrapper.dataset.sidebarHoverOpen).toBe("true");
       expect(gap.getBoundingClientRect().width).toBe(mode === "strip" ? 32 : 0);
       await userEvent.click(screen.getByRole("link", { name: "Switch chat" }));
       expect(screen.router?.state.location.pathname).toBe("/");
@@ -140,13 +154,9 @@ describe("Sidebar display modes", () => {
     await page.viewport(1280, 800);
     using _preferences = storedSidebarPreferences("closed", true);
     await using screen = await render(<DisplayModeHarness />);
-    await userEvent.click(screen.getByRole("button", { name: "Sidebar options" }));
-    await userEvent.click(page.getByRole("menuitemradio", { name: "Status strip" }));
+    await userEvent.click(screen.getByRole("button", { name: "Use status strip" }));
     expect(localStorage.getItem("t3code:sidebar-display-mode")).toBe('"strip"');
-    await userEvent.click(screen.getByRole("button", { name: "Sidebar options" }));
-    await userEvent.click(
-      page.getByRole("menuitemcheckbox", { name: "Reveal on left-edge hover" }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: "Turn off hover" }));
     expect(screen.container.querySelector("[data-sidebar-hover-edge]")).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
     await userEvent.click(screen.getByRole("button", { name: "Toggle Sidebar" }));

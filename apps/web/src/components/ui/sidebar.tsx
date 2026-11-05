@@ -306,6 +306,7 @@ function SidebarProvider({
           }
         }}
         data-sidebar-mode={displayMode}
+        data-sidebar-hover-open={hoverOpen || undefined}
         data-sidebar-state={state}
         data-slot="sidebar-wrapper"
         style={
@@ -313,7 +314,10 @@ function SidebarProvider({
             "--sidebar-width": SIDEBAR_WIDTH,
             "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
             "--sidebar-strip-width": "2rem",
-            "--workspace-titlebar-content-left": `calc(var(--workspace-controls-left) + var(--workspace-titlebar-control-size) + var(--workspace-titlebar-control-gap) + ${displayModes && !isMobile ? "1.5rem" : "0px"})`,
+            "--sidebar-hover-gap-width":
+              displayMode === "strip" ? "var(--sidebar-strip-width)" : "0px",
+            "--workspace-titlebar-content-left":
+              "calc(var(--workspace-controls-left) + var(--workspace-titlebar-control-size) + var(--workspace-titlebar-control-gap))",
             ...style,
           } as React.CSSProperties
         }
@@ -477,6 +481,8 @@ function Sidebar({
         <div
           className={cn(
             "fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) md:flex",
+            // A fixed panel slides without reflowing the page; the panel-animation setting below adds width.
+            "transition-[left,right] duration-150 ease-out motion-reduce:transition-none",
             "[[data-panel-animations=true]_&]:transition-[left,right,width] [[data-panel-animations=true]_&]:[transition-duration:var(--panel-animation-duration)] [[data-panel-animations=true]_&]:ease-out",
             side === "left"
               ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"

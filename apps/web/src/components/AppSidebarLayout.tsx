@@ -40,7 +40,6 @@ import {
 import { BackgroundThreadAnnouncer } from "./BackgroundThreadAnnouncer";
 import { HistorySwipeNavigation } from "./HistorySwipeNavigation";
 import ThreadSidebar from "./Sidebar";
-import { SidebarDisplayOptions } from "./sidebar/SidebarDisplayOptions";
 import { SidebarStatusStrip } from "./sidebar/SidebarStatusStrip";
 import { SidebarBrandWidthProbe } from "./sidebar/SidebarChrome";
 import { isAppModalPage } from "./sidebar/mainAppLocation";
@@ -399,9 +398,6 @@ function SidebarControl() {
           Toggle main sidebar{shortcutLabel ? ` (${shortcutLabel})` : ""}
         </TooltipPopup>
       </Tooltip>
-      <div className="pointer-events-auto [-webkit-app-region:no-drag]">
-        <SidebarDisplayOptions />
-      </div>
     </div>
   );
 }
