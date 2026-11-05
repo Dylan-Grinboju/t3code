@@ -29,13 +29,17 @@ jobs:
     env:
       T3CODE_TELEMETRY_CHANNEL: dev
     steps:
-      - uses: actions/checkout@v6
-        with:
-          persist-credentials: false
-          sparse-checkout: |
-            /*
-            !/.repos/
-          sparse-checkout-cone-mode: false
+      - name: Checkout
+        env:
+          CHECKOUT_REF: ${{ github.sha }}
+          GIT_TERMINAL_PROMPT: "0"
+        run: |
+          set -euo pipefail
+          git init .
+          git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
+          git fetch --no-tags --depth=1 origin "$CHECKOUT_REF"
+          git sparse-checkout set --no-cone '/*' '!/.repos/'
+          git -c checkout.workers=0 checkout --detach FETCH_HEAD
 
       - name: Resolve stable release
         id: release
