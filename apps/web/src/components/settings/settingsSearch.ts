@@ -336,6 +336,18 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["wide full width column layout messages composer monitor"],
   },
   {
+    id: "sidebar-display-mode",
+    title: "Sidebar",
+    to: "/settings/appearance",
+    searchTerms: ["sidebar strip status icons collapsed closed open threads panel"],
+  },
+  {
+    id: "sidebar-hover-reveal",
+    title: "Reveal sidebar on hover",
+    to: "/settings/appearance",
+    searchTerms: ["sidebar hover left edge peek temporary overlay show"],
+  },
+  {
     id: "thread-details-items",
     title: "Thread details",
     to: "/settings/appearance",

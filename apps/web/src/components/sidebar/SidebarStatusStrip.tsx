@@ -71,8 +71,9 @@ function StatusStripThreads() {
 }
 
 export function SidebarStatusStrip() {
-  const { displayMode, isMobile, open, setHoverOpen } = useSidebar();
-  if (isMobile || displayMode !== "strip" || open) return null;
+  const { displayMode, isMobile, setHoverOpen } = useSidebar();
+  // Stays mounted under a hover-revealed sidebar so it does not flash while the panel slides.
+  if (isMobile || displayMode !== "strip") return null;
 
   return (
     <nav
