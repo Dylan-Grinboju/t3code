@@ -18,7 +18,7 @@ import {
 import { Tooltip, TooltipPopup, TooltipTrigger } from "~/components/ui/tooltip";
 import { useResizeDrag } from "~/hooks/useResizeDrag";
 import { useMediaQuery } from "~/hooks/useMediaQuery";
-import { setLocalStorageItem } from "~/hooks/useLocalStorage";
+import { readLocalStorageValue, setLocalStorageItem } from "~/hooks/useLocalStorage";
 import { resolveSidebarState, type ResponsiveSidebarState } from "./sidebarState";
 import * as Schema from "effect/Schema";
 import { announceSidebarVisibility } from "~/lib/accessibilityAnnouncements";
@@ -31,7 +31,19 @@ const SIDEBAR_WIDTH_ICON = "3rem";
 const SIDEBAR_RESIZE_DEFAULT_MIN_WIDTH = 16 * 16;
 const SIDEBAR_TITLEBAR_CONTROL_SIZE = "max-sm:[--workspace-titlebar-control-size:--spacing(8)]";
 
+type SidebarDisplayMode = "expanded" | "strip" | "closed";
+
+const SIDEBAR_DISPLAY_MODE_KEY = "t3code:sidebar-display-mode";
+const SIDEBAR_HOVER_KEY = "t3code:sidebar-hover";
+const sidebarDisplayModeSchema = Schema.Literals(["expanded", "strip", "closed"]);
+
 type SidebarContextProps = {
+  displayMode: SidebarDisplayMode;
+  setDisplayMode: (mode: SidebarDisplayMode) => void;
+  hoverEnabled: boolean;
+  setHoverEnabled: (enabled: boolean) => void;
+  hoverOpen: boolean;
+  setHoverOpen: (open: boolean) => void;
   state: ResponsiveSidebarState;
   open: boolean;
   setOpen: (open: boolean) => void;
@@ -129,27 +141,78 @@ function moveFocusOutOfCollapsingSidebar() {
 interface SidebarOpenState {
   readonly open: boolean;
   readonly openMobile: boolean;
+  readonly displayMode: SidebarDisplayMode;
+  readonly collapsedMode: "strip" | "closed";
+  readonly hoverEnabled: boolean;
+  readonly hoverOpen: boolean;
 }
 
 /** Per-provider open state, kept outside React so shortcuts can toggle it at event time. */
-function createSidebarOpenStore(defaultOpen: boolean) {
-  let state: SidebarOpenState = { open: defaultOpen, openMobile: false };
+function createSidebarOpenStore(defaultOpen: boolean, displayModes: boolean) {
+  const initialMode = defaultOpen ? "expanded" : "closed";
+  const displayMode = displayModes
+    ? readLocalStorageValue(SIDEBAR_DISPLAY_MODE_KEY, initialMode, sidebarDisplayModeSchema)
+    : initialMode;
+  let state: SidebarOpenState = {
+    open: displayMode === "expanded",
+    openMobile: false,
+    displayMode,
+    collapsedMode: displayMode === "strip" ? "strip" : "closed",
+    hoverEnabled: displayModes && readLocalStorageValue(SIDEBAR_HOVER_KEY, false, Schema.Boolean),
+    hoverOpen: false,
+  };
   const listeners = new Set<() => void>();
   const collapseListeners = new Set<() => void>();
   const publish = (next: SidebarOpenState) => {
     state = next;
     for (const listener of listeners) listener();
   };
-  const setOpen = (open: boolean) => {
-    if (!open && state.open) {
+  const update = (next: SidebarOpenState) => {
+    if (!next.open && state.open) {
       for (const listener of collapseListeners) listener();
       moveFocusOutOfCollapsingSidebar();
     }
-    if (open !== state.open) {
-      if (!isMobileViewport()) announceSidebarVisibility(open);
-      publish({ ...state, open });
+    if (next.open !== state.open && !isMobileViewport()) announceSidebarVisibility(next.open);
+    publish(next);
+  };
+  const setDisplayMode = (displayMode: SidebarDisplayMode) => {
+    update({
+      ...state,
+      displayMode,
+      collapsedMode: displayMode === "expanded" ? state.collapsedMode : displayMode,
+      open: displayMode === "expanded",
+      hoverOpen: false,
+    });
+    if (displayModes) {
+      try {
+        setLocalStorageItem(SIDEBAR_DISPLAY_MODE_KEY, displayMode, sidebarDisplayModeSchema);
+      } catch (error) {
+        console.error("Could not save sidebar display mode.", error);
+      }
     }
-    void persistSidebarOpen(open);
+    void persistSidebarOpen(state.open);
+  };
+  const setOpen = (open: boolean) => setDisplayMode(open ? "expanded" : state.collapsedMode);
+  const setHoverOpen = (hoverOpen: boolean) => {
+    hoverOpen =
+      hoverOpen && state.hoverEnabled && state.displayMode !== "expanded" && !isMobileViewport();
+    if (hoverOpen === state.hoverOpen) return;
+    update({ ...state, hoverOpen, open: state.displayMode === "expanded" || hoverOpen });
+  };
+  const setHoverEnabled = (hoverEnabled: boolean) => {
+    update({
+      ...state,
+      hoverEnabled,
+      hoverOpen: hoverEnabled && state.hoverOpen,
+      open: state.displayMode === "expanded" || (hoverEnabled && state.hoverOpen),
+    });
+    if (displayModes) {
+      try {
+        setLocalStorageItem(SIDEBAR_HOVER_KEY, hoverEnabled, Schema.Boolean);
+      } catch (error) {
+        console.error("Could not save sidebar hover preference.", error);
+      }
+    }
   };
   const setOpenMobile = (openMobile: boolean) => {
     if (openMobile !== state.openMobile) publish({ ...state, openMobile });
@@ -162,6 +225,9 @@ function createSidebarOpenStore(defaultOpen: boolean) {
       };
     },
     getSnapshot: () => state,
+    setDisplayMode,
+    setHoverOpen,
+    setHoverEnabled,
     setOpen,
     setOpenMobile,
     toggle: () => (isMobileViewport() ? setOpenMobile(!state.openMobile) : setOpen(!state.open)),
@@ -176,16 +242,18 @@ function createSidebarOpenStore(defaultOpen: boolean) {
 
 function SidebarProvider({
   defaultOpen = true,
+  displayModes = false,
   className,
   style,
   children,
   ...props
 }: React.ComponentProps<"div"> & {
   defaultOpen?: boolean;
+  displayModes?: boolean;
 }) {
   const isMobile = useMediaQuery(SIDEBAR_MOBILE_QUERY);
-  const [store] = React.useState(() => createSidebarOpenStore(defaultOpen));
-  const { open, openMobile } = React.useSyncExternalStore(
+  const [store] = React.useState(() => createSidebarOpenStore(defaultOpen, displayModes));
+  const { open, openMobile, displayMode, hoverEnabled, hoverOpen } = React.useSyncExternalStore(
     store.subscribe,
     store.getSnapshot,
     store.getSnapshot,
@@ -199,6 +267,12 @@ function SidebarProvider({
 
   const contextValue: SidebarContextProps = {
     isMobile,
+    displayMode,
+    setDisplayMode: store.setDisplayMode,
+    hoverEnabled,
+    setHoverEnabled: store.setHoverEnabled,
+    hoverOpen,
+    setHoverOpen: store.setHoverOpen,
     open,
     openMobile,
     mobileSheetMounted,
@@ -218,19 +292,44 @@ function SidebarProvider({
           SIDEBAR_TITLEBAR_CONTROL_SIZE,
           className,
         )}
+        onPointerLeave={() => store.setHoverOpen(false)}
+        onPointerMove={(event) => {
+          if (!hoverOpen || event.pointerType === "touch") return;
+          const panel = event.currentTarget.querySelector('[data-slot="sidebar-container"]');
+          if (panel && event.clientX > panel.getBoundingClientRect().width)
+            store.setHoverOpen(false);
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Escape" && !event.defaultPrevented && hoverOpen) {
+            event.preventDefault();
+            store.setHoverOpen(false);
+          }
+        }}
+        data-sidebar-mode={displayMode}
         data-sidebar-state={state}
         data-slot="sidebar-wrapper"
         style={
           {
             "--sidebar-width": SIDEBAR_WIDTH,
             "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
-            "--workspace-titlebar-content-left":
-              "calc(var(--workspace-controls-left) + var(--workspace-titlebar-control-size) + var(--workspace-titlebar-control-gap))",
+            "--sidebar-strip-width": "2rem",
+            "--workspace-titlebar-content-left": `calc(var(--workspace-controls-left) + var(--workspace-titlebar-control-size) + var(--workspace-titlebar-control-gap) + ${displayModes && !isMobile ? "1.5rem" : "0px"})`,
             ...style,
           } as React.CSSProperties
         }
         {...props}
       >
+        {!isMobile && hoverEnabled && displayMode !== "expanded" && (
+          <div
+            aria-hidden="true"
+            data-sidebar-hover-edge=""
+            className="fixed inset-y-0 left-0 z-60 w-2 [-webkit-app-region:no-drag]"
+            onPointerEnter={(event) => {
+              if (event.pointerType === "mouse" || event.pointerType === "pen")
+                store.setHoverOpen(true);
+            }}
+          />
+        )}
         {children}
       </div>
     </SidebarContext>
@@ -274,7 +373,15 @@ function Sidebar({
   collapsible?: "offcanvas" | "icon" | "none";
   resizable?: boolean | SidebarResizableOptions;
 }) {
-  const { isMobile, state, openMobile, setOpenMobile, setMobileSheetElement } = useSidebar();
+  const {
+    isMobile,
+    state,
+    openMobile,
+    setOpenMobile,
+    setMobileSheetElement,
+    displayMode,
+    hoverOpen,
+  } = useSidebar();
   const offcanvasCollapsed = !isMobile && collapsible === "offcanvas" && state === "collapsed";
 
   const resolvedResizable = resolveSidebarResizable({ collapsible, isMobile, resizable });
@@ -360,6 +467,11 @@ function Sidebar({
               ? "group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4)))]"
               : "group-data-[collapsible=icon]:w-(--sidebar-width-icon)",
           )}
+          style={
+            displayMode !== "expanded" && collapsible === "offcanvas"
+              ? { width: displayMode === "strip" ? "var(--sidebar-strip-width)" : 0 }
+              : undefined
+          }
           data-slot="sidebar-gap"
         />
         <div
@@ -372,8 +484,10 @@ function Sidebar({
             variant === "floating" || variant === "inset"
               ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
               : "group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-r group-data-[side=right]:border-l",
+            hoverOpen && "z-40 shadow-xl",
             className,
           )}
+          data-hover-open={hoverOpen || undefined}
           data-slot="sidebar-container"
           {...props}
         >
@@ -431,16 +545,16 @@ function SidebarRail({
   onPointerUp,
   ...props
 }: React.ComponentProps<"button">) {
-  const { open, toggleSidebar, onCollapse } = useSidebar();
+  const { open, hoverOpen, toggleSidebar, onCollapse } = useSidebar();
   const sidebarInstance = React.use(SidebarInstanceContext);
   const suppressClickRef = React.useRef(false);
   const resolvedResizable = sidebarInstance?.resizable ?? null;
-  const canResize = resolvedResizable !== null && open;
+  const canResize = resolvedResizable !== null && open && !hoverOpen;
   const railLabel = canResize ? "Resize Sidebar" : "Toggle Sidebar";
   const railTitle = canResize ? "Drag to resize sidebar" : "Toggle Sidebar";
   const resize = useResizeDrag<HTMLButtonElement>((event) => {
     const options = resolvedResizable;
-    if (!options || !open) return null;
+    if (!options || !open || hoverOpen) return null;
     const rail = event.currentTarget;
     const wrapper = rail.closest<HTMLElement>("[data-slot='sidebar-wrapper']");
     const sidebarRoot = rail.closest<HTMLElement>("[data-slot='sidebar']");

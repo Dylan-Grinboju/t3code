@@ -40,6 +40,8 @@ import {
 import { BackgroundThreadAnnouncer } from "./BackgroundThreadAnnouncer";
 import { HistorySwipeNavigation } from "./HistorySwipeNavigation";
 import ThreadSidebar from "./Sidebar";
+import { SidebarDisplayOptions } from "./sidebar/SidebarDisplayOptions";
+import { SidebarStatusStrip } from "./sidebar/SidebarStatusStrip";
 import { SidebarBrandWidthProbe } from "./sidebar/SidebarChrome";
 import { isAppModalPage } from "./sidebar/mainAppLocation";
 import type { SidebarRouteReveal } from "./sidebar/routeReveal";
@@ -397,6 +399,9 @@ function SidebarControl() {
           Toggle main sidebar{shortcutLabel ? ` (${shortcutLabel})` : ""}
         </TooltipPopup>
       </Tooltip>
+      <div className="pointer-events-auto [-webkit-app-region:no-drag]">
+        <SidebarDisplayOptions />
+      </div>
     </div>
   );
 }
@@ -448,6 +453,7 @@ export function AppSidebarLayout({ children }: { children: ReactNode }) {
         className="h-dvh! min-h-0!"
         data-panel-animations={routePanelAnimationsActive ? "true" : "false"}
         defaultOpen
+        displayModes
         style={sidebarProviderStyle}
       >
         <SidebarBrandWidthProbe isElectron={isElectron} onWidthChange={setBrandWidth} />
@@ -472,6 +478,7 @@ export function AppSidebarLayout({ children }: { children: ReactNode }) {
           <ThreadSidebar routeReveal={sidebarRouteReveal} />
           <SidebarRail onDoubleClick={resetSidebarWidth} />
         </Sidebar>
+        <SidebarStatusStrip />
         {children}
         <BackgroundThreadAnnouncer />
         <SidebarControl />
