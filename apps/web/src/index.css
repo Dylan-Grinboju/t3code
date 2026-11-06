@@ -1848,8 +1848,8 @@ code {
 }
 
 /* Over a drag region the OS takes the pointer, so the page sees it leave and a
-   hover-revealed sidebar would close under its own title bar. */
-[data-hover-open] .drag-region {
+   hover-revealed sidebar closes. Covered headers still drag, so drop them all. */
+[data-sidebar-hover-open] .drag-region {
   -webkit-app-region: no-drag;
 }
 

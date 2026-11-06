@@ -76,13 +76,15 @@ function UsageBarRow({ row }: { readonly row: SidebarUsageRow }) {
   const color = barColor(row.driver);
   const delta = row.projection?.paceDelta ?? null;
   const PaceGlyph =
-    delta === null || Math.abs(delta) < ON_PACE_POINTS
-      ? GaugeIcon
-      : delta > 0
-        ? TrendingUpIcon
-        : TrendingDownIcon;
+    delta === null
+      ? null
+      : Math.abs(delta) < ON_PACE_POINTS
+        ? GaugeIcon
+        : delta > 0
+          ? TrendingUpIcon
+          : TrendingDownIcon;
   return (
-    <span className="grid grid-cols-[0.75rem_minmax(0,1fr)_2.25rem] items-center gap-1.5">
+    <span className="grid grid-cols-[0.75rem_minmax(0,1fr)_0.625rem] items-center gap-1.5">
       <ProviderInstanceIcon
         driverKind={row.driver}
         displayName={row.label}
@@ -101,28 +103,22 @@ function UsageBarRow({ row }: { readonly row: SidebarUsageRow }) {
           />
         ) : null}
       </span>
-      <span
-        className={cn(
-          "flex items-center justify-end gap-0.5 text-3xs leading-none tabular-nums",
-          delta !== null && delta >= ON_PACE_POINTS ? "text-warning" : "text-muted-foreground",
-        )}
-      >
-        {delta === null ? (
-          `${row.remainingPercent}%`
-        ) : (
-          <>
-            <PaceGlyph className="size-2.5 shrink-0" aria-hidden />
-            {Math.abs(delta)}%
-          </>
-        )}
-      </span>
+      {PaceGlyph ? (
+        <PaceGlyph
+          aria-hidden
+          className={cn(
+            "size-2.5",
+            delta !== null && delta >= ON_PACE_POINTS ? "text-warning" : "text-muted-foreground",
+          )}
+        />
+      ) : null}
     </span>
   );
 }
 
 /**
  * Codex weekly, Claude session, and Claude weekly limits as small bars in place of the Usage
- * button. Each tick marks even spending; the figure is how far ahead or behind it you are.
+ * button. Each tick marks even spending; the arrow says whether you are ahead of or behind it.
  */
 export function SidebarUsageBars(props: {
   readonly onOpen: () => void;
