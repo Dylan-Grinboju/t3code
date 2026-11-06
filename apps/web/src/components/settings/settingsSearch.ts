@@ -36,6 +36,7 @@ export type SettingsPath =
   | "/settings/secrets"
   | "/settings/maintenance"
   | "/settings/labs"
+  | "/settings/fork"
   | "/settings/about"
   | "/settings/archived";
 
@@ -106,6 +107,7 @@ export const SETTINGS_SECTION_LABELS: Readonly<Record<SettingsPath, string>> = {
   "/settings/secrets": "Secrets",
   "/settings/maintenance": "Maintenance",
   "/settings/labs": "Labs",
+  "/settings/fork": "Dylan's fork",
   "/settings/about": "About",
   "/settings/archived": "Archive",
 };
@@ -150,7 +152,13 @@ export const SETTINGS_NAV_GROUPS: ReadonlyArray<{
   },
   {
     heading: null,
-    paths: ["/settings/maintenance", "/settings/labs", "/settings/about", "/settings/archived"],
+    paths: [
+      "/settings/maintenance",
+      "/settings/labs",
+      "/settings/fork",
+      "/settings/about",
+      "/settings/archived",
+    ],
   },
 ];
 
@@ -338,14 +346,20 @@ export const SETTINGS_SEARCH_ITEMS = [
   {
     id: "sidebar-display-mode",
     title: "Sidebar",
-    to: "/settings/appearance",
+    to: "/settings/fork",
     searchTerms: ["sidebar strip status icons collapsed closed open threads panel"],
   },
   {
     id: "sidebar-hover-reveal",
     title: "Reveal sidebar on hover",
-    to: "/settings/appearance",
+    to: "/settings/fork",
     searchTerms: ["sidebar hover left edge peek temporary overlay show"],
+  },
+  {
+    id: "fork-version",
+    title: "Fork version",
+    to: "/settings/fork",
+    searchTerms: ["dylan fork release build update newer download github sidebar"],
   },
   {
     id: "thread-details-items",
@@ -1231,6 +1245,7 @@ const SETTINGS_CATEGORY_SCOPES: Readonly<Record<SettingsPath, SettingsSearchScop
   "/settings/scheduled-tasks": null,
   "/settings/maintenance": null,
   "/settings/labs": null,
+  "/settings/fork": null,
   "/settings/about": null,
   "/settings/archived": "project-defaults",
 };
