@@ -356,6 +356,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["sidebar hover left edge peek temporary overlay show"],
   },
   {
+    id: "sidebar-usage-bars",
+    title: "Usage bars",
+    to: "/settings/fork",
+    searchTerms: ["usage limits bars remaining used left spent quota sidebar footer"],
+  },
+  {
     id: "fork-version",
     title: "Fork version",
     to: "/settings/fork",

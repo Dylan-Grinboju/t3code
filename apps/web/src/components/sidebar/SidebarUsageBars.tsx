@@ -6,8 +6,10 @@ import {
   formatDuration,
 } from "@t3tools/shared/usageLimits";
 import { GaugeIcon, TrendingDownIcon, TrendingUpIcon } from "lucide-react";
+import { Schema } from "effect";
 import { useEffect, useEffectEvent, type ReactNode } from "react";
 
+import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { useNowMinute } from "../../hooks/useNowMinute";
 import { cn } from "../../lib/utils";
 import { environmentPresentations } from "../../state/presentation";
@@ -18,6 +20,29 @@ import { SidebarMenuButton, SidebarMenuItem } from "../ui/sidebar";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { barColor } from "../usage/UsageLimits";
 import { sidebarUsageRows, type SidebarUsageRow } from "./sidebarUsage";
+
+const USAGE_BARS_MEASURE_KEY = "t3code:sidebar-usage-bars-measure";
+const UsageBarsMeasure = Schema.Literals(["remaining", "used"]);
+export type UsageBarsMeasure = typeof UsageBarsMeasure.Type;
+
+/** Whether the sidebar usage bars fill with the quota left or the quota spent. */
+export function useUsageBarsMeasure() {
+  return useLocalStorage<UsageBarsMeasure, UsageBarsMeasure>(
+    USAGE_BARS_MEASURE_KEY,
+    "remaining",
+    UsageBarsMeasure,
+  );
+}
+
+function measured(row: SidebarUsageRow, measure: UsageBarsMeasure) {
+  const used = measure === "used";
+  return {
+    percent: used ? 100 - row.remainingPercent : row.remainingPercent,
+    tick:
+      row.evenPacePercent === null ? null : used ? 100 - row.evenPacePercent : row.evenPacePercent,
+    word: used ? "used" : "left",
+  };
+}
 
 const REFRESH_INTERVAL_MS = 10 * 60_000;
 // Within this many points of even pace reads as on pace.
@@ -72,8 +97,15 @@ function projectionText(row: SidebarUsageRow, now: number) {
   return `At this rate ${projection.leftAtReset}% is left when it resets${resetsIn}.`;
 }
 
-function UsageBarRow({ row }: { readonly row: SidebarUsageRow }) {
+function UsageBarRow({
+  row,
+  measure,
+}: {
+  readonly row: SidebarUsageRow;
+  readonly measure: UsageBarsMeasure;
+}) {
   const color = barColor(row.driver);
+  const { percent, tick } = measured(row, measure);
   const delta = row.projection?.paceDelta ?? null;
   const PaceGlyph =
     delta === null
@@ -94,12 +126,12 @@ function UsageBarRow({ row }: { readonly row: SidebarUsageRow }) {
       <span className="relative h-1.5 min-w-0 rounded-full bg-muted">
         <span
           className="absolute inset-y-0 left-0 rounded-full opacity-70"
-          style={{ width: `${row.remainingPercent}%`, backgroundColor: color }}
+          style={{ width: `${percent}%`, backgroundColor: color }}
         />
-        {row.evenPacePercent !== null ? (
+        {tick !== null ? (
           <span
             className="absolute -inset-y-0.5 w-0.5 -translate-x-1/2 rounded-full bg-foreground"
-            style={{ left: `clamp(1px, ${row.evenPacePercent}%, calc(100% - 1px))` }}
+            style={{ left: `clamp(1px, ${tick}%, calc(100% - 1px))` }}
           />
         ) : null}
       </span>
@@ -125,12 +157,15 @@ export function SidebarUsageBars(props: {
   readonly fallback: ReactNode;
 }) {
   useLimitsAutoRefresh();
+  const [measure] = useUsageBarsMeasure();
   const presentations = useAtomValue(environmentPresentations.presentationsWithProvidersAtom);
   const nowMinute = useNowMinute();
   const now = Date.parse(`${nowMinute}:00Z`);
   const rows = sidebarUsageRows(collectLimitPools(collectLimitAccounts(presentations), now), now);
   if (rows.length === 0) return props.fallback;
-  const label = `Usage: ${rows.map((row) => `${row.label} ${row.remainingPercent}% left`).join(", ")}`;
+  const label = `Usage: ${rows
+    .map((row) => `${row.label} ${measured(row, measure).percent}% ${measured(row, measure).word}`)
+    .join(", ")}`;
 
   return (
     <SidebarMenuItem className="min-w-0 flex-1">
@@ -140,7 +175,7 @@ export function SidebarUsageBars(props: {
         >
           <span className="flex w-full min-w-0 flex-col gap-1">
             {rows.map((row) => (
-              <UsageBarRow key={row.key} row={row} />
+              <UsageBarRow key={row.key} row={row} measure={measure} />
             ))}
           </span>
         </TooltipTrigger>
@@ -149,7 +184,7 @@ export function SidebarUsageBars(props: {
             {rows.map((row) => (
               <div key={row.key} className="flex flex-col gap-0.5">
                 <span className="text-foreground">
-                  {row.label}: {row.remainingPercent}% left
+                  {row.label}: {measured(row, measure).percent}% {measured(row, measure).word}
                   {paceText(row) ? ` · ${paceText(row)}` : ""}
                 </span>
                 {projectionText(row, now) ? (

@@ -1,3 +1,4 @@
+import { useUsageBarsMeasure } from "../sidebar/SidebarUsageBars";
 import { useSidebar } from "../ui/sidebar";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../ui/select";
 import { Switch } from "../ui/switch";
@@ -12,6 +13,7 @@ const SIDEBAR_MODE_LABELS = {
 
 export function SidebarDisplaySettings() {
   const { displayMode, setDisplayMode, hoverEnabled, setHoverEnabled } = useSidebar();
+  const [usageBarsMeasure, setUsageBarsMeasure] = useUsageBarsMeasure();
 
   return (
     <>
@@ -58,6 +60,36 @@ export function SidebarDisplaySettings() {
             onCheckedChange={(checked) => setHoverEnabled(Boolean(checked))}
             aria-label="Reveal sidebar on left-edge hover"
           />
+        }
+      />
+      <SettingsRow
+        {...searchableSetting("sidebar-usage-bars")}
+        description="Fill the sidebar usage bars with the share of each limit left, or the share used."
+        resetAction={
+          usageBarsMeasure !== "remaining" ? (
+            <SettingResetButton
+              label="usage bars"
+              onClick={() => setUsageBarsMeasure("remaining")}
+            />
+          ) : null
+        }
+        control={
+          <div className="w-full sm:w-40">
+            <Select
+              value={usageBarsMeasure}
+              onValueChange={(measure) => {
+                if (measure === "remaining" || measure === "used") setUsageBarsMeasure(measure);
+              }}
+            >
+              <SelectTrigger size="sm" className="w-full min-w-0" aria-label="Usage bars">
+                <SelectValue>{usageBarsMeasure === "used" ? "Used" : "Remaining"}</SelectValue>
+              </SelectTrigger>
+              <SelectPopup align="end" alignItemWithTrigger={false}>
+                <SelectItem value="remaining">Remaining (default)</SelectItem>
+                <SelectItem value="used">Used</SelectItem>
+              </SelectPopup>
+            </Select>
+          </div>
         }
       />
     </>
