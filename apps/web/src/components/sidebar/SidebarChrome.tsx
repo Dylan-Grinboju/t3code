@@ -36,6 +36,8 @@ import { readPullRequestListPreferences } from "../pullRequest/pullRequestListPr
 import { isSidebarUtilityPage, useNavigateToMainApp } from "./mainAppLocation";
 import { SidebarThreadUndoNotice } from "./SidebarThreadUndoNotice";
 import { SidebarForkReleaseNotice } from "./SidebarForkReleaseNotice";
+import { SidebarUsageBars } from "./SidebarUsageBars";
+import { readUsagePagePreferences, saveUsagePagePreferences } from "../usage/usagePagePreferences";
 import { SidebarProviderUpdatePill } from "./SidebarProviderUpdatePill";
 import { SidebarUpdateArchitectureWarning, SidebarUpdatePill } from "./SidebarUpdatePill";
 import { PullRequestGlyph } from "~/components/pullRequest/pullRequestIcons";
@@ -250,6 +252,10 @@ const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
     }
     void navigate({ to: "/usage" });
   };
+  const handleUsageBarsClick = () => {
+    saveUsagePagePreferences({ ...readUsagePagePreferences(), metric: "limits" });
+    handleUsageClick();
+  };
 
   const handleBackClick = () => {
     closeMobileSidebar();
@@ -279,10 +285,15 @@ const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
               onClick={handlePullRequestsClick}
             />
           ) : null}
-          <SidebarUtilityItem
-            icon={<ChartNoAxesColumnIcon />}
-            label="Usage"
-            onClick={handleUsageClick}
+          <SidebarUsageBars
+            onOpen={handleUsageBarsClick}
+            fallback={
+              <SidebarUtilityItem
+                icon={<ChartNoAxesColumnIcon />}
+                label="Usage"
+                onClick={handleUsageClick}
+              />
+            }
           />
         </>
       )}
