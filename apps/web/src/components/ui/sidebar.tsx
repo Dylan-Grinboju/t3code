@@ -490,7 +490,8 @@ function Sidebar({
             variant === "floating" || variant === "inset"
               ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
               : "group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-r group-data-[side=right]:border-l",
-            hoverOpen && "z-40 shadow-xl",
+            // Above the z-40 chat that floats over a maximized panel.
+            hoverOpen && "z-50 shadow-xl",
             className,
           )}
           data-hover-open={hoverOpen || undefined}
