@@ -43,6 +43,7 @@ import {
   FileDiff,
   Files,
   Globe2,
+  MessageSquare,
   MessagesSquare,
   Plus,
   TerminalSquare,
@@ -154,6 +155,10 @@ export interface RightPanelTabsProps {
   /** Overrides the default reason while side chats are available but cannot start. */
   sideChatDisabledReason?: string | null;
   pullRequestStatusSeeds?: Readonly<Record<string, PullRequestTabStatusSeed>>;
+  /** Double-clicking a tab calls this. */
+  onToggleMaximized?: (() => void) | undefined;
+  /** The thread's own chat as a leading tab, offered while the panel is maximized. */
+  chatTab?: { title: string; active: boolean; onActivate: () => void } | undefined;
   children: ReactNode;
 }
 
@@ -857,6 +862,7 @@ interface RightPanelTabHandlers {
   onContextMenu: (event: ReactMouseEvent, surface: RightPanelSurface) => void;
   onStartRename: (surfaceId: string) => void;
   onFinishRename: (surfaceId: string, title: string) => void;
+  onToggleMaximized: (() => void) | undefined;
 }
 
 // Chromium on Linux only suppresses primary-selection paste when mouseup is cancelled.
@@ -895,6 +901,7 @@ function RightPanelTab(
     onContextMenu,
     onStartRename,
     onFinishRename,
+    onToggleMaximized,
   } = props;
   const { listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: surface.id,
@@ -973,7 +980,8 @@ function RightPanelTab(
               <button
                 type="button"
                 onDoubleClick={() => {
-                  if (surface.kind === "device" && props.canRename) onStartRename(surface.id);
+                  if (onToggleMaximized) onToggleMaximized();
+                  else if (surface.kind === "device" && props.canRename) onStartRename(surface.id);
                 }}
                 className="cursor-pointer flex min-w-0 items-center"
                 aria-label={sideChatState === null ? undefined : `${title}, ${sideChatState}`}
@@ -1019,6 +1027,34 @@ function RightPanelTab(
     >
       {content}
     </div>
+  );
+}
+
+function ChatTab(props: {
+  title: string;
+  active: boolean;
+  onActivate: () => void;
+  onToggleMaximized: (() => void) | undefined;
+  ownsDesktopTitleBar: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      data-active-tab={props.active}
+      aria-pressed={props.active}
+      onClick={props.onActivate}
+      onDoubleClick={props.onToggleMaximized}
+      className={cn(
+        "cursor-pointer flex h-6 max-w-44 shrink-0 items-center gap-1.5 rounded-md pr-2 pl-2 text-xs",
+        props.ownsDesktopTitleBar && "[-webkit-app-region:no-drag]",
+        props.active
+          ? "bg-accent text-foreground"
+          : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+      )}
+    >
+      <MessageSquare className="size-3 shrink-0" />
+      <span className="truncate">{props.title}</span>
+    </button>
   );
 }
 
@@ -1272,6 +1308,8 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
     props.onRenameDevice?.(surfaceId, title);
     setRenamingDevice(null);
   });
+  const onToggleMaximizedStable = useStableCallback(() => props.onToggleMaximized?.());
+  const onToggleMaximizedTab = props.onToggleMaximized ? onToggleMaximizedStable : undefined;
 
   // A newly active tab, or tabs that start overflowing, can sit outside the scrolled strip.
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- scrolls the active tab DOM node into view after it changes or the tab strip starts overflowing
@@ -1350,6 +1388,13 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
           data-right-panel-tab-list
         >
           <div className="flex h-full w-max min-w-full items-center gap-1">
+            {props.chatTab ? (
+              <ChatTab
+                {...props.chatTab}
+                ownsDesktopTitleBar={ownsDesktopTitleBar}
+                onToggleMaximized={onToggleMaximizedTab}
+              />
+            ) : null}
             <SortableTabList surfaces={props.surfaces} onMove={props.onMoveSurface}>
               {props.surfaces.map((surface) => {
                 const previewTabId = previewTabIdOf(surface, props.previewSessions);
@@ -1363,7 +1408,7 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
                     key={surface.id}
                     surface={surface}
                     dragDisabled={!props.onMoveSurface || renamingDevice === surface.id}
-                    active={surface.id === props.activeSurfaceId}
+                    active={!props.chatTab?.active && surface.id === props.activeSurfaceId}
                     pending={props.pendingSurfaceIds.has(surface.id)}
                     title={surfaceTitle(surface, props.previewSessions, props.terminalLabelsById)}
                     audio={tabAudioState(
@@ -1386,6 +1431,7 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
                     onContextMenu={onTabContextMenu}
                     onStartRename={onStartRenameTab}
                     onFinishRename={onFinishRenameTab}
+                    onToggleMaximized={onToggleMaximizedTab}
                   />
                 );
               })}
@@ -1521,7 +1567,11 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
           />
         ) : null}
       </div>
-      <div className="flex min-h-0 flex-1 flex-col" data-right-panel-surface-content>
+      <div
+        className={cn("flex min-h-0 flex-1 flex-col", props.chatTab?.active && "invisible")}
+        inert={props.chatTab?.active === true}
+        data-right-panel-surface-content
+      >
         {props.activeSurfaceId === null ? (
           <RightPanelEmptyState
             onAddBrowser={props.onAddBrowser}

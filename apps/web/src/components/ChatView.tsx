@@ -287,6 +287,11 @@ import {
   ThreadPanelHeaderControl,
   WorkspaceTitlebarControls,
 } from "./chat/PanelLayoutControls";
+import {
+  FloatingChatExpandButton,
+  FloatingChatHeader,
+  type MaximizedChatPresentation,
+} from "./chat/MaximizedChatControls";
 import type { ExpandedImagePreview } from "./chat/ExpandedImagePreview";
 import { ThreadDetailsPanel } from "./chat/ThreadDetailsPanel";
 import { NoActiveThreadState } from "./NoActiveThreadState";
@@ -1083,6 +1088,14 @@ export default function ChatView(props: ChatViewProps) {
   // An embedded side chat has no panel; a stale maximized flag would hide its own column.
   const rightPanelMaximized =
     !embedded && canMaximizeRightPanel && rightPanelState.maximized === true;
+  const [floatingChatExpanded, setFloatingChatExpanded] = useState(false);
+  const maximizedChat: MaximizedChatPresentation | null = !rightPanelMaximized
+    ? null
+    : rightPanelState.chatTabActive
+      ? "tab"
+      : floatingChatExpanded
+        ? "expanded"
+        : "collapsed";
   const inlineRightPanelOwnsTitleBar = rightPanelOpen && !shouldUsePlanSidebarSheet;
   const [threadPanelPopoverHandle] = useState(PopoverCreateHandle);
   const [chatCanvasStore] = useState(createChatCanvasStore);
@@ -3291,17 +3304,36 @@ export default function ChatView(props: ChatViewProps) {
       {rightPanelControlsAtRoot && !embedded ? panelLayoutControls : null}
       <div
         className={cn(
-          "flex min-h-0 min-w-0 flex-col overflow-x-hidden",
-          rightPanelMaximized ? "w-0 flex-none" : "flex-1",
+          "flex min-h-0 min-w-0 flex-col",
+          maximizedChat !== "collapsed" && "overflow-x-hidden",
+          maximizedChat === null && "flex-1",
+          // z-40 stays above the desktop browser's webviews, which stack at z-30.
+          maximizedChat === "tab" &&
+            "absolute inset-x-0 top-(--workspace-topbar-height) bottom-0 z-40 bg-background",
+          (maximizedChat === "expanded" || maximizedChat === "collapsed") &&
+            "absolute inset-x-0 bottom-3 z-40 mx-auto w-[min(46rem,calc(100%-1.5rem))]",
+          maximizedChat === "expanded" &&
+            "h-[min(40rem,calc(100%-var(--workspace-topbar-height)-1.5rem))] overflow-hidden rounded-xl border border-border bg-background shadow-xl",
+          maximizedChat === "collapsed" && "pointer-events-none",
         )}
-        data-chat-column-maximized-away={rightPanelMaximized ? "true" : "false"}
+        style={maximizedChat === "collapsed" ? { height: composerReservedHeight } : undefined}
         data-chat-column
-        inert={rightPanelMaximized}
+        data-maximized-chat={maximizedChat ?? undefined}
       >
+        {maximizedChat === "expanded" ? (
+          <FloatingChatHeader
+            title={activeThread.title}
+            onCollapse={() => setFloatingChatExpanded(false)}
+          />
+        ) : null}
+        {maximizedChat === "collapsed" ? (
+          <FloatingChatExpandButton onExpand={() => setFloatingChatExpanded(true)} />
+        ) : null}
         {embedded ? null : (
           <header
             ref={threadPanelPopoverAnchorRef}
             data-chat-header
+            hidden={maximizedChat !== null}
             className={cn(
               "relative bg-background [[data-panel-animations=true]_&]:motion-safe:transition-[padding-left] [[data-panel-animations=true]_&]:motion-safe:duration-(--panel-animation-duration) [[data-panel-animations=true]_&]:motion-safe:ease-out",
               isElectron
@@ -3342,7 +3374,13 @@ export default function ChatView(props: ChatViewProps) {
           </header>
         )}
 
-        <div className="relative flex min-h-0 min-w-0 flex-1">
+        {/* Collapsed, only the composer overlay opts back into visibility. */}
+        <div
+          className={cn(
+            "relative flex min-h-0 min-w-0 flex-1",
+            maximizedChat === "collapsed" && "invisible",
+          )}
+        >
           <ThreadFindCanvas
             findOptions={{
               skills: timelineSkills,
@@ -3503,11 +3541,12 @@ export default function ChatView(props: ChatViewProps) {
               }}
               inert={isRevertingCheckpoint}
               data-chat-composer-overlay="true"
-              className={
+              className={cn(
                 isDraftHeroState
                   ? "pointer-events-none absolute inset-0 z-20 flex items-center"
-                  : "pointer-events-none absolute inset-x-0 bottom-0 z-20 pt-1.5 sm:pt-2"
-              }
+                  : "pointer-events-none absolute inset-x-0 bottom-0 z-20 pt-1.5 sm:pt-2",
+                maximizedChat === "collapsed" && "visible",
+              )}
             >
               <div ref={draftHeroTransitionGroupRef} className="chat-composer-lane w-full">
                 <div
@@ -3948,6 +3987,19 @@ export default function ChatView(props: ChatViewProps) {
           keybindings={keybindings}
           getShortcutContext={getShortcutContextStable}
           maximized={rightPanelMaximized}
+          onToggleMaximized={toggleRightPanelMaximizedStable}
+          chatTab={
+            maximizedChat === null
+              ? undefined
+              : {
+                  title: activeThread.title,
+                  active: maximizedChat === "tab",
+                  onActivate: () => {
+                    if (activeThreadRef)
+                      useRightPanelStore.getState().setChatTabActive(activeThreadRef, true);
+                  },
+                }
+          }
           layoutControls={
             rightPanelOpen ? (
               <div className="mr-px flex items-center gap-1">

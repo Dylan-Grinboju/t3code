@@ -503,6 +503,33 @@ describe("rightPanelStore", () => {
     expect(store.getUserActionRevision(refA)).toBe(revision);
   });
 
+  it("shows the chat tab only while maximized, until a surface is chosen or opened", () => {
+    const store = useRightPanelStore.getState();
+    const chatTab = () =>
+      selectThreadRightPanelState(useRightPanelStore.getState().byThreadKey, refA).chatTabActive;
+    store.open(refA, "diff");
+    store.setChatTabActive(refA, true);
+    expect(chatTab()).toBeUndefined();
+
+    store.setMaximized(refA, true);
+    store.setChatTabActive(refA, true);
+    store.openFile(refA, "src/a.ts");
+    store.setChatTabActive(refA, true);
+    store.closeSurface(refA, "diff");
+    expect(chatTab()).toBe(true);
+    store.activateSurface(refA, "file:src/a.ts");
+    expect(chatTab()).toBeUndefined();
+
+    store.setChatTabActive(refA, true);
+    store.openFile(refA, "src/a.ts", 4);
+    expect(chatTab()).toBeUndefined();
+
+    store.setChatTabActive(refA, true);
+    store.setMaximized(refA, false);
+    store.setMaximized(refA, true);
+    expect(chatTab()).toBeUndefined();
+  });
+
   it("restores a saved maximized panel during migration", () => {
     const migrated = migratePersistedRightPanelState({
       byThreadKey: {

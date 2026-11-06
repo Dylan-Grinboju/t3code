@@ -1459,6 +1459,7 @@ export function PullRequestsPage() {
             mode="inline"
             open={rightPanelState.isOpen}
             maximized={rightPanelMaximized}
+            onToggleMaximized={toggleRightPanelMaximized}
             keybindings={keybindings}
             getShortcutContext={getShortcutContext}
             widthStorageKey="t3code:pull-request-panel-width"

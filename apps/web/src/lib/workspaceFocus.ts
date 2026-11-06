@@ -36,7 +36,7 @@ function isWorkspaceElementVisible(element: HTMLElement): boolean {
   if (
     !element.isConnected ||
     element.closest(
-      '[hidden], [inert], [data-closed], [aria-hidden="true"], [data-chat-column-maximized-away="true"], [data-slot="sidebar"][data-state="collapsed"], [data-workspace-unavailable="true"]',
+      '[hidden], [inert], [data-closed], [aria-hidden="true"], [data-slot="sidebar"][data-state="collapsed"], [data-workspace-unavailable="true"]',
     )
   )
     return false;

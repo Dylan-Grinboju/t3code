@@ -94,6 +94,8 @@ export interface ThreadRightPanelState {
   surfaces: RightPanelSurface[];
   dismissedDeviceSurfaceIds?: string[];
   maximized?: true;
+  /** While maximized, the thread's own chat fills the panel in place of the active surface. */
+  chatTabActive?: true;
   proactiveDiffTurnId?: RunId;
 }
 
@@ -182,6 +184,7 @@ interface RightPanelStoreState {
   show: (ref: ScopedThreadRef) => void;
   close: (ref: ScopedThreadRef) => void;
   setMaximized: (ref: ScopedThreadRef, maximized: boolean) => void;
+  setChatTabActive: (ref: ScopedThreadRef, active: boolean) => void;
   toggleVisibility: (ref: ScopedThreadRef) => void;
   toggle: (
     ref: ScopedThreadRef,
@@ -349,13 +352,23 @@ type RightPanelStoreData = Pick<
   "byThreadKey" | "threadPanelVisibilityByThreadKey"
 >;
 
+const withoutChatTab = (current: ThreadRightPanelState): ThreadRightPanelState => {
+  if (!current.chatTabActive) return current;
+  const { chatTabActive: _chatTabActive, ...rest } = current;
+  return rest;
+};
+
 const updateThread = (
   state: RightPanelStoreData,
   threadKey: string,
   updater: (current: ThreadRightPanelState) => ThreadRightPanelState,
 ): RightPanelStoreData => {
   const current = state.byThreadKey[threadKey] ?? EMPTY_THREAD_STATE;
-  const byThreadKey = updateThreadStateMap(state.byThreadKey, threadKey, updater);
+  const byThreadKey = updateThreadStateMap(state.byThreadKey, threadKey, (thread) => {
+    const next = updater(thread);
+    // The chat tab only exists while the panel is open and maximized.
+    return next.isOpen && next.maximized ? next : withoutChatTab(next);
+  });
   const next = byThreadKey[threadKey] ?? EMPTY_THREAD_STATE;
   let threadPanelVisibilityByThreadKey = state.threadPanelVisibilityByThreadKey;
 
@@ -422,8 +435,10 @@ const userActionOnThread = (
   closesView: boolean,
 ): Partial<RightPanelStoreState> => ({
   ...updateThread(state, threadKey, (current) => {
-    const next = updater(current);
-    if (next === current) return current;
+    const updated = updater(current);
+    if (updated === current) return current;
+    // Opening or choosing a surface leaves the chat tab; closing one behind it does not.
+    const next = closesView ? updated : withoutChatTab(updated);
     const removedDevices = current.surfaces.filter(
       (surface) =>
         surface.kind === "device" && !next.surfaces.some((entry) => entry.id === surface.id),
@@ -1083,6 +1098,14 @@ export const useRightPanelStore = create<RightPanelStoreState>()(
             if ((current.maximized ?? false) === maximized) return current;
             const { maximized: _maximized, ...rest } = current;
             return maximized ? { ...rest, maximized: true } : rest;
+          }),
+        ),
+      setChatTabActive: (ref, active) =>
+        set((state) =>
+          automaticUpdate(state, scopedThreadKey(ref), (current) => {
+            if (!active) return withoutChatTab(current);
+            if (current.chatTabActive || !current.isOpen || !current.maximized) return current;
+            return { ...current, chatTabActive: true };
           }),
         ),
       toggleVisibility: (ref) =>
