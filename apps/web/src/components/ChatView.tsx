@@ -287,11 +287,7 @@ import {
   ThreadPanelHeaderControl,
   WorkspaceTitlebarControls,
 } from "./chat/PanelLayoutControls";
-import {
-  FloatingChatExpandButton,
-  FloatingChatHeader,
-  type MaximizedChatPresentation,
-} from "./chat/MaximizedChatControls";
+import { FloatingChatHeader, type MaximizedChatPresentation } from "./chat/MaximizedChatControls";
 import type { ExpandedImagePreview } from "./chat/ExpandedImagePreview";
 import { ThreadDetailsPanel } from "./chat/ThreadDetailsPanel";
 import { NoActiveThreadState } from "./NoActiveThreadState";
@@ -1089,6 +1085,9 @@ export default function ChatView(props: ChatViewProps) {
   const rightPanelMaximized =
     !embedded && canMaximizeRightPanel && rightPanelState.maximized === true;
   const [floatingChatExpanded, setFloatingChatExpanded] = useState(false);
+  const toggleFloatingChatStable = useStableCallback(() =>
+    setFloatingChatExpanded((expanded) => !expanded),
+  );
   const maximizedChat: MaximizedChatPresentation | null = !rightPanelMaximized
     ? null
     : rightPanelState.chatTabActive
@@ -3321,13 +3320,7 @@ export default function ChatView(props: ChatViewProps) {
         data-maximized-chat={maximizedChat ?? undefined}
       >
         {maximizedChat === "expanded" ? (
-          <FloatingChatHeader
-            title={activeThread.title}
-            onCollapse={() => setFloatingChatExpanded(false)}
-          />
-        ) : null}
-        {maximizedChat === "collapsed" ? (
-          <FloatingChatExpandButton onExpand={() => setFloatingChatExpanded(true)} />
+          <FloatingChatHeader title={activeThread.title} onToggle={toggleFloatingChatStable} />
         ) : null}
         {embedded ? null : (
           <header
@@ -3613,6 +3606,12 @@ export default function ChatView(props: ChatViewProps) {
                           ) : null}
                           {!composerMounted ? null : (
                             <ChatComposer
+                              {...(maximizedChat === "collapsed"
+                                ? {
+                                    floatingChatTitle: activeThread.title,
+                                    onToggleFloatingChat: toggleFloatingChatStable,
+                                  }
+                                : {})}
                               canOperateThread={canOperateThread}
                               reportedModelSelection={reportedModelSelection}
                               multipleModelSelections={multipleModelSelections}

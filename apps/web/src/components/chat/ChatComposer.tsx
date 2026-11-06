@@ -108,6 +108,7 @@ import {
   useComposerThreadDraft,
 } from "../../composerDraftStore";
 import { ComposerStashBadge } from "./ComposerStashBadge";
+import { FloatingChatTitleBanner } from "./MaximizedChatControls";
 import { ComposerStashMenu } from "./ComposerStashMenu";
 import { useComposerTriggerState } from "./useComposerTriggerState";
 import { useComposerMenuItems } from "./useComposerMenuItems";
@@ -346,6 +347,9 @@ export interface ChatComposerHandle {
 
 export interface ChatComposerProps {
   composerDraftTarget: ScopedThreadRef | DraftId;
+  /** Shown attached above the composer while it floats alone over a maximized panel. */
+  floatingChatTitle?: string | undefined;
+  onToggleFloatingChat?: (() => void) | undefined;
   environmentId: EnvironmentId;
   canOperateThread: boolean;
   attachmentUploadsCapabilityKnown: boolean;
@@ -3189,6 +3193,12 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     >
       <ComposerBanner.Dock>
         <ComposerBanner.Column>
+          {props.floatingChatTitle !== undefined && props.onToggleFloatingChat ? (
+            <FloatingChatTitleBanner
+              title={props.floatingChatTitle}
+              onToggle={props.onToggleFloatingChat}
+            />
+          ) : null}
           <ComposerBannerStack items={shelfItems} />
           {showComposerTopDrawer ? (
             <ComposerBanner.Attachment>
