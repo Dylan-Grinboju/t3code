@@ -33,6 +33,10 @@ import {
   usePrimaryEnvironmentId,
   useEnvironmentProviders,
 } from "~/state/environments";
+import {
+  scopeNewThreadPickerEntries,
+  useNewThreadHiddenEnvironments,
+} from "../newThreadEnvironments";
 import { ProjectEnvironmentBadge } from "../ProjectEnvironmentBadge";
 import { ProjectFavicon } from "../ProjectFavicon";
 import { isProjectPinShortcut, ProjectPinButton } from "../ProjectPinButton";
@@ -124,13 +128,6 @@ export function DraftHeroHeadline({
         ] as const,
     ),
   );
-  const projectPickerEntries = buildSidebarProjectPickerEntries({
-    groups: pickableProjectGroups(projectGroups),
-    preferredProjectRef: activeProjectRef,
-  });
-  const projectEntryByKey = new Map(
-    projectPickerEntries.map((entry) => [entry.group.projectKey, entry] as const),
-  );
   const activeProjectGroup =
     activeProjectRef === null
       ? null
@@ -140,8 +137,30 @@ export function DraftHeroHeadline({
           ),
         ) ?? null);
   const activeProjectKey = activeProjectGroup?.projectKey ?? "";
+  const { hidden: hiddenEnvironments } = useNewThreadHiddenEnvironments();
+  const allPickerEntries = buildSidebarProjectPickerEntries({
+    groups: pickableProjectGroups(projectGroups),
+    preferredProjectRef: activeProjectRef,
+  });
+  const shownEntryByKey = new Map(
+    scopeNewThreadPickerEntries(allPickerEntries, {
+      viewing: null,
+      hidden: hiddenEnvironments,
+      searching: pickerQuery.trim().length > 0,
+    }).map((entry) => [entry.group.projectKey, entry] as const),
+  );
+  // The draft's own project stays listed even on a hidden machine.
+  const projectPickerEntries = allPickerEntries.flatMap((entry) => {
+    const shown =
+      shownEntryByKey.get(entry.group.projectKey) ??
+      (entry.group.projectKey === activeProjectKey ? entry : null);
+    return shown ? [shown] : [];
+  });
+  const projectEntryByKey = new Map(
+    projectPickerEntries.map((entry) => [entry.group.projectKey, entry] as const),
+  );
   const hasResolvedProject = activeProjectTitle !== null;
-  const canChooseProject = projectPickerEntries.length > 0;
+  const canChooseProject = allPickerEntries.length > 0;
   const shouldShowProjectMenu = canChooseProject;
   const menuEntries = projectPickerEntries.filter(
     ({ targetProject }) =>

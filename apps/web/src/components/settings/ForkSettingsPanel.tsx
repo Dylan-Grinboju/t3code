@@ -9,6 +9,7 @@ import {
 import { Button } from "../ui/button";
 import { SettingsPageContainer, SettingsRow, SettingsSection } from "./settingsLayout";
 import { searchableSetting } from "./settingsSearch";
+import { NewThreadMachineSettings } from "./NewThreadMachineSettings";
 import { SidebarDisplaySettings } from "./SidebarDisplaySettings";
 
 const FORK_FEATURES = [
@@ -31,6 +32,11 @@ const FORK_FEATURES = [
     title: "Maximized panels keep the chat",
     description:
       "Double-click any right panel tab to maximize it. The chat floats over it as a composer: double-click the thread title to show or hide the conversation. The thread also appears as the first tab, to view the chat full size.",
+  },
+  {
+    title: "Machines in the new thread picker",
+    description:
+      "Hide a connected machine's projects from New thread in… until you type. In the picker, Ctrl+Tab (or the footer button) steps through one machine at a time.",
   },
   {
     title: "Fork releases",
@@ -96,6 +102,9 @@ export function ForkSettingsPanel() {
       </SettingsSection>
       <SettingsSection id="fork-sidebar" title="Sidebar">
         <SidebarDisplaySettings />
+      </SettingsSection>
+      <SettingsSection id="fork-new-thread-machines" title="New thread picker">
+        <NewThreadMachineSettings />
       </SettingsSection>
     </SettingsPageContainer>
   );

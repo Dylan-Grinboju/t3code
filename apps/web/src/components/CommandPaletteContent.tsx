@@ -25,6 +25,8 @@ type CommandPaletteContentProps = Omit<ComponentProps<typeof Command>, "children
   readonly children: ReactNode;
   readonly escapeLabel?: ReactNode;
   readonly footerActionLabel?: ReactNode;
+  /** Shown after the Esc hint. */
+  readonly footerHint?: ReactNode;
   readonly footerTrailing?: ReactNode;
   readonly inputAccessory?: ReactNode;
   readonly inputProps: ComponentProps<typeof CommandInput>;
@@ -37,6 +39,7 @@ export function CommandPaletteContent({
   children,
   escapeLabel = "Close",
   footerActionLabel,
+  footerHint,
   footerTrailing,
   inputAccessory,
   inputProps,
@@ -90,6 +93,7 @@ export function CommandPaletteContent({
               <Kbd>Esc</Kbd>
               <span>{escapeLabel}</span>
             </KbdGroup>
+            {footerHint}
           </div>
           {footerTrailing}
         </CommandFooter>

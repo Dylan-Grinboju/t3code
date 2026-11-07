@@ -259,6 +259,13 @@ import { ComposerHandleContext, useComposerHandleContext } from "../composerHand
 import type { ChatComposerHandle } from "./chat/ChatComposer";
 import { pickableProjectGroups } from "@t3tools/client-runtime/state/project-grouping";
 import { buildSidebarProjectPickerEntries } from "../sidebarProjectGrouping";
+import {
+  cycleNewThreadEnvironment,
+  isNewThreadEnvironmentShown,
+  scopeNewThreadPickerEntries,
+  useNewThreadHiddenEnvironments,
+} from "./newThreadEnvironments";
+import { Kbd, KbdGroup } from "./ui/kbd";
 import { PullRequestGlyph } from "~/components/pullRequest/pullRequestIcons";
 import { readPullRequestListPreferences } from "~/components/pullRequest/pullRequestListPreferences";
 import { useThreadRouteTarget } from "../hooks/useThreadRouteTarget";
@@ -533,16 +540,54 @@ function OpenCommandPaletteDialog(props: {
     defaultProjectRef,
     handleNewThread,
   });
+  const pickableGroups = pickableProjectGroups(projectGroups);
   const projectPickerEntries = buildSidebarProjectPickerEntries({
-    groups: pickableProjectGroups(projectGroups),
+    groups: pickableGroups,
     preferredProjectRef: contextualProjectRef,
   });
-  const pickerProjects = projectPickerEntries.map(({ group, targetProject }) => ({
+  const toPickerProject = ({ group, targetProject }: (typeof projectPickerEntries)[number]) => ({
     ...targetProject,
     displayName: group.displayName,
-  }));
+  });
+  const pickerProjects = projectPickerEntries.map(toPickerProject);
+  const { hidden: hiddenNewThreadEnvironments } = useNewThreadHiddenEnvironments();
+  const [viewingEnvironmentId, setViewingEnvironmentId] = useState<EnvironmentId | null>(null);
+  const isNewThreadInView = currentView?.groups[0]?.value === NEW_THREAD_IN_GROUP;
+  const newThreadScope = {
+    viewing: isNewThreadInView ? viewingEnvironmentId : null,
+    hidden: hiddenNewThreadEnvironments,
+    searching: deferredQuery.trim().length > 0,
+  };
+  const newThreadPickerEntries = scopeNewThreadPickerEntries(projectPickerEntries, newThreadScope);
+  // Machines with projects, local first, for Ctrl+Tab in the new-thread picker.
+  const newThreadEnvironmentIds = (() => {
+    const withProjects = new Set(
+      pickableGroups.flatMap((group) => group.memberProjects.map((member) => member.environmentId)),
+    );
+    return environments
+      .filter((environment) => withProjects.has(environment.environmentId))
+      .toSorted((left, right) => {
+        const leftPrimary = left.entry.target._tag === "PrimaryConnectionTarget";
+        const rightPrimary = right.entry.target._tag === "PrimaryConnectionTarget";
+        if (leftPrimary !== rightPrimary) return leftPrimary ? -1 : 1;
+        return left.label.localeCompare(right.label);
+      })
+      .map((environment) => environment.environmentId);
+  })();
+  const viewingEnvironmentLabel =
+    viewingEnvironmentId === null
+      ? null
+      : (projectEnvironmentLocationById.get(viewingEnvironmentId)?.label ?? "Remote");
+  const canSwitchNewThreadEnvironment = isNewThreadInView && newThreadEnvironmentIds.length > 1;
+  const cycleViewingEnvironment = (direction: 1 | -1) => {
+    setViewingEnvironmentId((current) =>
+      cycleNewThreadEnvironment(current, newThreadEnvironmentIds, direction),
+    );
+    clearTypedHighlight();
+  };
+  // Retargeted rows key on another machine's copy, so both entry lists feed the lookup.
   const projectGroupByTargetKey = new Map(
-    projectPickerEntries.map(({ group, targetProject }) => [
+    [...projectPickerEntries, ...newThreadPickerEntries].map(({ group, targetProject }) => [
       `${targetProject.environmentId}:${targetProject.id}`,
       group,
     ]),
@@ -824,7 +869,9 @@ function OpenCommandPaletteDialog(props: {
       const isScratch = (project: CommandPaletteProject) =>
         isScratchProject(project, scratchWorkspaceRootFor(project.environmentId));
       const projectItems = buildNewThreadInProjectItems({
-        projects: pickerProjects.filter((project) => !isScratch(project)),
+        projects: newThreadPickerEntries
+          .map(toPickerProject)
+          .filter((project) => !isScratch(project)),
         projectGroupByTargetKey,
         locationByEnvironmentId: projectEnvironmentLocationById,
         pin: projectPin,
@@ -832,6 +879,7 @@ function OpenCommandPaletteDialog(props: {
           const group = projectGroupByTargetKey.get(`${project.environmentId}:${project.id}`);
           const contextualRefBelongsToGroup =
             contextualProjectRef !== null &&
+            isNewThreadEnvironmentShown(contextualProjectRef.environmentId, newThreadScope) &&
             group?.memberProjectRefs.some(
               (projectRef) =>
                 projectRef.environmentId === contextualProjectRef.environmentId &&
@@ -844,10 +892,19 @@ function OpenCommandPaletteDialog(props: {
           );
         },
       });
-      if (scratchTargetEnvironmentId === null) return projectItems;
+      const noProjectEnvironmentId =
+        newThreadScope.viewing !== null
+          ? scratchWorkspaceRootFor(newThreadScope.viewing) !== null
+            ? newThreadScope.viewing
+            : null
+          : scratchTargetEnvironmentId !== null &&
+              isNewThreadEnvironmentShown(scratchTargetEnvironmentId, newThreadScope)
+            ? scratchTargetEnvironmentId
+            : null;
+      if (noProjectEnvironmentId === null) return projectItems;
 
       const noProjectIndex = newThreadNoProjectIndex(
-        projectPickerEntries.map(({ group, targetProject, isPreferred }) => ({
+        newThreadPickerEntries.map(({ group, targetProject, isPreferred }) => ({
           isScratch: isScratchProject(
             targetProject,
             scratchWorkspaceRootFor(targetProject.environmentId),
@@ -865,12 +922,13 @@ function OpenCommandPaletteDialog(props: {
           title: "No project",
           icon: <MessageSquareDashedIcon className={ITEM_ICON_CLASS} />,
           shortcutCommand: "chat.newWithoutProject" as const,
-          run: () => startScratchThread(scratchTargetEnvironmentId),
+          run: () => startScratchThread(noProjectEnvironmentId),
         },
         ...projectItems.slice(noProjectIndex),
       ];
     })(),
-    rowOrderKey("new-thread-in"),
+    // Each machine view keeps its own order, so rows another view hid do not trail at the end.
+    (item) => `${newThreadScope.viewing ?? ""}|${rowOrderKey("new-thread-in")(item)}`,
     true,
   );
   // Jump shortcuts follow the rows as shown, so a pin cannot move a number to another row.
@@ -914,6 +972,7 @@ function OpenCommandPaletteDialog(props: {
     browseNavigation.invalidate();
     setAddProjectCloneFlow(null);
     setNewProjectFlow(null);
+    setViewingEnvironmentId(null);
     if (viewStack.length <= 1) {
       setAddProjectEnvironmentId(null);
     } else if (newProjectFlow?.sourcesEnvironmentId) {
@@ -1709,7 +1768,10 @@ function OpenCommandPaletteDialog(props: {
           ? [
               {
                 value: NEW_THREAD_IN_GROUP,
-                label: "Projects",
+                label:
+                  viewingEnvironmentLabel === null
+                    ? "Projects"
+                    : `Projects on ${viewingEnvironmentLabel}`,
                 // Every project archived and no "No project" home leaves only adding one.
                 items: projectThreadItems.length > 0 ? projectThreadItems : [addProjectAction],
               },
@@ -2553,6 +2615,19 @@ function OpenCommandPaletteDialog(props: {
       return;
     }
 
+    if (
+      event.key === "Tab" &&
+      event.ctrlKey &&
+      !event.altKey &&
+      !event.metaKey &&
+      canSwitchNewThreadEnvironment
+    ) {
+      (event as typeof event & { preventBaseUIHandler?: () => void }).preventBaseUIHandler?.();
+      event.preventDefault();
+      cycleViewingEnvironment(event.shiftKey ? -1 : 1);
+      return;
+    }
+
     if (event.ctrlKey || event.shiftKey || event.altKey || event.metaKey) return;
 
     if (event.key === "Tab" && isBrowsing && !relativePathNeedsActiveProject) {
@@ -2811,12 +2886,35 @@ function OpenCommandPaletteDialog(props: {
     <span className="text-muted-foreground text-xs">Searching messages…</span>
   ) : null;
 
+  const hiddenEnvironmentCount = newThreadEnvironmentIds.filter((environmentId) =>
+    hiddenNewThreadEnvironments.has(environmentId),
+  ).length;
+  // Browsers keep Ctrl+Tab for switching tabs, so the hint is also a button.
+  const footerHint = canSwitchNewThreadEnvironment ? (
+    <CommandFooterAction
+      aria-label="Switch machine"
+      onMouseDown={(event) => event.preventDefault()}
+      onClick={() => cycleViewingEnvironment(1)}
+    >
+      <KbdGroup>
+        <Kbd>Ctrl+Tab</Kbd>
+        <span>
+          {viewingEnvironmentLabel ??
+            (hiddenEnvironmentCount > 0
+              ? `All machines · ${hiddenEnvironmentCount} hidden`
+              : "All machines")}
+        </span>
+      </KbdGroup>
+    </CommandFooterAction>
+  ) : null;
+
   return (
     <CommandPaletteContent
       key={`${viewStack.length}-${browseGeneration}-${isBrowsing}-${newProjectFlow ? "new-project" : (addProjectCloneFlow?.step ?? "none")}`}
       aria-label="Command palette"
       autoHighlight={autoHighlightsFirstRow ? "always" : false}
       footerActionLabel={footerActionLabel}
+      footerHint={footerHint}
       footerTrailing={footerTrailing}
       inputAccessory={inputAccessory}
       inputProps={{

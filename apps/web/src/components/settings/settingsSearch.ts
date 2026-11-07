@@ -362,6 +362,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["usage limits bars remaining used left spent quota sidebar footer"],
   },
   {
+    id: "new-thread-machines",
+    title: "Machines in the new thread picker",
+    to: "/settings/fork",
+    searchTerms: ["hide machine computer environment remote projects new thread picker ctrl tab"],
+  },
+  {
     id: "fork-version",
     title: "Fork version",
     to: "/settings/fork",
