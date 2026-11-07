@@ -578,6 +578,17 @@ function OpenCommandPaletteDialog(props: {
     viewingEnvironmentId === null
       ? null
       : (projectEnvironmentLocationById.get(viewingEnvironmentId)?.label ?? "Remote");
+  const hiddenEnvironmentCount = newThreadScope.searching
+    ? 0
+    : newThreadEnvironmentIds.filter((environmentId) =>
+        hiddenNewThreadEnvironments.has(environmentId),
+      ).length;
+  const newThreadGroupLabel =
+    viewingEnvironmentLabel !== null
+      ? `Projects on ${viewingEnvironmentLabel}`
+      : hiddenEnvironmentCount > 0
+        ? `Projects · ${hiddenEnvironmentCount} ${hiddenEnvironmentCount === 1 ? "machine" : "machines"} hidden`
+        : "Projects";
   const canSwitchNewThreadEnvironment = isNewThreadInView && newThreadEnvironmentIds.length > 1;
   const cycleViewingEnvironment = (direction: 1 | -1) => {
     setViewingEnvironmentId((current) =>
@@ -1768,10 +1779,7 @@ function OpenCommandPaletteDialog(props: {
           ? [
               {
                 value: NEW_THREAD_IN_GROUP,
-                label:
-                  viewingEnvironmentLabel === null
-                    ? "Projects"
-                    : `Projects on ${viewingEnvironmentLabel}`,
+                label: newThreadGroupLabel,
                 // Every project archived and no "No project" home leaves only adding one.
                 items: projectThreadItems.length > 0 ? projectThreadItems : [addProjectAction],
               },
@@ -2886,9 +2894,6 @@ function OpenCommandPaletteDialog(props: {
     <span className="text-muted-foreground text-xs">Searching messages…</span>
   ) : null;
 
-  const hiddenEnvironmentCount = newThreadEnvironmentIds.filter((environmentId) =>
-    hiddenNewThreadEnvironments.has(environmentId),
-  ).length;
   // Browsers keep Ctrl+Tab for switching tabs, so the hint is also a button.
   const footerHint = canSwitchNewThreadEnvironment ? (
     <CommandFooterAction
@@ -2898,12 +2903,7 @@ function OpenCommandPaletteDialog(props: {
     >
       <KbdGroup>
         <Kbd>Ctrl+Tab</Kbd>
-        <span>
-          {viewingEnvironmentLabel ??
-            (hiddenEnvironmentCount > 0
-              ? `All machines · ${hiddenEnvironmentCount} hidden`
-              : "All machines")}
-        </span>
+        <span>Switch machine</span>
       </KbdGroup>
     </CommandFooterAction>
   ) : null;
