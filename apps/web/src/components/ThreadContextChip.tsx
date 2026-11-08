@@ -7,6 +7,7 @@ import { useProject, useThreadShell } from "~/state/entities";
 import { ContextChip, ContextChipLabel } from "./ContextChip";
 import { ProjectFavicon } from "./ProjectFavicon";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "./ui/tooltip";
+import { isPeekClick, useReferencePeek } from "./peek/referencePeek";
 
 export function ThreadContextChip(props: {
   record: Pick<ThreadContextRecord, "environmentId" | "threadId" | "title">;
@@ -14,6 +15,7 @@ export function ThreadContextChip(props: {
   unreadable?: boolean;
 }) {
   const { environmentId, threadId } = props.record;
+  const peek = useReferencePeek();
   const shell = useThreadShell({ environmentId, threadId });
   const project = useProject(shell ? scopeProjectRef(environmentId, shell.projectId) : null);
   const title = shell?.title?.trim() || props.record.title;
@@ -28,6 +30,12 @@ export function ThreadContextChip(props: {
             aria-label={`Thread, ${title}`}
             data-markdown-copy={props.copyMarkdown}
             className="no-underline"
+            onClick={(event) => {
+              if (!peek || !isPeekClick(event)) return;
+              event.preventDefault();
+              event.stopPropagation();
+              peek({ kind: "thread", threadRef: { environmentId, threadId }, title });
+            }}
           >
             {project ? (
               <ProjectFavicon project={project} className="size-[1em] self-center" />
@@ -42,7 +50,7 @@ export function ThreadContextChip(props: {
         {props.unreadable
           ? "On another machine, so this machine's agent can't read it. Remove it or switch back to send."
           : shell
-            ? "Open thread"
+            ? "Open thread · Shift-click to peek"
             : "Thread no longer available"}
       </TooltipPopup>
     </Tooltip>

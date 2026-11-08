@@ -24,6 +24,7 @@ import { ThreadAutomationsPanel } from "./ThreadAutomationsPanel";
 import { ThreadRelationshipsPanel } from "./ThreadRelationshipsControl";
 import { ThreadServersPanel } from "./ThreadServersPanel";
 import { ThreadLinksPanel } from "./ThreadLinksPanel";
+import { ThreadShelf } from "./ThreadShelf";
 import {
   ThreadDetailsContext,
   ThreadDetailsUsage,
@@ -126,6 +127,13 @@ export function ThreadDetailsPanel(props: ThreadDetailsPanelProps) {
       threadRef={{ environmentId: props.environmentId, threadId: props.threadId }}
       anchor={props.anchor}
       handle={props.handle}
+      footer={
+        <ThreadShelf
+          key={`${props.environmentId}:${props.threadId}`}
+          threadRef={activeThreadRef}
+          {...(props.draftId ? { draftId: props.draftId } : {})}
+        />
+      }
       contentKey={THREAD_DETAILS_ITEMS.filter((item) => visible[item.id])
         .map((item) => item.id)
         .join(",")}

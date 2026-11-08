@@ -290,6 +290,19 @@ its progress.
   stop the turn only when it is working on the goal. Other goal commands wait for
   the turn to end.
 
+## Shelf and Peek in Dylan's fork
+
+The shelf below thread details collects images you attach. Select text in an assistant
+reply and choose **Pin** beside **Cite** to save a passage; select the pin to return to
+its source. Remove an item from the shelf with its × button without removing the
+original message or attachment. Shelf pins and removals are saved on this device.
+Unsent images stay with their draft; sent images remain available from the thread.
+
+**Shift-click** a file or thread reference to peek at it without leaving the current
+conversation. Press **Escape** to return, or choose **Open in panel** or **Open thread**
+to keep the destination open. File peeks show an excerpt around the referenced line;
+thread peeks show recent messages.
+
 ## Context in your message
 
 Context you attach lands where your cursor is, as a chip inside your text: a terminal excerpt,

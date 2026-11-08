@@ -9,6 +9,7 @@ import { resolveThreadRouteTarget, type ThreadRouteTarget } from "../threadRoute
 import { retainThreadFindForRoute } from "../components/chat/threadFindStore";
 import { ThreadLinkPrompt } from "../components/promptLinks/ThreadLinkPrompt";
 import { useThreadRouteTarget } from "../hooks/useThreadRouteTarget";
+import { ReferencePeekProvider } from "../components/peek/ReferencePeekProvider";
 
 function threadRouteTargetKey(target: ThreadRouteTarget | null) {
   if (!target) return null;
@@ -29,7 +30,7 @@ function ChatRouteLayout() {
   }
   const shownTarget = modalOpen ? backgroundTarget : threadTarget;
   return (
-    <>
+    <ReferencePeekProvider>
       {shownTarget?.kind === "server" && !modalOpen ? (
         <ThreadLinkPrompt threadRef={shownTarget.threadRef} />
       ) : null}
@@ -41,7 +42,7 @@ function ChatRouteLayout() {
         <Outlet />
       )}
       {modalOpen ? <Outlet /> : null}
-    </>
+    </ReferencePeekProvider>
   );
 }
 

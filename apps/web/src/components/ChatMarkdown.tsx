@@ -188,6 +188,7 @@ import {
   isBrowserSettingsReadError,
 } from "../browser/openFileInPreview";
 import { resolveLinkTarget } from "../browser/browserLinkTarget";
+import { useReferencePeek } from "./peek/referencePeek";
 import { PullRequestLinkPreview } from "./pullRequest/PullRequestLinkPreview";
 import { MarkdownCodeBlock, SuspenseShikiCodeBlock } from "./chat/MarkdownCodeBlock";
 import { createMarkdownRenderer } from "./chat/markdownRenderer";
@@ -495,6 +496,7 @@ function useChatMarkdownState({
   headingLevelOffset = 0,
   sourceControlMedia = false,
 }: ChatMarkdownProps) {
+  const peek = useReferencePeek();
   const resolvedTheme = useRenderedAppearance();
   const markdownRef = useRef<HTMLElement>(null);
   const mediaRequestId = useRef(0);
@@ -785,12 +787,14 @@ function useChatMarkdownState({
     });
     return metadata._tag === "Success" && metadata.value.entries[0] === null ? match : null;
   };
-  const openFileInPanel = (fileLinkMeta: MarkdownFileLinkMeta, panelPath: string) => {
+  const openFileReference = (
+    fileLinkMeta: MarkdownFileLinkMeta,
+    panelPath: string,
+    openAt: (path: string) => void,
+  ) => {
     if (!threadRef) return;
     // Every open supersedes pending lookups, including synchronous opens.
     const isLatestLookup = claimWorkspaceBasenameLookup();
-    const openAt = (path: string) =>
-      useRightPanelStore.getState().openFile(threadRef, path, fileLinkMeta.line);
     if (
       fileLinkMeta.workspaceLookupPath === null ||
       !cwd ||
@@ -834,6 +838,21 @@ function useChatMarkdownState({
         iconPath={fileLinkMeta.filePath}
         workspaceRelativePath={fileLinkMeta.workspaceRelativePath}
         panelPath={panelPath}
+        onPeek={
+          peek && threadRef && cwd && panelPath && !canPreviewMedia
+            ? () =>
+                openFileReference(fileLinkMeta, panelPath, (path) =>
+                  peek({
+                    kind: "file",
+                    threadRef,
+                    cwd,
+                    path,
+                    title: fileLinkMeta.basename,
+                    ...(fileLinkMeta.line !== undefined ? { line: fileLinkMeta.line } : {}),
+                  }),
+                )
+            : undefined
+        }
         line={fileLinkMeta.line}
         label={fileLinkLabel(
           {
@@ -857,7 +876,12 @@ function useChatMarkdownState({
         resolveCopyPaths={async () =>
           markdownFileCopyPaths(fileLinkMeta, await resolveHostPath(), cwd)
         }
-        onOpenInPanel={(path) => openFileInPanel(fileLinkMeta, path)}
+        onOpenInPanel={(path) =>
+          openFileReference(fileLinkMeta, path, (resolvedPath) => {
+            if (threadRef)
+              useRightPanelStore.getState().openFile(threadRef, resolvedPath, fileLinkMeta.line);
+          })
+        }
         onOpenMedia={
           threadRef && canPreviewMedia
             ? () => openMarkdownMedia(mediaPath, fileLinkMeta.filePath)

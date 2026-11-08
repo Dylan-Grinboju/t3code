@@ -23,6 +23,7 @@ import {
 } from "./MarkdownFileLink.logic";
 import { reportMarkdownActionFailure } from "./markdownActionFailure";
 import { WorkspaceEntryTooltip } from "./WorkspaceEntryIcon";
+import { isPeekClick } from "../peek/referencePeek";
 
 interface MarkdownFileLinkProps {
   environmentId: EnvironmentId | null;
@@ -38,6 +39,7 @@ interface MarkdownFileLinkProps {
   threadRef?: ScopedThreadRef | undefined;
   onOpen?: (() => Promise<AtomCommandResult<unknown, unknown>>) | undefined;
   onOpenInPanel: (panelPath: string, line: number | undefined) => void;
+  onPeek?: (() => void) | undefined;
   resolveCopyPaths: () => Promise<ReturnType<typeof markdownFileCopyPaths>>;
   openInEditorMenuLabel: string;
   onOpenInBrowser?: (() => Promise<AtomCommandResult<unknown, unknown>>) | undefined;
@@ -62,6 +64,7 @@ export const MarkdownFileLink = memo(function MarkdownFileLink({
   threadRef,
   onOpen,
   onOpenInPanel,
+  onPeek,
   openInEditorMenuLabel,
   onOpenInBrowser,
   onOpenMedia,
@@ -249,6 +252,7 @@ export const MarkdownFileLink = memo(function MarkdownFileLink({
       const copyItems = markdownFileCopyMenuItems({ targetPath, workspaceRelativePath });
       const clicked = await api.contextMenu.show(
         [
+          ...(onPeek ? ([{ id: "peek", label: "Peek" }] as const) : []),
           ...(onOpenMedia ? ([{ id: "preview-media", label: "Preview media" }] as const) : []),
           ...(onOpen ? ([{ id: "open", label: openInEditorMenuLabel }] as const) : []),
           ...(onOpenInBrowser
@@ -260,6 +264,10 @@ export const MarkdownFileLink = memo(function MarkdownFileLink({
         position,
       );
 
+      if (clicked === "peek") {
+        onPeek?.();
+        return;
+      }
       if (clicked === "preview-media") {
         onOpenMedia?.();
         return;
@@ -337,6 +345,10 @@ export const MarkdownFileLink = memo(function MarkdownFileLink({
               onClick={(event) => {
                 event.preventDefault();
                 event.stopPropagation();
+                if (onPeek && isPeekClick(event)) {
+                  onPeek();
+                  return;
+                }
                 if (onOpen && shouldOpenMarkdownFileLinkInEditor(event)) {
                   handleOpenInEditor();
                   return;
@@ -381,6 +393,7 @@ export const MarkdownFileLink = memo(function MarkdownFileLink({
       <TooltipPopup side="top" variant="code">
         <div className="overflow-x-auto whitespace-nowrap scrollbar-thumb-border/78 scrollbar-track-transparent [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border/78 [&::-webkit-scrollbar-track]:bg-transparent">
           <WorkspaceEntryTooltip path={iconPath} label={targetPath} environmentId={environmentId} />
+          {onPeek ? <div>Shift-click to peek</div> : null}
         </div>
       </TooltipPopup>
     </Tooltip>
