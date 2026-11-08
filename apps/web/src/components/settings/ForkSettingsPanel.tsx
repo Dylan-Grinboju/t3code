@@ -39,6 +39,11 @@ const FORK_FEATURES = [
       "Hide a connected machine's projects from New thread in… until you type. In the picker, Ctrl+Tab (or the footer button) steps through one machine at a time.",
   },
   {
+    title: "Thread links",
+    description:
+      "Thread details list the GitHub and Jira links mentioned in the thread, grouped by site, newest first. Hide them from the card's right-click menu.",
+  },
+  {
     title: "Fork releases",
     description:
       "Mac and Windows builds come from the fork's own releases. The sidebar shows a button when a newer one is out.",
