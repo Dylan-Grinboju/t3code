@@ -5,6 +5,7 @@ import { TicketIcon } from "lucide-react";
 import { type MouseEvent, useState } from "react";
 
 import { useOpenLink } from "~/browser/useOpenLink";
+import { useOpenPrLink } from "~/lib/openPullRequestLink";
 
 import { useTimelineVisibleTurnItems } from "../../state/entities";
 import { MorphIcon } from "../MorphIcon";
@@ -64,10 +65,15 @@ function ThreadLinkGroup(props: {
 }) {
   const [visibleCount, setVisibleCount] = useState(LINK_PAGE_COUNT);
   const openLink = useOpenLink(props.threadRef);
-  const open = (url: string, event: MouseEvent<HTMLElement>) => {
+  const openPrLink = useOpenPrLink(props.threadRef);
+  const open = (link: ThreadLink, event: MouseEvent<HTMLElement>) => {
+    if (link.kind === "pull") {
+      openPrLink(event, link.url);
+      return;
+    }
     if (event.button > 1) return;
     event.preventDefault();
-    void openLink(url, { event }).catch((error: unknown) => {
+    void openLink(link.url, { event }).catch((error: unknown) => {
       console.error(error);
       toastManager.add({ type: "error", title: "Unable to open link" });
     });
@@ -92,8 +98,8 @@ function ThreadLinkGroup(props: {
                 part="row"
                 type="button"
                 title={link.url}
-                onClick={(event) => open(link.url, event)}
-                onAuxClick={(event) => open(link.url, event)}
+                onClick={(event) => open(link, event)}
+                onAuxClick={(event) => open(link, event)}
               >
                 <Icon aria-hidden className={THREAD_DETAILS_PANEL_ICON_CLASS} />
                 <span className={`min-w-0 truncate ${THREAD_DETAILS_PANEL_LABEL_CLASS}`}>
