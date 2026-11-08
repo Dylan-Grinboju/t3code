@@ -1,14 +1,17 @@
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
-import type { EnvironmentId, ThreadId } from "@t3tools/contracts";
+import type { EnvironmentId, ScopedThreadRef, ThreadId } from "@t3tools/contracts";
 import { ChevronDown, ChevronUp } from "lucide";
 import { TicketIcon } from "lucide-react";
-import { useState } from "react";
+import { type MouseEvent, useState } from "react";
+
+import { useOpenLink } from "~/browser/useOpenLink";
 
 import { useTimelineVisibleTurnItems } from "../../state/entities";
 import { MorphIcon } from "../MorphIcon";
 import { PullRequestGlyph } from "../pullRequest/pullRequestIcons";
 import { ThreadDetailsControl } from "./ThreadDetailsControl";
 import { ThreadDetailsSection } from "./ThreadDetailsSection";
+import { toastManager } from "../ui/toast";
 import { collectThreadLinks, type ThreadLink, type ThreadLinkKind } from "./threadLinks";
 import {
   THREAD_DETAILS_PANEL_ICON_CLASS,
@@ -29,7 +32,8 @@ interface ThreadLinksPanelProps {
 
 /** GitHub pull requests and Jira issues mentioned in the thread, one section each. Hidden while there are none. */
 export function ThreadLinksPanel(props: ThreadLinksPanelProps) {
-  const items = useTimelineVisibleTurnItems(scopeThreadRef(props.environmentId, props.threadId));
+  const threadRef = scopeThreadRef(props.environmentId, props.threadId);
+  const items = useTimelineVisibleTurnItems(threadRef);
   const links = collectThreadLinks(items);
   const key = `${props.environmentId}:${props.threadId}`;
   return (
@@ -38,12 +42,14 @@ export function ThreadLinksPanel(props: ThreadLinksPanelProps) {
         key={`github:${key}`}
         id="github"
         title="Pull requests"
+        threadRef={threadRef}
         links={links.filter((link) => link.kind === "pull")}
       />
       <ThreadLinkGroup
         key={`jira:${key}`}
         id="jira"
         title="Jira"
+        threadRef={threadRef}
         links={links.filter((link) => link.kind === "jira")}
       />
     </>
@@ -53,9 +59,19 @@ export function ThreadLinksPanel(props: ThreadLinksPanelProps) {
 function ThreadLinkGroup(props: {
   readonly id: string;
   readonly title: string;
+  readonly threadRef: ScopedThreadRef;
   readonly links: ReadonlyArray<ThreadLink>;
 }) {
   const [visibleCount, setVisibleCount] = useState(LINK_PAGE_COUNT);
+  const openLink = useOpenLink(props.threadRef);
+  const open = (url: string, event: MouseEvent<HTMLElement>) => {
+    if (event.button > 1) return;
+    event.preventDefault();
+    void openLink(url, { event }).catch((error: unknown) => {
+      console.error(error);
+      toastManager.add({ type: "error", title: "Unable to open link" });
+    });
+  };
 
   if (props.links.length === 0) return null;
   const hiddenCount = Math.max(0, props.links.length - visibleCount);
@@ -74,8 +90,10 @@ function ThreadLinkGroup(props: {
                 size="sm"
                 variant="ghost"
                 part="row"
+                type="button"
                 title={link.url}
-                render={<a href={link.url} target="_blank" rel="noreferrer" />}
+                onClick={(event) => open(link.url, event)}
+                onAuxClick={(event) => open(link.url, event)}
               >
                 <Icon aria-hidden className={THREAD_DETAILS_PANEL_ICON_CLASS} />
                 <span className={`min-w-0 truncate ${THREAD_DETAILS_PANEL_LABEL_CLASS}`}>
