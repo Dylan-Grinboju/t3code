@@ -10,6 +10,7 @@ import {
   deleteSelectedThreadEntries,
   getFallbackThreadIdAfterDelete,
   hasUnseenCompletion,
+  resolveAdjacentThreadId,
   resolveSidebarRowThreadId,
   orderItemsByPreferredIds,
   pinOrderKeyBetween,
@@ -601,6 +602,18 @@ function makeThread(overrides: ThreadFixtureOverrides = {}): Thread {
     ...overrides,
   });
 }
+
+describe("resolveAdjacentThreadId", () => {
+  it("wraps around at both ends of the list", () => {
+    const threadIds = ["a", "b", "c"];
+    expect(resolveAdjacentThreadId({ threadIds, currentThreadId: "c", direction: "next" })).toBe(
+      "a",
+    );
+    expect(
+      resolveAdjacentThreadId({ threadIds, currentThreadId: "a", direction: "previous" }),
+    ).toBe("c");
+  });
+});
 
 describe("getFallbackThreadIdAfterDelete", () => {
   it("skips other threads being deleted in the same action", () => {
