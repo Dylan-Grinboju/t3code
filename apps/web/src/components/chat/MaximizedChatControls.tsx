@@ -1,4 +1,4 @@
-import { ChevronDownIcon, MessageSquareIcon } from "lucide-react";
+import { BotIcon, ChevronDownIcon } from "lucide-react";
 
 import { Button } from "../ui/button";
 import { ComposerBanner } from "./ComposerBanner";
@@ -31,7 +31,7 @@ export function FloatingChatHeader(props: {
       className="flex h-9 shrink-0 cursor-default items-center gap-2 border-b border-border pr-1.5 pl-3 select-none"
       onDoubleClick={props.onToggle}
     >
-      <MessageSquareIcon className="size-3.5 shrink-0 text-muted-foreground" />
+      <BotIcon className="size-3.5 shrink-0 text-muted-foreground" />
       <span className="min-w-0 flex-1 truncate font-medium text-foreground text-xs">
         {props.title}
       </span>
@@ -51,7 +51,7 @@ export function FloatingChatTitleBanner(props: {
       <ComposerBanner.Root density="comfortable">
         <ComposerBanner.Row className="cursor-default select-none" onDoubleClick={props.onToggle}>
           <ComposerBanner.Icon>
-            <MessageSquareIcon />
+            <BotIcon />
           </ComposerBanner.Icon>
           <ComposerBanner.Content className="truncate font-medium text-foreground">
             {props.title}
@@ -69,7 +69,7 @@ export function FloatingChatTitleBanner(props: {
 export function MinimizedFloatingChatPill(props: { title: string; onRestore: () => void }) {
   return (
     <Button variant="glass" aria-label={`Show chat: ${props.title}`} onClick={props.onRestore}>
-      <MessageSquareIcon />
+      <BotIcon />
       <span className="max-w-48 truncate text-xs">{props.title}</span>
     </Button>
   );

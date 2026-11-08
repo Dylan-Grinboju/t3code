@@ -43,7 +43,7 @@ import {
   FileDiff,
   Files,
   Globe2,
-  MessageSquare,
+  BotIcon,
   MessagesSquare,
   Plus,
   TerminalSquare,
@@ -1052,7 +1052,7 @@ function ChatTab(props: {
           : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
       )}
     >
-      <MessageSquare className="size-3 shrink-0" />
+      <BotIcon className="size-3 shrink-0" />
       <span className="truncate">{props.title}</span>
     </button>
   );
