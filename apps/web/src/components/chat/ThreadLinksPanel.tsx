@@ -1,7 +1,7 @@
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import type { EnvironmentId, ThreadId } from "@t3tools/contracts";
 import { ChevronDown, ChevronUp } from "lucide";
-import { CircleDotIcon, GitCommitHorizontalIcon, LinkIcon, TicketIcon } from "lucide-react";
+import { TicketIcon } from "lucide-react";
 import { useState } from "react";
 
 import { useTimelineVisibleTurnItems } from "../../state/entities";
@@ -17,11 +17,8 @@ import {
 
 const LINK_PAGE_COUNT = 5;
 
-const LINK_ICONS: Record<ThreadLinkKind, typeof LinkIcon> = {
+const LINK_ICONS: Record<ThreadLinkKind, typeof TicketIcon> = {
   pull: PullRequestGlyph.pullRequest,
-  issue: CircleDotIcon,
-  commit: GitCommitHorizontalIcon,
-  github: LinkIcon,
   jira: TicketIcon,
 };
 
@@ -30,7 +27,7 @@ interface ThreadLinksPanelProps {
   readonly threadId: ThreadId;
 }
 
-/** GitHub and Jira links mentioned in the thread, one section per site. Hidden while there are none. */
+/** GitHub pull requests and Jira issues mentioned in the thread, one section each. Hidden while there are none. */
 export function ThreadLinksPanel(props: ThreadLinksPanelProps) {
   const items = useTimelineVisibleTurnItems(scopeThreadRef(props.environmentId, props.threadId));
   const links = collectThreadLinks(items);
@@ -40,8 +37,8 @@ export function ThreadLinksPanel(props: ThreadLinksPanelProps) {
       <ThreadLinkGroup
         key={`github:${key}`}
         id="github"
-        title="GitHub"
-        links={links.filter((link) => link.kind !== "jira")}
+        title="Pull requests"
+        links={links.filter((link) => link.kind === "pull")}
       />
       <ThreadLinkGroup
         key={`jira:${key}`}

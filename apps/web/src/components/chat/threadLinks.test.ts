@@ -12,19 +12,6 @@ describe("thread links", () => {
       "https://github.com/acme/app/pull/12",
     ],
     [
-      "https://github.com/acme/app/issues/7.",
-      "issue",
-      "acme/app#7",
-      "https://github.com/acme/app/issues/7",
-    ],
-    [
-      "https://github.com/acme/app/commit/abcdef1234567",
-      "commit",
-      "acme/app@abcdef1",
-      "https://github.com/acme/app/commit/abcdef1234567",
-    ],
-    ["https://github.com/acme/app/", "github", "acme/app", "https://github.com/acme/app"],
-    [
       "https://acme.atlassian.net/browse/LIM-1234**",
       "jira",
       "LIM-1234",
@@ -48,6 +35,10 @@ describe("thread links", () => {
 
   it.each([
     "https://github.com",
+    "https://github.com/acme/app/",
+    "https://github.com/acme/app/issues/7",
+    "https://github.com/acme/app/commit/abcdef1234567",
+    "https://github.com/acme/app/blob/main/src/index.ts",
     "https://example.com/browse/lowercase-1",
     "https://acme.atlassian.net/wiki/x",
   ])("ignores %s", (raw) => {

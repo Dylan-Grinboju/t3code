@@ -41,7 +41,7 @@ const FORK_FEATURES = [
   {
     title: "Thread links",
     description:
-      "Thread details list the GitHub and Jira links mentioned in the thread, grouped by site, newest first. Hide them from the card's right-click menu.",
+      "Thread details list the GitHub pull requests and Jira issues mentioned in the thread, newest first. Hide them from the card's right-click menu.",
   },
   {
     title: "Fork releases",

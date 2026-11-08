@@ -1,6 +1,6 @@
 import type { OrchestrationV2ProjectedTurnItem } from "@t3tools/contracts";
 
-export type ThreadLinkKind = "pull" | "issue" | "commit" | "github" | "jira";
+export type ThreadLinkKind = "pull" | "jira";
 
 export interface ThreadLink {
   readonly url: string;
@@ -12,7 +12,7 @@ const URL_PATTERN = /https?:\/\/[^\s<>()[\]{}"'`|]+/g;
 const TRAILING_PUNCTUATION = /[.,;:!?*_~]+$/;
 const JIRA_KEY = /^[A-Z][A-Z0-9_]+-\d+$/;
 
-/** A GitHub or Jira link, keyed by a canonical URL so `/pull/1/files` and `/pull/1` are one entry. */
+/** A GitHub pull request or Jira issue link, keyed by a canonical URL so `/pull/1/files` and `/pull/1` are one entry. */
 export function classifyThreadLink(raw: string): ThreadLink | null {
   let url: URL;
   try {
@@ -25,30 +25,13 @@ export function classifyThreadLink(raw: string): ThreadLink | null {
 
   if (host === "github.com" || host === "www.github.com") {
     const [owner, repo, type, id] = segments;
-    if (owner && repo && id) {
-      const repoPath = `${owner}/${repo}`;
-      if (type === "pull" && /^\d+$/.test(id))
-        return {
-          kind: "pull",
-          label: `${repoPath}#${id}`,
-          url: `https://github.com/${repoPath}/pull/${id}`,
-        };
-      if (type === "issues" && /^\d+$/.test(id))
-        return {
-          kind: "issue",
-          label: `${repoPath}#${id}`,
-          url: `https://github.com/${repoPath}/issues/${id}`,
-        };
-      if (type === "commit" && /^[0-9a-f]{7,40}$/i.test(id))
-        return {
-          kind: "commit",
-          label: `${repoPath}@${id.slice(0, 7)}`,
-          url: `https://github.com/${repoPath}/commit/${id}`,
-        };
-    }
-    if (segments.length === 0) return null;
-    const href = `https://github.com${url.pathname.replace(/\/$/, "")}${url.search}${url.hash}`;
-    return { kind: "github", label: segments.join("/"), url: href };
+    if (!owner || !repo || type !== "pull" || !id || !/^\d+$/.test(id)) return null;
+    const repoPath = `${owner}/${repo}`;
+    return {
+      kind: "pull",
+      label: `${repoPath}#${id}`,
+      url: `https://github.com/${repoPath}/pull/${id}`,
+    };
   }
 
   const browse = segments.indexOf("browse");
@@ -80,7 +63,7 @@ function itemLinks(item: OrchestrationV2ProjectedTurnItem["item"]): ReadonlyArra
   return links;
 }
 
-/** GitHub and Jira links from the thread's messages, most recently mentioned first. */
+/** GitHub pull request and Jira links from the thread's messages, most recently mentioned first. */
 export function collectThreadLinks(
   items: ReadonlyArray<OrchestrationV2ProjectedTurnItem>,
 ): ReadonlyArray<ThreadLink> {
