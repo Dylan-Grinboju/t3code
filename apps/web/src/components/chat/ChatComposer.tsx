@@ -350,6 +350,7 @@ export interface ChatComposerProps {
   /** Shown attached above the composer while it floats alone over a maximized panel. */
   floatingChatTitle?: string | undefined;
   onToggleFloatingChat?: (() => void) | undefined;
+  onMinimizeFloatingChat?: (() => void) | undefined;
   environmentId: EnvironmentId;
   canOperateThread: boolean;
   attachmentUploadsCapabilityKnown: boolean;
@@ -3193,10 +3194,13 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     >
       <ComposerBanner.Dock>
         <ComposerBanner.Column>
-          {props.floatingChatTitle !== undefined && props.onToggleFloatingChat ? (
+          {props.floatingChatTitle !== undefined &&
+          props.onToggleFloatingChat &&
+          props.onMinimizeFloatingChat ? (
             <FloatingChatTitleBanner
               title={props.floatingChatTitle}
               onToggle={props.onToggleFloatingChat}
+              onMinimize={props.onMinimizeFloatingChat}
             />
           ) : null}
           <ComposerBannerStack items={shelfItems} />

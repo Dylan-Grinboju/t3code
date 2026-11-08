@@ -287,7 +287,11 @@ import {
   ThreadPanelHeaderControl,
   WorkspaceTitlebarControls,
 } from "./chat/PanelLayoutControls";
-import { FloatingChatHeader, type MaximizedChatPresentation } from "./chat/MaximizedChatControls";
+import {
+  FloatingChatHeader,
+  type MaximizedChatPresentation,
+  MinimizedFloatingChatPill,
+} from "./chat/MaximizedChatControls";
 import type { ExpandedImagePreview } from "./chat/ExpandedImagePreview";
 import { ThreadDetailsPanel } from "./chat/ThreadDetailsPanel";
 import { NoActiveThreadState } from "./NoActiveThreadState";
@@ -1084,17 +1088,23 @@ export default function ChatView(props: ChatViewProps) {
   // An embedded side chat has no panel; a stale maximized flag would hide its own column.
   const rightPanelMaximized =
     !embedded && canMaximizeRightPanel && rightPanelState.maximized === true;
-  const [floatingChatExpanded, setFloatingChatExpanded] = useState(false);
-  const toggleFloatingChatStable = useStableCallback(() =>
-    setFloatingChatExpanded((expanded) => !expanded),
+  const [floatingChatMode, setFloatingChatMode] = useState<"collapsed" | "expanded" | "minimized">(
+    "collapsed",
   );
+  const toggleFloatingChatStable = useStableCallback(() =>
+    setFloatingChatMode((mode) => (mode === "expanded" ? "collapsed" : "expanded")),
+  );
+  const minimizeFloatingChatStable = useStableCallback(() => setFloatingChatMode("minimized"));
+  const restoreFloatingChatStable = useStableCallback(() => setFloatingChatMode("collapsed"));
   const maximizedChat: MaximizedChatPresentation | null = !rightPanelMaximized
     ? null
     : rightPanelState.chatTabActive
       ? "tab"
-      : floatingChatExpanded
+      : floatingChatMode === "expanded"
         ? "expanded"
         : "collapsed";
+  // Minimized keeps the collapsed layout mounted (draft, focus state) and only hides it.
+  const floatingChatMinimized = maximizedChat === "collapsed" && floatingChatMode === "minimized";
   const inlineRightPanelOwnsTitleBar = rightPanelOpen && !shouldUsePlanSidebarSheet;
   const [threadPanelPopoverHandle] = useState(PopoverCreateHandle);
   const [chatCanvasStore] = useState(createChatCanvasStore);
@@ -3313,14 +3323,22 @@ export default function ChatView(props: ChatViewProps) {
             "absolute inset-x-0 bottom-3 z-40 mx-auto w-[min(46rem,calc(100%-1.5rem))]",
           maximizedChat === "expanded" &&
             "h-[min(40rem,calc(100%-var(--workspace-topbar-height)-1.5rem))] overflow-hidden rounded-xl border border-border bg-background shadow-xl",
-          maximizedChat === "collapsed" && "pointer-events-none",
+          maximizedChat === "collapsed" && [
+            "pointer-events-none origin-bottom-right motion-safe:transition-[opacity,translate,scale] motion-safe:duration-200 motion-safe:ease-out",
+            floatingChatMinimized && "translate-x-1/4 translate-y-2 scale-75 opacity-0",
+          ],
         )}
         style={maximizedChat === "collapsed" ? { height: composerReservedHeight } : undefined}
+        inert={floatingChatMinimized}
         data-chat-column
         data-maximized-chat={maximizedChat ?? undefined}
       >
         {maximizedChat === "expanded" ? (
-          <FloatingChatHeader title={activeThread.title} onToggle={toggleFloatingChatStable} />
+          <FloatingChatHeader
+            title={activeThread.title}
+            onToggle={toggleFloatingChatStable}
+            onMinimize={minimizeFloatingChatStable}
+          />
         ) : null}
         {embedded ? null : (
           <header
@@ -3610,6 +3628,7 @@ export default function ChatView(props: ChatViewProps) {
                                 ? {
                                     floatingChatTitle: activeThread.title,
                                     onToggleFloatingChat: toggleFloatingChatStable,
+                                    onMinimizeFloatingChat: minimizeFloatingChatStable,
                                   }
                                 : {})}
                               canOperateThread={canOperateThread}
@@ -3974,6 +3993,16 @@ export default function ChatView(props: ChatViewProps) {
           />
         )}
       </div>
+
+      {floatingChatMinimized ? (
+        // Left of the PR detail panel's comment button, which owns right-4 bottom-3.
+        <div className="absolute right-16 bottom-3 z-40 origin-bottom-right motion-safe:transition-[opacity,scale] motion-safe:duration-200 motion-safe:ease-out motion-safe:starting:scale-90 motion-safe:starting:opacity-0">
+          <MinimizedFloatingChatPill
+            title={activeThread.title}
+            onRestore={restoreFloatingChatStable}
+          />
+        </div>
+      ) : null}
 
       {rightPanelPresent && activeThreadRef && !embedded ? (
         <ChatRightPanel
