@@ -1,10 +1,10 @@
-import { ensureLocalApi } from "../../localApi";
 import {
-  checkForkReleaseNow,
   FORK_RELEASE_TAG,
-  newerForkRelease,
+  forkUpdateActionLabel,
+  resolveForkUpdateAction,
+  runForkUpdateAction,
   useForkReleaseStatus,
-  type ForkReleaseStatus,
+  type ForkUpdateAction,
 } from "../../lib/forkRelease";
 import { Button } from "../ui/button";
 import { SettingsPageContainer, SettingsRow, SettingsSection } from "./settingsLayout";
@@ -46,23 +46,35 @@ const FORK_FEATURES = [
   {
     title: "Fork releases",
     description:
-      "Mac and Windows builds come from the fork's own releases. The sidebar shows a button when a newer one is out.",
+      "Mac and Windows builds come from the fork's own releases. When a newer one is out, the sidebar button and the Release row here download it, then install it and restart T3 Code. A download not installed within 24 hours is removed.",
   },
 ] as const;
 
-function describeStatus(status: ForkReleaseStatus) {
-  const newer = newerForkRelease(status);
-  if (status.kind === "unsupported")
+function describeAction(action: ForkUpdateAction | null, checkFailed: boolean) {
+  if (action === null)
     return "Development build. Update checks run only in builds from the fork's release workflow.";
-  if (newer) return `${newer.tag} is available.`;
-  if (status.kind === "checking") return "Checking for a newer release…";
-  if (status.kind === "failed") return "Could not reach GitHub to check for a newer release.";
-  return "You have the latest release.";
+  switch (action.kind) {
+    case "install":
+      return action.busy
+        ? `Installing ${action.tag}. T3 Code will restart.`
+        : `${action.tag} is downloaded. Install it to restart into it. The download is removed after 24 hours.`;
+    case "download":
+      return action.busy
+        ? `Downloading ${action.release.tag}…`
+        : `${action.release.tag} is available.`;
+    case "open":
+      return `${action.release.tag} is available.`;
+    case "check":
+      if (action.busy) return "Checking for a newer release…";
+      return checkFailed
+        ? "Could not reach GitHub to check for a newer release."
+        : "You have the latest release.";
+  }
 }
 
 export function ForkSettingsPanel() {
-  const status = useForkReleaseStatus();
-  const newer = newerForkRelease(status);
+  const snapshot = useForkReleaseStatus();
+  const action = resolveForkUpdateAction(snapshot);
 
   return (
     <SettingsPageContainer>
@@ -77,20 +89,16 @@ export function ForkSettingsPanel() {
               </code>
             </span>
           }
-          description={describeStatus(status)}
+          description={describeAction(action, snapshot.status.kind === "failed")}
           control={
-            newer ? (
-              <Button size="sm" onClick={() => void ensureLocalApi().shell.openExternal(newer.url)}>
-                Download {newer.tag}
-              </Button>
-            ) : status.kind === "unsupported" ? null : (
+            action === null ? null : (
               <Button
                 size="sm"
-                variant="outline"
-                disabled={status.kind === "checking"}
-                onClick={checkForkReleaseNow}
+                variant={action.kind === "check" ? "outline" : "default"}
+                disabled={"busy" in action && action.busy}
+                onClick={() => runForkUpdateAction(action)}
               >
-                Check now
+                {forkUpdateActionLabel(action)}
               </Button>
             )
           }

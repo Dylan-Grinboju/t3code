@@ -1,14 +1,28 @@
-import { CircleArrowUpIcon } from "lucide-react";
+import { CircleArrowDownIcon, CircleArrowUpIcon, HourglassIcon } from "lucide-react";
 
-import { ensureLocalApi } from "../../localApi";
-import { FORK_RELEASE_TAG, newerForkRelease, useForkReleaseStatus } from "../../lib/forkRelease";
+import {
+  FORK_RELEASE_TAG,
+  forkUpdateActionLabel,
+  resolveForkUpdateAction,
+  runForkUpdateAction,
+  useForkReleaseStatus,
+} from "../../lib/forkRelease";
 import { SidebarMenuButton, SidebarMenuItem } from "../ui/sidebar";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 
 export function SidebarForkReleaseNotice() {
-  const latest = newerForkRelease(useForkReleaseStatus());
-  if (!latest) return null;
-  const label = `New fork build ${latest.tag} is available (you have ${FORK_RELEASE_TAG})`;
+  const action = resolveForkUpdateAction(useForkReleaseStatus());
+  if (action === null || action.kind === "check") return null;
+  const busy = "busy" in action && action.busy;
+  const label =
+    action.kind === "install" && !busy
+      ? `${forkUpdateActionLabel(action)} and restart (you have ${FORK_RELEASE_TAG})`
+      : `${forkUpdateActionLabel(action)} (you have ${FORK_RELEASE_TAG})`;
+  const Icon = busy
+    ? HourglassIcon
+    : action.kind === "install"
+      ? CircleArrowUpIcon
+      : CircleArrowDownIcon;
 
   return (
     <SidebarMenuItem className="shrink-0">
@@ -17,10 +31,11 @@ export function SidebarForkReleaseNotice() {
           render={
             <SidebarMenuButton
               aria-label={label}
-              onClick={() => void ensureLocalApi().shell.openExternal(latest.url)}
+              aria-disabled={busy}
+              onClick={() => runForkUpdateAction(action)}
               size="icon"
             >
-              <CircleArrowUpIcon className="text-info-foreground" />
+              <Icon className={busy ? "text-muted-foreground" : "text-info-foreground"} />
             </SidebarMenuButton>
           }
         />

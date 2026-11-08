@@ -6,6 +6,7 @@ import * as Layer from "effect/Layer";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
 import * as HttpClient from "effect/http/HttpClient";
+import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 import * as NetService from "@t3tools/shared/Net";
 import * as Fiber from "effect/Fiber";
 import * as Option from "effect/Option";
@@ -213,6 +214,7 @@ it.effect(
             }),
             FileSystem.layerNoop({}),
             Layer.mock(NetService.NetService, {}),
+            Layer.mock(ChildProcessSpawner.ChildProcessSpawner, {}),
             Path.layer,
             Layer.succeed(
               HttpClient.HttpClient,

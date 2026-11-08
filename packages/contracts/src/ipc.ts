@@ -329,6 +329,22 @@ export const DesktopUpdateStateSchema = Schema.Struct({
   notAppliedVersion: Schema.optionalKey(Schema.String),
 });
 
+/** A fork release downloaded for the button-driven self-update; kept for 24 hours. */
+export const DesktopForkUpdateStateSchema = Schema.Struct({
+  status: Schema.Literals([
+    "unsupported",
+    "idle",
+    "downloading",
+    "downloaded",
+    "installing",
+    "failed",
+  ]),
+  tag: Schema.NullOr(Schema.String),
+  downloadedAt: Schema.NullOr(Schema.Number),
+  message: Schema.NullOr(Schema.String),
+});
+export type DesktopForkUpdateState = typeof DesktopForkUpdateStateSchema.Type;
+
 export const DesktopCliCommandStateSchema = Schema.Struct({
   supported: Schema.Boolean,
   installedPath: Schema.NullOr(Schema.String),
@@ -1134,6 +1150,14 @@ export interface DesktopBridge {
   /** With a version, installs only that downloaded build. */
   installUpdate: (expectedVersion?: string) => Promise<DesktopUpdateActionResult>;
   onUpdateState: (listener: (state: DesktopUpdateState) => void) => () => void;
+  forkUpdate: {
+    getState: () => Promise<DesktopForkUpdateState>;
+    /** Resolves when the download settles; a second call joins the one in flight. */
+    download: (repository: string, tag: string) => Promise<DesktopForkUpdateState>;
+    /** Quits on success; the helper installs once this process exits, then relaunches. */
+    install: (tag: string) => Promise<DesktopForkUpdateState>;
+    discard: () => Promise<DesktopForkUpdateState>;
+  };
   cliCommand: {
     getState: () => Promise<DesktopCliCommandState>;
     install: () => Promise<DesktopCliCommandState>;

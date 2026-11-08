@@ -190,7 +190,7 @@ jobs:
           cat > "$RUNNER_TEMP/release-notes.md" <<EOF
           T3 Code $VERSION with the sidebar status strip and left-edge hover reveal (Settings > Appearance), built from $GITHUB_REF_NAME at $GITHUB_SHA.
 
-          Downloads: Mac Apple Silicon (.dmg or .zip) and Windows x64 (.exe, including the WSL runtime). Both builds are unsigned. macOS updates require downloading and replacing the app manually; chat data is stored separately. Checksums are in SHA256SUMS.
+          Downloads: Mac Apple Silicon (.dmg or .zip) and Windows x64 (.exe, including the WSL runtime). Both builds are unsigned. From this release on, Settings > Fork (or the sidebar update button) downloads and installs newer releases and restarts the app; on Mac it replaces the app in /Applications and clears the quarantine flag. Chat data is stored separately. Checksums are in SHA256SUMS.
           EOF
           gh release create "$RELEASE_TAG" --target "$GITHUB_SHA" --draft --title "T3 Code $VERSION — Sidebar edition ($RELEASE_TAG)" --notes-file "$RUNNER_TEMP/release-notes.md"
           gh release upload "$RELEASE_TAG" release/*
