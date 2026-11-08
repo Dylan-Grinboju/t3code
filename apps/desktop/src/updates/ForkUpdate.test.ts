@@ -4,9 +4,13 @@ import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
 import * as TestClock from "effect/testing/TestClock";
+import * as HttpClient from "effect/http/HttpClient";
+import * as HttpClientResponse from "effect/http/HttpClientResponse";
 
 import {
   FORK_UPDATE_KEEP_MS,
+  discardForkUpdate,
+  downloadForkUpdate,
   getForkUpdateState,
   macApplicationsTarget,
   parseSha256Sums,
@@ -24,6 +28,49 @@ describe("parseSha256Sums", () => {
     assert.strictEqual(sums.get("T3-Code-1.0.0-x64.exe"), "b".repeat(64));
     assert.strictEqual(sums.size, 2);
   });
+});
+
+describe("downloadForkUpdate", () => {
+  it.effect("identifies itself to GitHub and downloads a checksum-verified installer", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const dir = path.join(yield* fs.makeTempDirectoryScoped(), "fork-update");
+      const host = { dir, platform: "win32", arch: "x64", execPath: "", pid: 1 } as const;
+      const base = "https://github.com/owner/repo/releases/download/v1%2Bsidebar.2";
+      const name = "T3-Code-1.0.0-x64.exe";
+      const client = HttpClient.make((request) => {
+        const response =
+          request.url === "https://api.github.com/repos/owner/repo/releases/tags/v1%2Bsidebar.2"
+            ? request.headers["user-agent"]
+              ? Response.json({
+                  assets: [
+                    { name, browser_download_url: `${base}/${name}` },
+                    { name: "SHA256SUMS", browser_download_url: `${base}/SHA256SUMS` },
+                  ],
+                })
+              : new Response("User-Agent required", { status: 403 })
+            : request.url === `${base}/SHA256SUMS`
+              ? new Response(
+                  `2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824  ./${name}\n`,
+                )
+              : request.url === `${base}/${name}`
+                ? new Response("hello")
+                : new Response("Not found", { status: 404 });
+        return Effect.succeed(HttpClientResponse.fromWeb(request, response));
+      });
+      yield* Effect.gen(function* () {
+        const result = yield* downloadForkUpdate(host, "owner/repo", "v1+sidebar.2");
+        assert.strictEqual(result.status, "downloaded");
+        assert.strictEqual(result.tag, "v1+sidebar.2");
+        assert.strictEqual(yield* fs.readFileString(path.join(dir, name)), "hello");
+        assert.isFalse(yield* fs.exists(path.join(dir, `${name}.part`)));
+      }).pipe(
+        Effect.provideService(HttpClient.HttpClient, client),
+        Effect.ensuring(discardForkUpdate(host)),
+      );
+    }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
+  );
 });
 
 describe("macApplicationsTarget", () => {

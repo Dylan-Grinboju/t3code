@@ -136,6 +136,7 @@ const downloadRelease = Effect.fn("ForkUpdate.downloadRelease")(function* (
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const client = (yield* HttpClient.HttpClient).pipe(
+    HttpClient.mapRequest(HttpClientRequest.setHeader("User-Agent", "T3-Code-Fork-Updater")),
     HttpClient.followRedirects(5),
     HttpClient.filterStatusOk,
   );
