@@ -9,24 +9,37 @@ import { AssistantSelectionToolbar } from "./AssistantSelectionToolbar";
 import { ThreadShelf } from "./ThreadShelf";
 import "../../index.css";
 
+const entities = vi.hoisted(() => ({ shellExists: true, detailRefs: [] as unknown[] }));
+function setup(shellExists = true) {
+  entities.shellExists = shellExists;
+  entities.detailRefs = [];
+}
+
 vi.mock("../../state/entities", () => ({
-  useTimelineVisibleTurnItems: () => [
-    {
-      item: {
-        type: "user_message",
-        attachments: [
-          {
-            type: "image",
-            id: "screenshot",
-            name: "screen.png",
-            mimeType: "image/png",
-            sizeBytes: 42,
-          },
-        ],
-      },
-    },
-  ],
+  useQuietThreadShell: () => (entities.shellExists ? {} : null),
+  resolveThreadDetailRef: (ref: unknown, options: { shellExists: boolean }) =>
+    options.shellExists ? ref : null,
+  useTimelineVisibleTurnItems: (ref: unknown) => {
+    entities.detailRefs.push(ref);
+    return ref === null ? [] : SHELF_ITEMS;
+  },
 }));
+const SHELF_ITEMS = vi.hoisted(() => [
+  {
+    item: {
+      type: "user_message",
+      attachments: [
+        {
+          type: "image",
+          id: "screenshot",
+          name: "screen.png",
+          mimeType: "image/png",
+          sizeBytes: 42,
+        },
+      ],
+    },
+  },
+]);
 vi.mock("../../assets/assetUrls", () => ({ useAssetUrlState: () => ({ _tag: "Loading" }) }));
 vi.mock("./ExpandedImageDialog", () => ({ openExpandedImagePreview: vi.fn() }));
 
@@ -50,7 +63,19 @@ function Harness() {
   );
 }
 
+it("does not read thread detail before the server has the thread", async () => {
+  setup(false);
+  localStorage.removeItem(THREAD_SHELF_STORAGE_KEY);
+  useThreadShelfStore.setState({ shelves: {} });
+  await using screen = await render(<ThreadShelf threadRef={threadRef} />, {
+    router: "/shelf-env/shelf-thread",
+  });
+  await expect.element(screen.getByText(/Screenshots you add appear here/)).toBeVisible();
+  expect(entities.detailRefs).not.toContainEqual(threadRef);
+});
+
 it("pins the selected passage beside Cite, navigates back to its exact source, and unpins it", async () => {
+  setup();
   localStorage.removeItem(THREAD_SHELF_STORAGE_KEY);
   useThreadShelfStore.setState({ shelves: {} });
   await using screen = await render(<Harness />, { router: "/shelf-env/shelf-thread" });

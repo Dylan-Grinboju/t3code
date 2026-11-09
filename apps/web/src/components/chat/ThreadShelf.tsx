@@ -7,7 +7,11 @@ import { useEffect, useState } from "react";
 import { useAssetUrlState } from "../../assets/assetUrls";
 import { useComposerThreadDraft, type DraftId } from "../../composerDraftStore";
 import { assistantCitationNavigation } from "../../lib/assistantCitationNavigation";
-import { useTimelineVisibleTurnItems } from "../../state/entities";
+import {
+  resolveThreadDetailRef,
+  useQuietThreadShell,
+  useTimelineVisibleTurnItems,
+} from "../../state/entities";
 import {
   collectShelfImages,
   EMPTY_THREAD_SHELF,
@@ -31,7 +35,11 @@ export function ThreadShelf({
   threadRef: ScopedThreadRef;
   draftId?: DraftId;
 }) {
-  const items = useTimelineVisibleTurnItems(threadRef);
+  // A detail read before the server has the thread 404s and parks it as deleted for this mount.
+  const shellExists = useQuietThreadShell(threadRef) !== null;
+  const items = useTimelineVisibleTurnItems(
+    resolveThreadDetailRef(threadRef, { shellExists, waitForShell: true }),
+  );
   const images = collectShelfImages(items);
   const draft = useComposerThreadDraft(draftId ?? threadRef);
   const shelf = useThreadShelfStore(
