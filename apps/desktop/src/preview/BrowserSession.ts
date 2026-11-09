@@ -5,11 +5,13 @@ import * as Digest from "effect/crypto/Digest";
 import * as Effect from "effect/Effect";
 import * as Hex from "effect/encoding/Hex";
 import * as Layer from "effect/Layer";
+import * as Option from "effect/Option";
 import * as PlatformError from "effect/PlatformError";
 import * as Schema from "effect/Schema";
 import * as SynchronizedRef from "effect/SynchronizedRef";
 
 import * as ElectronDialog from "../electron/ElectronDialog.ts";
+import * as DesktopClientSettings from "../settings/DesktopClientSettings.ts";
 
 const PREVIEW_PARTITION_PREFIX = "persist:t3code-preview-";
 /** Ephemeral partitions omit persist: but retain a product prefix so the webview gate recognizes them. */
@@ -188,6 +190,7 @@ const previewHostWindow = (guest: WebContents | null): BrowserWindow | undefined
 export const make = Effect.gen(function* BrowserSessionMake() {
   const crypto = yield* Digest.Digest;
   const electronDialog = yield* ElectronDialog.ElectronDialog;
+  const clientSettings = yield* DesktopClientSettings.DesktopClientSettings;
   const runFork = Effect.runForkWith(yield* Effect.context<never>());
   // One prompt at a time, so a page cannot stack dialogs by looping a deep link.
   let permissionPromptOpen = false;
@@ -244,15 +247,31 @@ export const make = Effect.gen(function* BrowserSessionMake() {
       callback(false);
       return;
     }
-    promptPermission(
-      requester,
-      {
-        buttons: ["Open", "Cancel"],
-        message: `Open this ${new URL(url).protocol.slice(0, -1)} link?`,
-        detail: `A page in the browser wants to open another application:\n\n${truncateForPrompt(url)}`,
-      },
-      (answer) => callback(answer === true),
-    );
+    const prompt = () =>
+      promptPermission(
+        requester,
+        {
+          buttons: ["Open", "Cancel"],
+          message: `Open this ${new URL(url).protocol.slice(0, -1)} link?`,
+          detail: `A page in the browser wants to open another application:\n\n${truncateForPrompt(url)}`,
+        },
+        (answer) => callback(answer === true),
+      );
+    if (new URL(url).protocol === "slack:") {
+      runFork(
+        clientSettings.get.pipe(
+          Effect.match({
+            onFailure: prompt,
+            onSuccess: (settings) =>
+              Option.exists(settings, (saved) => saved.browserTrustSlackLinks)
+                ? callback(true)
+                : prompt(),
+          }),
+        ),
+      );
+      return;
+    }
+    prompt();
   };
   const sessionsRef = yield* SynchronizedRef.make<ReadonlyMap<string, Session>>(new Map());
 

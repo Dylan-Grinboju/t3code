@@ -1,4 +1,5 @@
 import { assert, describe, it } from "@effect/vitest";
+import { DEFAULT_CLIENT_SETTINGS } from "@t3tools/contracts";
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as Effect from "effect/Effect";
@@ -32,6 +33,7 @@ vi.mock("electron", () => ({
 }));
 
 import * as ElectronDialog from "../electron/ElectronDialog.ts";
+import * as DesktopClientSettings from "../settings/DesktopClientSettings.ts";
 import * as BrowserSession from "./BrowserSession.ts";
 
 const { showMessageBox } = vi.hoisted(() => ({
@@ -47,6 +49,7 @@ const layerDialog = Layer.succeed(ElectronDialog.ElectronDialog, {
   showErrorBox: () => Effect.void,
 });
 const layer = BrowserSession.layer.pipe(
+  Layer.provideMerge(DesktopClientSettings.layerTest()),
   Layer.provide(Layer.merge(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer), layerDialog)),
 );
 
@@ -231,6 +234,52 @@ describe("BrowserSession", () => {
         assert.isFalse(yield* request(url), `${url} must never open externally`);
       }
       assert.strictEqual(showMessageBox.mock.calls.length, 2);
+    }).pipe(Effect.provide(layer)),
+  );
+
+  it.effect("trusts only Slack links while enabled and applies changes to existing sessions", () =>
+    Effect.gen(function* () {
+      const browserSessions = yield* BrowserSession.BrowserSession;
+      const settings = yield* DesktopClientSettings.DesktopClientSettings;
+      const partition = yield* browserSessions.getPartition("scope-a");
+      yield* browserSessions.getSession("scope-a");
+      const requestHandler =
+        sessions.get(partition)?.setPermissionRequestHandler.mock.calls[0]?.[0];
+      assert.isFunction(requestHandler);
+
+      const request = (externalURL: string) =>
+        Effect.callback<boolean>((resume) => {
+          requestHandler(
+            null,
+            "openExternal",
+            (granted: boolean) => resume(Effect.succeed(granted)),
+            { externalURL },
+          );
+        });
+
+      showMessageBox.mockReset();
+      showMessageBox.mockReturnValue(1);
+      assert.isFalse(yield* request("slack://open?team=T_TEST"));
+      assert.strictEqual(showMessageBox.mock.calls.length, 1);
+
+      yield* settings.set({ ...DEFAULT_CLIENT_SETTINGS, browserTrustSlackLinks: true });
+      assert.isTrue(yield* request("slack://open?team=T_TEST"));
+      assert.isTrue(yield* request("slack://channel?team=T_TEST&id=C_TEST"));
+      assert.isTrue(yield* request("SLACK://open?team=T_TEST"));
+      assert.strictEqual(showMessageBox.mock.calls.length, 1);
+
+      for (const url of ["zoommtg://zoom.us/join", "slack-other://open"]) {
+        assert.isFalse(yield* request(url));
+      }
+      assert.strictEqual(showMessageBox.mock.calls.length, 3);
+      for (const url of ["file:///etc/passwd", "javascript:alert(1)", "not a URL"]) {
+        assert.isFalse(yield* request(url));
+      }
+      assert.strictEqual(showMessageBox.mock.calls.length, 3);
+
+      yield* settings.set(DEFAULT_CLIENT_SETTINGS);
+      assert.isFalse(yield* request("slack://open?team=T_TEST"));
+      assert.strictEqual(showMessageBox.mock.calls.length, 4);
     }).pipe(Effect.provide(layer)),
   );
 

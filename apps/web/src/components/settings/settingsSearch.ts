@@ -368,6 +368,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["hide machine computer environment remote projects new thread picker ctrl tab"],
   },
   {
+    id: "browser-trust-slack-links",
+    title: "Always trust Slack links",
+    to: "/settings/fork",
+    searchTerms: ["slack app links external protocol permission prompt confirmation"],
+  },
+  {
     id: "fork-version",
     title: "Fork version",
     to: "/settings/fork",

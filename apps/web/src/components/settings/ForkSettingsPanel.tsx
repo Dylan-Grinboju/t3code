@@ -1,3 +1,5 @@
+import { isElectron } from "../../env";
+import { useClientSettings, useUpdatePrimarySettings } from "../../hooks/useSettings";
 import {
   FORK_RELEASE_TAG,
   forkUpdateActionLabel,
@@ -7,7 +9,14 @@ import {
   type ForkUpdateAction,
 } from "../../lib/forkRelease";
 import { Button } from "../ui/button";
-import { SettingsPageContainer, SettingsRow, SettingsSection } from "./settingsLayout";
+import { Switch } from "../ui/switch";
+import {
+  SettingResetButton,
+  SettingsPageContainer,
+  SettingsRow,
+  SettingsSection,
+  SettingsUnavailableGroup,
+} from "./settingsLayout";
 import { searchableSetting } from "./settingsSearch";
 import { NewThreadMachineSettings } from "./NewThreadMachineSettings";
 import { SidebarDisplaySettings } from "./SidebarDisplaySettings";
@@ -77,6 +86,37 @@ function describeAction(action: ForkUpdateAction | null, checkFailed: boolean) {
   }
 }
 
+function SlackLinkTrustSetting() {
+  const disabled = !isElectron;
+  const trustSlackLinks = useClientSettings((settings) => settings.browserTrustSlackLinks);
+  const updateSettings = useUpdatePrimarySettings();
+
+  return (
+    <SettingsRow
+      {...searchableSetting("browser-trust-slack-links")}
+      description="Allow pages in the built-in browser to open the Slack app without asking each time."
+      resetAction={
+        !disabled && trustSlackLinks ? (
+          <SettingResetButton
+            label="Slack link trust"
+            onClick={() => updateSettings({ browserTrustSlackLinks: false })}
+          />
+        ) : null
+      }
+      control={
+        <Switch
+          disabled={disabled}
+          checked={trustSlackLinks}
+          onCheckedChange={(checked) =>
+            updateSettings({ browserTrustSlackLinks: Boolean(checked) })
+          }
+          aria-label="Always trust Slack links"
+        />
+      }
+    />
+  );
+}
+
 export function ForkSettingsPanel() {
   const snapshot = useForkReleaseStatus();
   const action = resolveForkUpdateAction(snapshot);
@@ -120,6 +160,13 @@ export function ForkSettingsPanel() {
       </SettingsSection>
       <SettingsSection id="fork-sidebar" title="Sidebar">
         <SidebarDisplaySettings />
+      </SettingsSection>
+      <SettingsSection id="fork-browser" title="Browser">
+        <SettingsUnavailableGroup
+          message={!isElectron ? "Only available in the desktop app." : undefined}
+        >
+          <SlackLinkTrustSetting />
+        </SettingsUnavailableGroup>
       </SettingsSection>
       <SettingsSection id="fork-new-thread-machines" title="New thread picker">
         <NewThreadMachineSettings />

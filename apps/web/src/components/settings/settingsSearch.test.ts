@@ -59,6 +59,10 @@ const ITEMS: ReadonlyArray<SettingsSearchItem> = [
 
 describe("searchSettings", () => {
   it("matches titles, sections, and remembered setting details", () => {
+    expect(searchSettings("slack")[0]).toMatchObject({
+      id: "browser-trust-slack-links",
+      to: "/settings/fork",
+    });
     expect(searchSettings("word", ITEMS).map((item) => item.id)).toEqual(["word-wrap"]);
     expect(searchSettings("network", ITEMS).map((item) => item.id)).toEqual(["network-access"]);
     expect(searchSettings("sharing", ITEMS).map((item) => item.id)).toEqual(["network-access"]);
