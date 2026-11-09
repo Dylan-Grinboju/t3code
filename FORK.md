@@ -42,8 +42,8 @@ features are this kind. If a change is borderline, ask Dylan instead of adding a
 Rules for each toggle:
 
 - Off restores upstream behavior exactly. Do not leave half the change active.
-- New behavior is on by default unless Dylan says otherwise. Mark the upstream choice in the control
-  so users can find their way back, for example `Upstream (default)` or a reset button.
+- Toggles default to off, keeping upstream behavior until a user opts in. Mark the default in the
+  control, for example `Upstream (default)`, and give it a reset button that turns it back off.
 - Put the control on the Fork settings page, in the section it belongs to, and register it in
   `apps/web/src/components/settings/settingsSearch.ts` with `searchableSetting(...)` so search finds it.
 - Store web-only preferences in client storage (`useLocalStorage`, like the usage bar setting). Add a
