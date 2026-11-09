@@ -1,10 +1,11 @@
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import type { EnvironmentId, ScopedThreadRef, ThreadId } from "@t3tools/contracts";
-import { ChevronDown, ChevronUp } from "lucide";
+import { Check, ChevronDown, ChevronUp, Paperclip } from "lucide";
 import { TicketIcon } from "lucide-react";
-import { type MouseEvent, useState } from "react";
+import { type MouseEvent, useRef, useState } from "react";
 
 import { useOpenLink } from "~/browser/useOpenLink";
+import { useCopyToClipboard } from "~/hooks/useCopyToClipboard";
 import { useOpenPrLink } from "~/lib/openPullRequestLink";
 
 import { useTimelineVisibleTurnItems } from "../../state/entities";
@@ -13,6 +14,11 @@ import { PullRequestGlyph } from "../pullRequest/pullRequestIcons";
 import { ThreadDetailsControl } from "./ThreadDetailsControl";
 import { ThreadDetailsSection } from "./ThreadDetailsSection";
 import { toastManager } from "../ui/toast";
+import {
+  ANCHORED_COPY_TOAST_TIMEOUT_MS,
+  showAnchoredCopyErrorToast,
+  showAnchoredCopySuccessToast,
+} from "../ui/anchoredCopyToast";
 import { collectThreadLinks, type ThreadLink, type ThreadLinkKind } from "./threadLinks";
 import {
   THREAD_DETAILS_PANEL_ICON_CLASS,
@@ -91,12 +97,14 @@ function ThreadLinkGroup(props: {
         {props.links.slice(0, visibleCount).map((link) => {
           const Icon = LINK_ICONS[link.kind];
           return (
-            <li key={link.url}>
+            <li key={link.url} className="flex items-center gap-0.5">
+              <ThreadLinkCopyButton url={link.url} />
               <ThreadDetailsControl
                 size="sm"
                 variant="ghost"
                 part="row"
                 type="button"
+                className="flex-1"
                 title={link.url}
                 onClick={(event) => open(link, event)}
                 onAuxClick={(event) => open(link, event)}
@@ -130,5 +138,32 @@ function ThreadLinkGroup(props: {
         </ThreadDetailsControl>
       ) : null}
     </ThreadDetailsSection>
+  );
+}
+
+function ThreadLinkCopyButton(props: { readonly url: string }) {
+  const ref = useRef<HTMLButtonElement>(null);
+  const { copyToClipboard, isCopied } = useCopyToClipboard<void>({
+    target: "link",
+    onCopy: () => showAnchoredCopySuccessToast(ref),
+    onError: (error) => showAnchoredCopyErrorToast(ref, error),
+    timeout: ANCHORED_COPY_TOAST_TIMEOUT_MS,
+  });
+  return (
+    <ThreadDetailsControl
+      ref={ref}
+      part="icon"
+      variant="ghost"
+      tone="muted"
+      aria-label="Copy link"
+      title="Copy link"
+      onClick={() => copyToClipboard(props.url, undefined)}
+    >
+      <MorphIcon
+        aria-hidden
+        className={isCopied ? "size-3.5 text-success" : "size-3.5"}
+        icon={isCopied ? Check : Paperclip}
+      />
+    </ThreadDetailsControl>
   );
 }
