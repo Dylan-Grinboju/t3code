@@ -288,6 +288,7 @@ import {
   WorkspaceTitlebarControls,
 } from "./chat/PanelLayoutControls";
 import {
+  FloatingChatBackdrop,
   FloatingChatHeader,
   type MaximizedChatPresentation,
   MinimizedFloatingChatPill,
@@ -3311,6 +3312,9 @@ export default function ChatView(props: ChatViewProps) {
         />
       )}
       {rightPanelControlsAtRoot && !embedded ? panelLayoutControls : null}
+      {maximizedChat === "expanded" ? (
+        <FloatingChatBackdrop onClose={restoreFloatingChatStable} />
+      ) : null}
       <div
         className={cn(
           "flex min-h-0 min-w-0 flex-col",

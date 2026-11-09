@@ -12,15 +12,17 @@ function MinimizeFloatingChatButton(props: { onMinimize: () => void }) {
       size="icon-xs"
       variant="ghost"
       aria-label="Minimize chat"
-      onClick={props.onMinimize}
-      onDoubleClick={(event) => event.stopPropagation()}
+      onClick={(event) => {
+        event.stopPropagation();
+        props.onMinimize();
+      }}
     >
       <ChevronDownIcon />
     </Button>
   );
 }
 
-/** The open floating chat's title bar; double-click hides the conversation. */
+/** The open floating chat's title bar; click hides the conversation. */
 export function FloatingChatHeader(props: {
   title: string;
   onToggle: () => void;
@@ -28,8 +30,8 @@ export function FloatingChatHeader(props: {
 }) {
   return (
     <div
-      className="flex h-9 shrink-0 cursor-default items-center gap-2 border-b border-border pr-1.5 pl-3 select-none"
-      onDoubleClick={props.onToggle}
+      className="flex h-9 shrink-0 cursor-pointer items-center gap-2 border-b border-border pr-1.5 pl-3 select-none"
+      onClick={props.onToggle}
     >
       <BotIcon className="size-3.5 shrink-0 text-muted-foreground" />
       <span className="min-w-0 flex-1 truncate font-medium text-foreground text-xs">
@@ -40,7 +42,7 @@ export function FloatingChatHeader(props: {
   );
 }
 
-/** Tops the composer while it floats alone; double-click shows the conversation. */
+/** Tops the composer while it floats alone; click shows the conversation. */
 export function FloatingChatTitleBanner(props: {
   title: string;
   onToggle: () => void;
@@ -49,7 +51,7 @@ export function FloatingChatTitleBanner(props: {
   return (
     <ComposerBanner.Attachment>
       <ComposerBanner.Root density="comfortable">
-        <ComposerBanner.Row className="cursor-default select-none" onDoubleClick={props.onToggle}>
+        <ComposerBanner.Row className="cursor-pointer select-none" onClick={props.onToggle}>
           <ComposerBanner.Icon>
             <BotIcon />
           </ComposerBanner.Icon>
@@ -62,6 +64,17 @@ export function FloatingChatTitleBanner(props: {
         </ComposerBanner.Row>
       </ComposerBanner.Root>
     </ComposerBanner.Attachment>
+  );
+}
+
+/** Covers the maximized panel below its tab bar while the conversation is open; a click closes it. */
+export function FloatingChatBackdrop(props: { onClose: () => void }) {
+  return (
+    <div
+      aria-hidden
+      className="absolute inset-x-0 top-(--workspace-topbar-height) bottom-0 z-40"
+      onClick={props.onClose}
+    />
   );
 }
 
