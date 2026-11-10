@@ -646,6 +646,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     threadId: activeThreadId,
     runId: activeThread?.latestRun?.runId ?? null,
     defaultModel: settings.textGenerationModelSelection,
+    preferences: settings.forkPromptSuggestions,
     eligible:
       !backgroundThread &&
       activeThread?.latestRun?.status === "completed" &&

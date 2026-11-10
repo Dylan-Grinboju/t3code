@@ -2,10 +2,6 @@ import * as Schema from "effect/Schema";
 import { ModelSelection, type EnvironmentId } from "@t3tools/contracts";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 
-export function usePromptSuggestionsEnabled() {
-  return useLocalStorage("fork:prompt-suggestions:enabled", false, Schema.Boolean);
-}
-
 const Models = Schema.Record(Schema.String, ModelSelection);
 export function usePromptSuggestionModel(environmentId: EnvironmentId | null) {
   const [models, setModels] = useLocalStorage("fork:prompt-suggestions:models", {}, Models);

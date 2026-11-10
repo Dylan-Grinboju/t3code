@@ -1,3 +1,4 @@
+import * as NativeSuggestions from "./ForkNativePromptSuggestions.ts";
 import * as Cache from "effect/Cache";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
@@ -24,6 +25,7 @@ export class ForkPromptSuggestions extends Context.Service<
 >()("t3/orchestration-v2/ForkPromptSuggestions") {}
 
 const make = Effect.gen(function* () {
+  const native = yield* NativeSuggestions.ForkNativePromptSuggestions;
   const threads = yield* ThreadManagement.ThreadManagementService;
   const fileSystem = yield* FileSystem.FileSystem;
   const providers = yield* ProviderInstanceRegistry.ProviderInstanceRegistry;
@@ -81,10 +83,28 @@ const make = Effect.gen(function* () {
   });
   return ForkPromptSuggestions.of({
     generate: Effect.fn("ForkPromptSuggestions.generate")(function* (input) {
+      const preferences = (yield* settings.getSettings.pipe(
+        Effect.mapError((cause) => new ForkPromptSuggestionError({ cause })),
+      )).forkPromptSuggestions;
+      if (!preferences.enabled) return empty;
+      const before = yield* threads
+        .getThreadRecords(input.threadId, ["runs"], {
+          runStatuses: [],
+          includeLatestRun: true,
+        })
+        .pipe(Effect.mapError((cause) => new ForkPromptSuggestionError({ cause })));
+      const run = before.runs.toSorted((a, b) => b.ordinal - a.ordinal)[0];
+      if (before.thread.deletedAt || run?.id !== input.runId || run.status !== "completed")
+        return empty;
+      const mainProvider = yield* providers.getInstance(run.providerInstanceId);
+      if (!mainProvider) return empty;
+      const useNative = preferences.nativeClaude && mainProvider.driverKind === "claudeAgent";
       const key = yield* encode(input).pipe(
         Effect.mapError((cause) => new ForkPromptSuggestionError({ cause })),
       );
-      const result = yield* Cache.get(cache, key);
+      const result = useNative
+        ? { suggestion: yield* native.get(input) }
+        : yield* Cache.get(cache, key);
       const records = yield* threads
         .getThreadRecords(input.threadId, ["runs"], {
           runStatuses: [],
@@ -92,7 +112,12 @@ const make = Effect.gen(function* () {
         })
         .pipe(Effect.mapError((cause) => new ForkPromptSuggestionError({ cause })));
       const latest = records.runs.toSorted((a, b) => b.ordinal - a.ordinal)[0];
-      return !records.thread.deletedAt &&
+      const current = (yield* settings.getSettings.pipe(
+        Effect.mapError((cause) => new ForkPromptSuggestionError({ cause })),
+      )).forkPromptSuggestions;
+      return current.enabled &&
+        current.nativeClaude === preferences.nativeClaude &&
+        !records.thread.deletedAt &&
         latest?.id === input.runId &&
         latest.status === "completed"
         ? result

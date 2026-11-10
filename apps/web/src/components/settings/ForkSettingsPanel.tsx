@@ -26,7 +26,7 @@ const FORK_FEATURES = [
   {
     title: "Next prompt suggestions",
     description:
-      "Predict your next message in any model's conversation. Enable Prompt suggestions below and choose a separate prediction model. Right Arrow or Tab accepts the gray suggestion; Enter sends it.",
+      "Predict your next message in any model's conversation. Enable Prompt suggestions below and choose a separate prediction model, or turn on Native Claude suggestions for Claude conversations. Right Arrow or Tab accepts the gray suggestion; Enter sends it.",
   },
   {
     title: "Sidebar status strip",

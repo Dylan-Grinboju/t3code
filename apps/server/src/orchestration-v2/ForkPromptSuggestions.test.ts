@@ -13,6 +13,7 @@ import {
 } from "@t3tools/contracts";
 import type { ProviderInstance } from "@t3tools/provider-core/server/driver";
 import type { SuggestionMessage } from "@t3tools/provider-core/server/forkPromptSuggestion";
+import * as Native from "./ForkNativePromptSuggestions.ts";
 import * as ForkPromptSuggestions from "./ForkPromptSuggestions.ts";
 import type { ProjectionRecordField, ProjectionRecords } from "./ProjectionStore.ts";
 import * as ThreadManagement from "./ThreadManagementService.ts";
@@ -29,6 +30,8 @@ function harness(
   generation: Effect.Effect<{ suggestion: string | null }> = Effect.succeed({
     suggestion: "run the tests",
   }),
+  preferences = { enabled: true, nativeClaude: false },
+  driverKind = "claudeAgent",
 ) {
   let status = "completed";
   let runId = input.runId;
@@ -41,7 +44,9 @@ function harness(
   const records = <K extends ProjectionRecordField>() =>
     ({
       thread: { id: input.threadId, projectId: ProjectId.make("project"), deletedAt: null },
-      runs: [{ id: runId, ordinal: 1, status }],
+      runs: [
+        { id: runId, ordinal: 1, status, providerInstanceId: input.modelSelection.instanceId },
+      ],
       messages: [
         { role: "user", text: "Fix it and run tests", streaming: false },
         { role: "assistant", text: "Fixed. Run tests?", streaming: false },
@@ -61,6 +66,7 @@ function harness(
             Effect.sync(() =>
               enabled
                 ? ({
+                    driverKind,
                     textGeneration: {
                       generatePromptSuggestion: (request: (typeof calls)[number]) =>
                         Effect.suspend(() => {
@@ -72,9 +78,10 @@ function harness(
                 : undefined,
             ),
         }),
-        ServerSettings.layerTest(),
+        ServerSettings.layerTest({ forkPromptSuggestions: preferences }),
       ),
     ),
+    Layer.provideMerge(Native.layer),
   );
   return {
     layer,
@@ -92,6 +99,58 @@ function harness(
 }
 
 describe("ForkPromptSuggestions", () => {
+  it.effect(
+    "waits for the native event after result without calling the selected predictor",
+    () => {
+      const test = harness(undefined, { enabled: true, nativeClaude: true });
+      return Effect.gen(function* () {
+        const service = yield* ForkPromptSuggestions.ForkPromptSuggestions;
+        const native = yield* Native.ForkNativePromptSuggestions;
+        const tracker = Native.makeClaudeSuggestionTracker(native);
+        yield* tracker.start(input);
+        yield* tracker.message({ type: "result", subtype: "success" });
+        const request = yield* service
+          .generate({
+            ...input,
+            modelSelection: { instanceId: ProviderInstanceId.make("codex"), model: "gpt-6-luna" },
+          })
+          .pipe(Effect.forkChild);
+        yield* tracker.message({
+          type: "prompt_suggestion",
+          suggestion: "Go ahead with the example.",
+        });
+        expect(yield* Fiber.join(request)).toEqual({ suggestion: "Go ahead with the example." });
+        expect(test.calls).toHaveLength(0);
+        expect(yield* service.generate(input)).toEqual({
+          suggestion: "Go ahead with the example.",
+        });
+        test.nextRun();
+        expect(yield* service.generate(input)).toEqual({ suggestion: null });
+      }).pipe(Effect.provide(test.layer));
+    },
+  );
+  it.effect.each(["codex", "opencode"])(
+    "uses the selected predictor for %s even with native mode on",
+    (driver) => {
+      const test = harness(undefined, { enabled: true, nativeClaude: true }, driver);
+      return Effect.gen(function* () {
+        const service = yield* ForkPromptSuggestions.ForkPromptSuggestions;
+        expect(yield* service.generate(input)).toEqual({ suggestion: "run the tests" });
+        expect(test.calls).toHaveLength(1);
+      }).pipe(Effect.provide(test.layer));
+    },
+  );
+  it.effect.each([false, true])(
+    "does not call a custom model when native mode is unavailable or disabled (%s)",
+    (enabled) => {
+      const test = harness(undefined, { enabled, nativeClaude: true });
+      return Effect.gen(function* () {
+        const service = yield* ForkPromptSuggestions.ForkPromptSuggestions;
+        expect(yield* service.generate(input)).toEqual({ suggestion: null });
+        expect(test.calls).toHaveLength(0);
+      }).pipe(Effect.provide(test.layer));
+    },
+  );
   it.effect("deduplicates concurrent requests and uses the independently selected model", () => {
     const test = harness();
     return Effect.gen(function* () {

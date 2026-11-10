@@ -386,6 +386,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["predict next prompt ghost text autocomplete tab right arrow"],
   },
   {
+    id: "fork-native-claude-suggestions",
+    title: "Native Claude suggestions",
+    to: "/settings/fork",
+    searchTerms: ["predict next prompt claude native sdk autocomplete"],
+  },
+  {
     id: "fork-prompt-suggestion-model",
     title: "Prompt suggestion model",
     to: "/settings/fork",

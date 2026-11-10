@@ -1,3 +1,4 @@
+import * as ForkNativePromptSuggestions from "./orchestration-v2/ForkNativePromptSuggestions.ts";
 import * as ForkPromptSuggestions from "./orchestration-v2/ForkPromptSuggestions.ts";
 import * as ProviderEventLoggers from "@t3tools/provider-core/server/ProviderEventLoggers";
 import type { RelayManagedEndpointRuntimeConfig } from "@t3tools/contracts/relay";
@@ -681,6 +682,7 @@ const layerRuntimeCoreDependenciesBase = Layer.mergeAll(
   ),
   Layer.provideMerge(ProviderRegistry.layer),
   Layer.provideMerge(ProviderInstanceRegistryHydration.layer),
+  Layer.provideMerge(ForkNativePromptSuggestions.layer),
   // Provider hydration builds the Claude runner, which reports agents to the same scanner the
   // terminal and preview layers share.
   Layer.provideMerge(layerPortScanner),

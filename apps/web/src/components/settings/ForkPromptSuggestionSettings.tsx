@@ -1,9 +1,6 @@
 import { createModelSelection } from "@t3tools/shared/model";
-import {
-  usePromptSuggestionModel,
-  usePromptSuggestionsEnabled,
-} from "../chat/forkPromptSuggestionSettings";
-import { useScopedSettings } from "./useScopedSettings";
+import { usePromptSuggestionModel } from "../chat/forkPromptSuggestionSettings";
+import { useScopedSettings, useUpdateScopedSettings } from "./useScopedSettings";
 import { useSettingsScope } from "./SettingsScopeContext";
 import { useEnvironmentProviders } from "../../state/environments";
 import { EMPTY_SERVER_PROVIDERS } from "../../state/server";
@@ -21,10 +18,13 @@ import {
 import { searchableSetting } from "./settingsSearch";
 
 export function ForkPromptSuggestionSettings() {
-  const [enabled, setEnabled] = usePromptSuggestionsEnabled();
   const { environment } = useSettingsScope();
   const environmentId = environment?.environmentId ?? null;
   const settings = useScopedSettings();
+  const update = useUpdateScopedSettings();
+  const { enabled, nativeClaude } = settings.forkPromptSuggestions;
+  const setEnabled = (value: boolean) => update({ forkPromptSuggestions: { enabled: value } });
+  const setNative = (value: boolean) => update({ forkPromptSuggestions: { nativeClaude: value } });
   const [saved, setModel] = usePromptSuggestionModel(environmentId);
   const providersByEnvironment = useEnvironmentProviders();
   const providers = (
@@ -38,7 +38,9 @@ export function ForkPromptSuggestionSettings() {
     <SettingsSection id="fork-prompt-suggestions" title="Prompt suggestions">
       <SettingsRow
         {...searchableSetting("fork-prompt-suggestions")}
-        description="Predict your next prompt after a reply, in conversations with any model. Press Right Arrow or Tab to accept, then Enter to send. Off by default. Uses additional model usage. Applies on this device."
+        serverScoped
+        settingKeys={["forkPromptSuggestions"]}
+        description="Predict your next prompt after a reply, in conversations with any model. Press Right Arrow or Tab to accept, then Enter to send. Off by default. Uses additional model usage. Applies to this environment."
         resetAction={
           enabled ? (
             <SettingResetButton label="prompt suggestions" onClick={() => setEnabled(false)} />
@@ -53,8 +55,29 @@ export function ForkPromptSuggestionSettings() {
         }
       />
       <SettingsRow
+        {...searchableSetting("fork-native-claude-suggestions")}
+        serverScoped
+        settingKeys={["forkPromptSuggestions"]}
+        description="Use Claude's own suggestions after Claude replies, starting with the next turn. Other providers use your prediction model below. Claude may take a few seconds or skip a suggestion. Off by default."
+        resetAction={
+          nativeClaude ? (
+            <SettingResetButton
+              label="native Claude suggestions"
+              onClick={() => setNative(false)}
+            />
+          ) : null
+        }
+        control={
+          <Switch
+            aria-label="Native Claude suggestions"
+            checked={nativeClaude}
+            onCheckedChange={(value) => setNative(Boolean(value))}
+          />
+        }
+      />
+      <SettingsRow
         {...searchableSetting("fork-prompt-suggestion-model")}
-        description="Choose the model that predicts your next prompt on this environment, independently of the conversation model. Reset uses the environment's small-task model."
+        description="Choose the model that predicts your next prompt on this environment, independently of the conversation model. Native Claude suggestions are managed by Claude itself. Reset uses the environment's small-task model."
         resetAction={
           saved ? (
             <SettingResetButton label="suggestion model" onClick={() => setModel(null)} />
