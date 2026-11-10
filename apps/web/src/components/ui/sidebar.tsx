@@ -18,15 +18,18 @@ import {
 import { Tooltip, TooltipPopup, TooltipTrigger } from "~/components/ui/tooltip";
 import { useResizeDrag } from "~/hooks/useResizeDrag";
 import { useMediaQuery } from "~/hooks/useMediaQuery";
-import { readLocalStorageValue, setLocalStorageItem } from "~/hooks/useLocalStorage";
+import {
+  getLocalStorageItem,
+  readLocalStorageValue,
+  setLocalStorageItem,
+  writeLocalStorageValue,
+} from "~/hooks/useLocalStorage";
 import { resolveSidebarState, type ResponsiveSidebarState } from "./sidebarState";
 import * as Schema from "effect/Schema";
 import { announceSidebarVisibility } from "~/lib/accessibilityAnnouncements";
 
-const SIDEBAR_COOKIE_NAME = "sidebar_state";
-const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 const SIDEBAR_WIDTH = "16rem";
-const SIDEBAR_WIDTH_MOBILE = "calc(100vw - var(--spacing(3)))";
+const SIDEBAR_WIDTH_MOBILE = "calc(100vw - var(--spacing) * 3)";
 const SIDEBAR_WIDTH_ICON = "3rem";
 const SIDEBAR_RESIZE_DEFAULT_MIN_WIDTH = 16 * 16;
 const SIDEBAR_TITLEBAR_CONTROL_SIZE = "max-sm:[--workspace-titlebar-control-size:--spacing(8)]";
@@ -116,13 +119,14 @@ function isMobileViewport(): boolean {
   return typeof window !== "undefined" && window.matchMedia(SIDEBAR_MOBILE_QUERY).matches;
 }
 
-async function persistSidebarOpen(open: boolean) {
-  await cookieStore.set({
-    expires: Date.now() + SIDEBAR_COOKIE_MAX_AGE * 1000,
-    name: SIDEBAR_COOKIE_NAME,
-    path: "/",
-    value: String(open),
-  });
+function readStoredSidebarOpen(storageKey: string | undefined): boolean | null {
+  if (!storageKey) return null;
+  try {
+    return getLocalStorageItem(storageKey, Schema.Boolean);
+  } catch (error) {
+    console.error("Could not restore persisted sidebar state.", error);
+    return null;
+  }
 }
 
 // An offcanvas sidebar turns inert once collapsed, which drops focus to the body.
@@ -148,8 +152,12 @@ interface SidebarOpenState {
 }
 
 /** Per-provider open state, kept outside React so shortcuts can toggle it at event time. */
-function createSidebarOpenStore(defaultOpen: boolean, displayModes: boolean) {
-  const initialMode = defaultOpen ? "expanded" : "closed";
+function createSidebarOpenStore(
+  defaultOpen: boolean,
+  displayModes: boolean,
+  storageKey: string | undefined,
+) {
+  const initialMode = (readStoredSidebarOpen(storageKey) ?? defaultOpen) ? "expanded" : "closed";
   const displayMode = displayModes
     ? readLocalStorageValue(SIDEBAR_DISPLAY_MODE_KEY, initialMode, sidebarDisplayModeSchema)
     : initialMode;
@@ -190,7 +198,7 @@ function createSidebarOpenStore(defaultOpen: boolean, displayModes: boolean) {
         console.error("Could not save sidebar display mode.", error);
       }
     }
-    void persistSidebarOpen(state.open);
+    if (storageKey) writeLocalStorageValue(storageKey, state.open, defaultOpen, Schema.Boolean);
   };
   const setOpen = (open: boolean) => setDisplayMode(open ? "expanded" : state.collapsedMode);
   const setHoverOpen = (hoverOpen: boolean) => {
@@ -243,6 +251,7 @@ function createSidebarOpenStore(defaultOpen: boolean, displayModes: boolean) {
 function SidebarProvider({
   defaultOpen = true,
   displayModes = false,
+  storageKey,
   className,
   style,
   children,
@@ -250,9 +259,12 @@ function SidebarProvider({
 }: React.ComponentProps<"div"> & {
   defaultOpen?: boolean;
   displayModes?: boolean;
+  storageKey?: string;
 }) {
   const isMobile = useMediaQuery(SIDEBAR_MOBILE_QUERY);
-  const [store] = React.useState(() => createSidebarOpenStore(defaultOpen, displayModes));
+  const [store] = React.useState(() =>
+    createSidebarOpenStore(defaultOpen, displayModes, storageKey),
+  );
   const { open, openMobile, displayMode, hoverEnabled, hoverOpen } = React.useSyncExternalStore(
     store.subscribe,
     store.getSnapshot,

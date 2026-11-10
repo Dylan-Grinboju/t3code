@@ -91,7 +91,7 @@ function DisplaySettingsControls() {
 
 function DisplayModeHarness() {
   return (
-    <SidebarProvider displayModes>
+    <SidebarProvider displayModes storageKey="sidebar_display_modes_test">
       <Sidebar>
         <Link to="/">Switch chat</Link>
       </Sidebar>
@@ -105,10 +105,15 @@ function DisplayModeHarness() {
 }
 
 function storedSidebarPreferences(mode: "strip" | "closed", hover: boolean) {
-  const keys = ["t3code:sidebar-display-mode", "t3code:sidebar-hover"];
+  const keys = [
+    "t3code:sidebar-display-mode",
+    "t3code:sidebar-hover",
+    "sidebar_display_modes_test",
+  ];
   const previous = keys.map((key) => localStorage.getItem(key));
   localStorage.setItem(keys[0]!, JSON.stringify(mode));
   localStorage.setItem(keys[1]!, JSON.stringify(hover));
+  localStorage.setItem(keys[2]!, "false");
   return {
     [Symbol.dispose]() {
       keys.forEach((key, index) => {
@@ -137,6 +142,7 @@ describe("Sidebar display modes", () => {
       await userEvent.hover(edge);
       await vi.waitFor(() => expect(sidebar.inert).toBe(false));
       expect(wrapper.dataset.sidebarHoverOpen).toBe("true");
+      expect(localStorage.getItem("sidebar_display_modes_test")).toBe("false");
       expect(gap.getBoundingClientRect().width).toBe(mode === "strip" ? 32 : 0);
       await userEvent.click(screen.getByRole("link", { name: "Switch chat" }));
       expect(screen.router?.state.location.pathname).toBe("/");
@@ -172,4 +178,62 @@ describe("Sidebar display modes", () => {
     await expect.element(page.getByRole("link", { name: "Switch chat" })).toBeVisible();
     expect(localStorage.getItem("t3code:sidebar-display-mode")).toBe('"strip"');
   });
+});
+
+it("restores collapsed and expanded desktop state after remounting", async () => {
+  await page.viewport(1280, 800);
+  const storageKey = "sidebar_persistence_test";
+  localStorage.removeItem(storageKey);
+  const layout = () => (
+    <SidebarProvider storageKey={storageKey}>
+      <SidebarTrigger />
+    </SidebarProvider>
+  );
+  {
+    await using screen = await render(layout(), { router: false /* no routes involved */ });
+    const trigger = screen.getByRole("button", { name: "Toggle Sidebar" });
+    await expect.element(trigger).toHaveAttribute("aria-pressed", "true");
+    await userEvent.click(trigger);
+    await expect.element(trigger).toHaveAttribute("aria-pressed", "false");
+  }
+  {
+    await using screen = await render(layout(), { router: false /* no routes involved */ });
+    const trigger = screen.getByRole("button", { name: "Toggle Sidebar" });
+    await expect.element(trigger).toHaveAttribute("aria-pressed", "false");
+    await userEvent.click(trigger);
+  }
+  await using screen = await render(layout(), { router: false /* no routes involved */ });
+  await expect
+    .element(screen.getByRole("button", { name: "Toggle Sidebar" }))
+    .toHaveAttribute("aria-pressed", "true");
+  localStorage.removeItem(storageKey);
+});
+
+it("keeps the mobile sheet closed and leaves the saved desktop state alone", async () => {
+  await page.viewport(390, 844);
+  const storageKey = "sidebar_mobile_persistence_test";
+  localStorage.setItem(storageKey, "false");
+  {
+    await using screen = await render(
+      <SidebarProvider storageKey={storageKey}>
+        <SidebarTrigger />
+      </SidebarProvider>,
+      { router: false /* no routes involved */ },
+    );
+    const trigger = screen.getByRole("button", { name: "Toggle Sidebar" });
+    await expect.element(trigger).toHaveAttribute("aria-pressed", "false");
+    await userEvent.click(trigger);
+    await expect.element(trigger).toHaveAttribute("aria-pressed", "true");
+    expect(localStorage.getItem(storageKey)).toBe("false");
+  }
+  await using screen = await render(
+    <SidebarProvider storageKey={storageKey}>
+      <SidebarTrigger />
+    </SidebarProvider>,
+    { router: false /* no routes involved */ },
+  );
+  await expect
+    .element(screen.getByRole("button", { name: "Toggle Sidebar" }))
+    .toHaveAttribute("aria-pressed", "false");
+  localStorage.removeItem(storageKey);
 });
