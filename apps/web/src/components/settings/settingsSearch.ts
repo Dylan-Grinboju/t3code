@@ -390,6 +390,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     ],
   },
   {
+    id: "panel-tab-size",
+    title: "Panel tab size",
+    to: "/settings/fork",
+    searchTerms: ["right panel tab bar header height bigger larger font tabs strip"],
+  },
+  {
     id: "fork-version",
     title: "Fork version",
     to: "/settings/fork",

@@ -1,0 +1,21 @@
+html[data-fork-panel-tab-size="large"] [data-right-panel-tabbar] [data-active-tab] {
+  height: 1.875rem;
+  font-size: 0.8125rem;
+  max-width: 13rem;
+}
+
+html[data-fork-panel-tab-size="larger"] [data-right-panel-tabbar] [data-active-tab] {
+  height: 2.25rem;
+  font-size: 0.875rem;
+  max-width: 15rem;
+}
+
+html[data-fork-panel-tab-size="large"] [data-right-panel-tabbar] [data-active-tab] svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+html[data-fork-panel-tab-size="larger"] [data-right-panel-tabbar] [data-active-tab] svg {
+  width: 1rem;
+  height: 1rem;
+}

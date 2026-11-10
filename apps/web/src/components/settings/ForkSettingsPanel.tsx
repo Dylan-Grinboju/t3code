@@ -65,6 +65,11 @@ const FORK_FEATURES = [
       "With Always open the right panel full screen on under Panel tabs above, the right panel opens maximized whenever it shows a tab, and a subagent an agent starts opens the panel that way with the main chat in view. Restore panel size un-maximizes it until the panel closes.",
   },
   {
+    title: "Panel tab size",
+    description:
+      "Make the tabs along the top of the right panel taller with larger text. Set it under Panel tabs above.",
+  },
+  {
     title: "Subagents in other projects",
     description:
       "An agent's delegate_task can start a subagent in another project on the same machine, so it works in that repository and still reports back to the thread that started it.",
