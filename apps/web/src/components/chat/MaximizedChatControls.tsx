@@ -1,10 +1,79 @@
 import { BotIcon, ChevronDownIcon } from "lucide-react";
+import { useLayoutEffect, useRef } from "react";
+import { flushSync } from "react-dom";
 
 import { Button } from "../ui/button";
 import { ComposerBanner } from "./ComposerBanner";
 
 /** How the thread's chat shows while the right panel is maximized over it. */
 export type MaximizedChatPresentation = "collapsed" | "expanded" | "tab";
+
+const FLOATING_CHAT_REVEAL = { duration: 200, easing: "cubic-bezier(0.2, 0, 0, 1)" };
+
+/** Shows the column's bottom `visibleHeight` px, or all of it; the negative sides keep its shadow. */
+function floatingChatClip(visibleHeight: number | null) {
+  const top = visibleHeight === null ? "-3rem" : `calc(100% - ${visibleHeight}px)`;
+  return `inset(${top} -3rem -3rem -3rem)`;
+}
+
+/**
+ * Grows the open conversation up out of the floating composer and shrinks it back on close.
+ * A clip-path animation, so the timeline lays out once at full height instead of every frame.
+ */
+export function useFloatingChatReveal(
+  presentation: MaximizedChatPresentation | null,
+  collapsedHeight: number,
+) {
+  const columnRef = useRef<HTMLDivElement>(null);
+  const animationRef = useRef<Animation | null>(null);
+  const previousRef = useRef(presentation);
+
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- starts a Web Animation on the committed DOM before paint
+  useLayoutEffect(() => {
+    const previous = previousRef.current;
+    previousRef.current = presentation;
+    if (previous === presentation) return;
+    animationRef.current?.cancel();
+    animationRef.current = null;
+    const column = columnRef.current;
+    if (presentation !== "expanded" || previous !== "collapsed" || !column) return;
+    if (prefersReducedMotion()) return;
+    animationRef.current = column.animate(
+      { clipPath: [floatingChatClip(collapsedHeight), floatingChatClip(null)] },
+      FLOATING_CHAT_REVEAL,
+    );
+  }, [presentation, collapsedHeight]);
+
+  /** Shrinks the open conversation back into the composer, then runs `commit`. */
+  const close = (commit: () => void) => {
+    const column = columnRef.current;
+    if (presentation !== "expanded" || !column || prefersReducedMotion()) {
+      commit();
+      return;
+    }
+    if (animationRef.current?.id === "close") return;
+    animationRef.current?.cancel();
+    const animation = column.animate(
+      { clipPath: [floatingChatClip(null), floatingChatClip(collapsedHeight)] },
+      { ...FLOATING_CHAT_REVEAL, id: "close", fill: "forwards" },
+    );
+    animationRef.current = animation;
+    // A cancelled close rejects `finished`, which leaves the conversation open.
+    animation.finished.then(
+      () => {
+        flushSync(commit);
+        animation.cancel();
+      },
+      () => {},
+    );
+  };
+
+  return { columnRef, close };
+}
+
+function prefersReducedMotion() {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
 
 function MinimizeFloatingChatButton(props: { onMinimize: () => void }) {
   return (

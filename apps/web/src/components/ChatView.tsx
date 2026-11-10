@@ -292,6 +292,7 @@ import {
   FloatingChatHeader,
   type MaximizedChatPresentation,
   MinimizedFloatingChatPill,
+  useFloatingChatReveal,
 } from "./chat/MaximizedChatControls";
 import type { ExpandedImagePreview } from "./chat/ExpandedImagePreview";
 import { ThreadDetailsPanel } from "./chat/ThreadDetailsPanel";
@@ -1092,9 +1093,6 @@ export default function ChatView(props: ChatViewProps) {
   const [floatingChatMode, setFloatingChatMode] = useState<"collapsed" | "expanded" | "minimized">(
     "collapsed",
   );
-  const toggleFloatingChatStable = useStableCallback(() =>
-    setFloatingChatMode((mode) => (mode === "expanded" ? "collapsed" : "expanded")),
-  );
   const minimizeFloatingChatStable = useStableCallback(() => setFloatingChatMode("minimized"));
   const restoreFloatingChatStable = useStableCallback(() => setFloatingChatMode("collapsed"));
   const maximizedChat: MaximizedChatPresentation | null = !rightPanelMaximized
@@ -1104,6 +1102,16 @@ export default function ChatView(props: ChatViewProps) {
       : floatingChatMode === "expanded"
         ? "expanded"
         : "collapsed";
+  const { columnRef: floatingChatColumnRef, close: closeFloatingChat } = useFloatingChatReveal(
+    maximizedChat,
+    composerReservedHeight,
+  );
+  const closeFloatingChatStable = useStableCallback(() =>
+    closeFloatingChat(() => setFloatingChatMode("collapsed")),
+  );
+  const toggleFloatingChatStable = useStableCallback(() =>
+    floatingChatMode === "expanded" ? closeFloatingChatStable() : setFloatingChatMode("expanded"),
+  );
   // Minimized keeps the collapsed layout mounted (draft, focus state) and only hides it.
   const floatingChatMinimized = maximizedChat === "collapsed" && floatingChatMode === "minimized";
   const inlineRightPanelOwnsTitleBar = rightPanelOpen && !shouldUsePlanSidebarSheet;
@@ -3313,7 +3321,7 @@ export default function ChatView(props: ChatViewProps) {
       )}
       {rightPanelControlsAtRoot && !embedded ? panelLayoutControls : null}
       {maximizedChat === "expanded" ? (
-        <FloatingChatBackdrop onClose={restoreFloatingChatStable} />
+        <FloatingChatBackdrop onClose={closeFloatingChatStable} />
       ) : null}
       <div
         className={cn(
@@ -3332,6 +3340,7 @@ export default function ChatView(props: ChatViewProps) {
             floatingChatMinimized && "translate-x-1/4 translate-y-2 scale-75 opacity-0",
           ],
         )}
+        ref={floatingChatColumnRef}
         style={maximizedChat === "collapsed" ? { height: composerReservedHeight } : undefined}
         inert={floatingChatMinimized}
         data-chat-column
