@@ -12,6 +12,7 @@ import {
 } from "../rightPanelStore";
 import { subscribeAtomChanges } from "../rpc/atomRegistry";
 import { readThreadShell } from "../state/entities";
+import { readPanelAlwaysFullScreen } from "./forkPanelTabs";
 import { environmentThreadShells } from "../state/threads";
 
 /**
@@ -43,15 +44,11 @@ export function threadTabSurfaces(
   });
 }
 
-/** Whether `threadId` can open as a tab of `host`: another loaded thread in the same project. */
+/** Whether `threadId` can open as a tab of `host`: another loaded thread on the same machine. */
 export function canOpenAsThreadTab(host: ScopedThreadRef | null, target: ScopedThreadRef): boolean {
   if (host === null || host.environmentId !== target.environmentId) return false;
   if (host.threadId === target.threadId) return false;
-  const hostShell = readThreadShell(host);
-  const targetShell = readThreadShell(target);
-  return (
-    hostShell !== null && targetShell !== null && hostShell.projectId === targetShell.projectId
-  );
+  return readThreadShell(host) !== null && readThreadShell(target) !== null;
 }
 
 export function openThreadTab(host: ScopedThreadRef, threadId: ThreadId): void {
@@ -150,17 +147,22 @@ export function openSubagentTab(parent: ScopedThreadRef, threadId: ThreadId): vo
     kind: "side-chat",
     threadId,
   };
-  const openPanel = getClientSettings().proactivePanelsEnabled;
+  const fullScreen = readPanelAlwaysFullScreen();
+  const openPanel = fullScreen || getClientSettings().proactivePanelsEnabled;
   useRightPanelStore.setState((state) => {
     const current = selectThreadRightPanelState(state.byThreadKey, host);
     if (current.surfaces.some((entry) => entry.id === surface.id)) return state;
     const idle = !current.isOpen || current.activeSurfaceId === null;
-    const next: ThreadRightPanelState = {
+    const added: ThreadRightPanelState = {
       ...current,
       surfaces: [...current.surfaces, surface],
       isOpen: current.isOpen || openPanel,
       activeSurfaceId: idle ? surface.id : current.activeSurfaceId,
     };
+    const next: ThreadRightPanelState =
+      fullScreen && !(current.isOpen && current.maximized)
+        ? { ...added, maximized: true, chatTabActive: true }
+        : added;
     return { byThreadKey: { ...state.byThreadKey, [hostKey]: next } };
   });
 }
@@ -172,19 +174,39 @@ export function newSubagentParentId(shell: EnvironmentThreadShell, nowMs: number
   return shell.lineage.parentThreadId;
 }
 
+function openTabIfNewSubagent(shell: EnvironmentThreadShell, ref: ScopedThreadRef): void {
+  const parentId = newSubagentParentId(shell, Date.now());
+  if (parentId !== null) openSubagentTab(scopeThreadRef(ref.environmentId, parentId), shell.id);
+}
+
 /** Opens a tab under the parent thread for each subagent thread an agent starts. */
 export function startSubagentThreadTabs(): void {
   const handled = new Set<string>();
+  const waiting = new Map<string, () => void>();
   subscribeAtomChanges(environmentThreadShells.threadRefsAtom, (refs) => {
-    const now = Date.now();
+    const present = new Set<string>();
     for (const ref of refs) {
       const key = scopedThreadKey(ref);
+      present.add(key);
       if (handled.has(key)) continue;
       handled.add(key);
       const shell = readThreadShell(ref);
-      const parentId = shell === null ? null : newSubagentParentId(shell, now);
-      if (shell === null || parentId === null) continue;
-      openSubagentTab(scopeThreadRef(ref.environmentId, parentId), shell.id);
+      if (shell !== null) {
+        openTabIfNewSubagent(shell, ref);
+        continue;
+      }
+      const stop = subscribeAtomChanges(environmentThreadShells.threadShellAtom(ref), (next) => {
+        if (next === null) return;
+        waiting.get(key)?.();
+        waiting.delete(key);
+        openTabIfNewSubagent(next, ref);
+      });
+      waiting.set(key, stop);
+    }
+    for (const [key, stop] of waiting) {
+      if (present.has(key)) continue;
+      stop();
+      waiting.delete(key);
     }
   });
 }

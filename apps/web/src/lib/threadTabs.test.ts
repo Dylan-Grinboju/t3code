@@ -12,19 +12,37 @@ import {
   newSubagentParentId,
   openSubagentTab,
   promoteThreadTab,
+  startSubagentThreadTabs,
   threadTabSurfaceId,
 } from "./threadTabs";
 
 const mocks = vi.hoisted(() => ({
   shells: new Map<string, unknown>(),
   proactivePanelsEnabled: true,
+  fullScreen: false,
+  listeners: new Map<string, Set<(value: unknown) => void>>(),
 }));
 
 vi.mock("../state/entities", () => ({
   readThreadShell: (ref: { environmentId: string; threadId: string }) =>
     mocks.shells.get(`${ref.environmentId}:${ref.threadId}`) ?? null,
 }));
-vi.mock("../state/threads", () => ({ environmentThreadShells: {} }));
+vi.mock("../state/threads", () => ({
+  environmentThreadShells: {
+    threadRefsAtom: "refs",
+    threadShellAtom: (ref: { environmentId: string; threadId: string }) =>
+      `shell:${ref.environmentId}:${ref.threadId}`,
+  },
+}));
+vi.mock("../rpc/atomRegistry", () => ({
+  subscribeAtomChanges: (atom: string, listener: (value: unknown) => void) => {
+    const listeners = mocks.listeners.get(atom) ?? new Set();
+    listeners.add(listener);
+    mocks.listeners.set(atom, listeners);
+    return () => listeners.delete(listener);
+  },
+}));
+vi.mock("./forkPanelTabs", () => ({ readPanelAlwaysFullScreen: () => mocks.fullScreen }));
 vi.mock("../hooks/useSettings", () => ({
   getClientSettings: () => ({ proactivePanelsEnabled: mocks.proactivePanelsEnabled }),
 }));
@@ -46,10 +64,16 @@ function shell(
   } as unknown as EnvironmentThreadShell;
 }
 
-function setup(shells: ReadonlyArray<EnvironmentThreadShell>, proactivePanelsEnabled = true) {
+function setup(
+  shells: ReadonlyArray<EnvironmentThreadShell>,
+  proactivePanelsEnabled = true,
+  fullScreen = false,
+) {
   mocks.shells.clear();
+  mocks.listeners.clear();
   for (const entry of shells) mocks.shells.set(`${environmentId}:${entry.id}`, entry);
   mocks.proactivePanelsEnabled = proactivePanelsEnabled;
+  mocks.fullScreen = fullScreen;
   useRightPanelStore.setState({
     byThreadKey: {},
     threadPanelVisibilityByThreadKey: {},
@@ -140,6 +164,15 @@ describe("openSubagentTab", () => {
     expect(surfaceIds(main)).toEqual([threadTabSurfaceId(ThreadId.make("child"))]);
   });
 
+  it("opens the panel maximized with the main chat in view when panels always open full screen", () => {
+    setup([shell("main"), shell("child")], false, true);
+
+    openSubagentTab(main, ThreadId.make("child"));
+
+    expect(panel(main)).toMatchObject({ isOpen: true, maximized: true, chatTabActive: true });
+    expect(surfaceIds(main)).toEqual([threadTabSurfaceId(ThreadId.make("child"))]);
+  });
+
   it("goes to the main thread while the parent is itself a tab there", () => {
     setup([shell("main"), shell("parent"), shell("child")]);
     const stopHosting = hostRightPanel(ref("parent"), main);
@@ -181,5 +214,29 @@ describe("newSubagentParentId", () => {
         now,
       ),
     ).toBeNull();
+  });
+});
+
+describe("startSubagentThreadTabs", () => {
+  const emit = (atom: string, value: unknown) => {
+    for (const listener of mocks.listeners.get(atom) ?? []) listener(value);
+  };
+
+  it("opens the tab once the shell of a ref that arrived without one loads", () => {
+    setup([shell("main")]);
+    using _now = vi.spyOn(Date, "now").mockReturnValue(Date.parse("2026-11-10T12:00:05.000Z"));
+    startSubagentThreadTabs();
+    const child = shell("child", {
+      parentThreadId: ThreadId.make("main"),
+      relationshipToParent: "subagent",
+    });
+
+    emit("refs", [main, ref("child")]);
+    expect(surfaceIds(main)).toEqual([]);
+
+    mocks.shells.set(`${environmentId}:child`, child);
+    emit(`shell:${environmentId}:child`, child);
+
+    expect(surfaceIds(main)).toEqual([threadTabSurfaceId(ThreadId.make("child"))]);
   });
 });

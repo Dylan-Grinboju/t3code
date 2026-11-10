@@ -20,6 +20,7 @@ import {
 import { searchableSetting } from "./settingsSearch";
 import { AdvancedSettings } from "./AdvancedSettings";
 import { NewThreadMachineSettings } from "./NewThreadMachineSettings";
+import { PanelTabSettings } from "./PanelTabSettings";
 import { SidebarDisplaySettings } from "./SidebarDisplaySettings";
 
 const FORK_FEATURES = [
@@ -59,9 +60,19 @@ const FORK_FEATURES = [
       "The shelf below thread details keeps screenshots and text you pin beside Cite. Select a text pin to return to its source. Pins stay on this device. Shift-click a file or thread reference to peek without leaving your conversation; Escape returns, and Open keeps it open.",
   },
   {
+    title: "Full screen right panel",
+    description:
+      "With Always open the right panel full screen on under Panel tabs above, the right panel opens maximized whenever it shows a tab, and a subagent an agent starts opens the panel that way with the main chat in view. Restore panel size un-maximizes it until the panel closes.",
+  },
+  {
+    title: "Subagents in other projects",
+    description:
+      "An agent's delegate_task can start a subagent in another project on the same machine, so it works in that repository and still reports back to the thread that started it.",
+  },
+  {
     title: "Threads as tabs",
     description:
-      "Open threads as right panel tabs beside the main chat: Thread in the panel's + menu (N) starts one in the main thread's checkout, which you can change from the tab while it is empty (New worktree… makes it the main chat, then pick it under Run context), and Open as tab in a sidebar thread's right-click menu opens an existing one. Subagent threads an agent starts open as tabs of their parent. The arrow on a tab makes it the main chat, and the X beside the main chat's title closes it, putting the next thread tab in its place.",
+      "Open threads as right panel tabs beside the main chat: Thread in the panel's + menu (N) starts one in the main thread's checkout, which you can change from the tab while it is empty (New worktree… makes it the main chat, then pick it under Run context), and Open as tab in a sidebar thread's right-click menu opens an existing one, from any project on the same machine. Subagent threads an agent starts open as tabs of their parent, including ones an agent starts in another project. The arrow on a tab makes it the main chat, and the X beside the main chat's title closes it, putting the next thread tab in its place.",
   },
   {
     title: "Right Arrow accepts prompt suggestions",
@@ -162,6 +173,9 @@ export function ForkSettingsPanel() {
       </SettingsSection>
       <SettingsSection id="fork-sidebar" title="Sidebar">
         <SidebarDisplaySettings />
+      </SettingsSection>
+      <SettingsSection id="fork-panel-tabs" title="Panel tabs">
+        <PanelTabSettings />
       </SettingsSection>
       <SettingsSection id="fork-browser" title="Browser">
         <SettingsUnavailableGroup

@@ -382,6 +382,14 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["slack app links external protocol permission prompt confirmation"],
   },
   {
+    id: "panel-always-full-screen",
+    title: "Always open the right panel full screen",
+    to: "/settings/fork",
+    searchTerms: [
+      "right panel maximize maximized full screen tabs browser terminal subagent thread tab open automatically",
+    ],
+  },
+  {
     id: "fork-version",
     title: "Fork version",
     to: "/settings/fork",
