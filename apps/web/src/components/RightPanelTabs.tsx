@@ -45,6 +45,8 @@ import {
   Globe2,
   BotIcon,
   MessagesSquare,
+  MessageSquare,
+  MessageSquarePlus,
   Plus,
   TerminalSquare,
 } from "lucide-react";
@@ -144,6 +146,8 @@ export interface RightPanelTabsProps {
   onAddDevice: () => void;
   /** Absent where side chats are not offered. */
   onAddSideChat?: (() => void) | undefined;
+  /** Fork: starts a thread in a new tab; absent where thread tabs are not offered. */
+  onAddThread?: (() => void) | undefined;
   browserAvailable: boolean;
   terminalAvailable: boolean;
   diffAvailable: boolean;
@@ -329,6 +333,8 @@ function RightPanelEmptyState(props: {
   onAddDevice: () => void;
   /** Absent where side chats are not offered. */
   onAddSideChat?: (() => void) | undefined;
+  /** Fork: starts a thread in a new tab; absent where thread tabs are not offered. */
+  onAddThread?: (() => void) | undefined;
   browserAvailable: boolean;
   terminalAvailable: boolean;
   diffAvailable: boolean;
@@ -409,6 +415,19 @@ function RightPanelEmptyState(props: {
             available: props.sideChatAvailable && !props.sideChatDisabledReason,
             disabledReason: props.sideChatDisabledReason ?? SURFACE_UNAVAILABLE_HINTS.sideChat,
             onClick: props.onAddSideChat,
+          },
+        ]
+      : []),
+    ...(props.onAddThread
+      ? [
+          {
+            label: "Thread",
+            description: "Start a thread in this thread's checkout.",
+            icon: MessageSquarePlus,
+            shortcut: "N",
+            available: true,
+            disabledReason: "",
+            onClick: props.onAddThread,
           },
         ]
       : []),
@@ -714,14 +733,20 @@ function sideChatTabState(shell: EnvironmentThreadShell | null) {
 
 // Static dots: a side chat tab can stay open for a whole run.
 function SideChatTabIcon(props: { environmentId: EnvironmentId | null; threadId: ThreadId }) {
-  const state = sideChatTabState(
-    useQuietThreadShell(
-      props.environmentId === null ? null : scopeThreadRef(props.environmentId, props.threadId),
-    ),
+  const shell = useQuietThreadShell(
+    props.environmentId === null ? null : scopeThreadRef(props.environmentId, props.threadId),
   );
+  const state = sideChatTabState(shell);
+  // Fork: the same surface also holds thread tabs.
+  const Icon =
+    shell === null || shell.lineage.sideChat === true
+      ? MessagesSquare
+      : shell.lineage.relationshipToParent === "subagent"
+        ? BotIcon
+        : MessageSquare;
   return (
     <>
-      <MessagesSquare className="size-3 shrink-0" />
+      <Icon className="size-3 shrink-0" />
       {state === null ? null : (
         <span
           className={cn(
@@ -1195,6 +1220,18 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
           },
         ]
       : []),
+    ...(props.onAddThread
+      ? [
+          {
+            label: "Thread",
+            icon: MessageSquarePlus,
+            shortcut: "N",
+            available: true,
+            disabledReason: "",
+            onClick: props.onAddThread,
+          },
+        ]
+      : []),
   ] as const;
 
   const handleAddSurfaceMenuKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -1584,6 +1621,7 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
             onAddPullRequests={props.onAddPullRequests}
             onAddDevice={props.onAddDevice}
             onAddSideChat={props.onAddSideChat}
+            onAddThread={props.onAddThread}
             browserAvailable={props.browserAvailable}
             terminalAvailable={props.terminalAvailable}
             diffAvailable={props.diffAvailable}

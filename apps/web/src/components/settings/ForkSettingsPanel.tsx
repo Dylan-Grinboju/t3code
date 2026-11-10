@@ -59,6 +59,11 @@ const FORK_FEATURES = [
       "The shelf below thread details keeps screenshots and text you pin beside Cite. Select a text pin to return to its source. Pins stay on this device. Shift-click a file or thread reference to peek without leaving your conversation; Escape returns, and Open keeps it open.",
   },
   {
+    title: "Threads as tabs",
+    description:
+      "Open threads as right panel tabs beside the main chat: Thread in the panel's + menu (N) starts one in the main thread's checkout, which you can change from the tab while it is empty (New worktree… makes it the main chat, then pick it under Run context), and Open as tab in a sidebar thread's right-click menu opens an existing one. Subagent threads an agent starts open as tabs of their parent. The arrow on a tab makes it the main chat, and the X beside the main chat's title closes it, putting the next thread tab in its place.",
+  },
+  {
     title: "Right Arrow accepts prompt suggestions",
     description:
       "When the empty composer shows a suggested prompt, Right Arrow fills it in, the same as Tab.",
