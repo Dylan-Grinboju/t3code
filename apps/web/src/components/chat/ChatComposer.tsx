@@ -1,4 +1,5 @@
 import { useComposerTypingGuard } from "./useComposerTypingGuard";
+import { useForkPromptSuggestion } from "./useForkPromptSuggestion";
 import { insertAttachmentReferencesForDraft } from "./composerAttachmentReferences";
 import { DESKTOP_PASTE_AS_TEXT_EVENT } from "../../lib/desktopPasteAsText";
 import { BackgroundThreadContext } from "./backgroundThread";
@@ -639,6 +640,26 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
   const isLiteralPendingAnswer = activePendingProgress?.activeQuestion?.initialAnswer !== undefined;
   const isEditingQueuedMessage = editingQueuedAttachments !== null;
   const composerDraft = useComposerThreadDraft(composerDraftTarget);
+  const backgroundThread = use(BackgroundThreadContext);
+  const promptSuggestion = useForkPromptSuggestion({
+    environmentId,
+    threadId: activeThreadId,
+    runId: activeThread?.latestRun?.runId ?? null,
+    defaultModel: settings.textGenerationModelSelection,
+    eligible:
+      !backgroundThread &&
+      activeThread?.latestRun?.status === "completed" &&
+      canOperateThread &&
+      !isSendBusy &&
+      !isCompacting &&
+      !isRevertingCheckpoint &&
+      !environmentUnavailable &&
+      !isEditingQueuedMessage &&
+      !showPlanFollowUpPrompt &&
+      pendingApprovals.length === 0 &&
+      pendingUserInputs.length === 0 &&
+      !composerDraftHasUserContent(composerDraft),
+  });
   const composerDraftTargetKeyRef = useRef("");
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- publishes the committed draft target key to a ref read by async handlers
   useLayoutEffect(() => {
@@ -1072,7 +1093,6 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     isRevertingCheckpointRef.current = isRevertingCheckpoint;
   });
 
-  const backgroundThread = use(BackgroundThreadContext);
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- subscribes to keydown, window blur and the desktop paste-as-text event to arm plain-text paste
   useEffect(() => {
     // A background composer listens on its own form, so it never hears the main composer's keys.
@@ -1601,6 +1621,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     cursorAdjacentToMention: boolean,
     contextIds: string[],
   ) => {
+    if (nextPrompt.length > 0) promptSuggestion.dismiss();
     refreshWorkspaceSnapshotOnTyping();
     if (activePendingProgress?.activeQuestion && pendingUserInputs.length > 0) {
       if (activePendingProgress.activeQuestion.allowCustomAnswer === false) return;
@@ -3418,6 +3439,8 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                     skills={selectedProviderSkills}
                     className={cn(showMobilePendingAnswerActions && "max-sm:pb-12")}
                     onChange={onPromptChangeStable}
+                    ghostSuggestion={promptSuggestion.text}
+                    onDismissGhostSuggestion={promptSuggestion.dismiss}
                     onCommandKeyDown={onComposerCommandKeyStable}
                     onPageScrollKeyDown={onPageScrollKeyDown}
                     onPageScrollKeyUp={onPageScrollKeyUp}

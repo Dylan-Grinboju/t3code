@@ -130,6 +130,11 @@ function selectOpenCodeRuntimeTextGeneration(
   v2: ProviderTextGeneration,
 ): ProviderTextGeneration {
   return {
+    generatePromptSuggestion: (input) =>
+      byOpenCodeRuntime(probe.get, {
+        v1: v1.generatePromptSuggestion?.(input) ?? Effect.succeed({ suggestion: null }),
+        v2: v2.generatePromptSuggestion?.(input) ?? Effect.succeed({ suggestion: null }),
+      }),
     generateCommitMessage: (input) =>
       byOpenCodeRuntime(probe.get, {
         v1: v1.generateCommitMessage(input),

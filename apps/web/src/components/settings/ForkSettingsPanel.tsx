@@ -1,4 +1,5 @@
 import { isElectron } from "../../env";
+import { ForkPromptSuggestionSettings } from "./ForkPromptSuggestionSettings";
 import { useClientSettings, useUpdatePrimarySettings } from "../../hooks/useSettings";
 import {
   FORK_RELEASE_TAG,
@@ -22,6 +23,11 @@ import { NewThreadMachineSettings } from "./NewThreadMachineSettings";
 import { SidebarDisplaySettings } from "./SidebarDisplaySettings";
 
 const FORK_FEATURES = [
+  {
+    title: "Next prompt suggestions",
+    description:
+      "Predict your next message in any model's conversation. Enable Prompt suggestions below and choose a separate prediction model. Right Arrow or Tab accepts the gray suggestion; Enter sends it.",
+  },
   {
     title: "Sidebar status strip",
     description:
@@ -161,6 +167,7 @@ export function ForkSettingsPanel() {
       <SettingsSection id="fork-sidebar" title="Sidebar">
         <SidebarDisplaySettings />
       </SettingsSection>
+      <ForkPromptSuggestionSettings />
       <SettingsSection id="fork-browser" title="Browser">
         <SettingsUnavailableGroup
           message={!isElectron ? "Only available in the desktop app." : undefined}

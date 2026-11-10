@@ -1,4 +1,9 @@
 import {
+  ForkPromptSuggestionInput,
+  ForkPromptSuggestionResult,
+  ForkPromptSuggestionError,
+} from "./forkPromptSuggestion.ts";
+import {
   OrchestrationV2SearchThreadError,
   OrchestrationV2SearchThreadInput,
   OrchestrationV2SearchThreadResult,
@@ -406,6 +411,7 @@ import { VcsError } from "./vcs.ts";
 import { Project, ProjectMutation, ProjectMutationError } from "./project.ts";
 
 export const WS_METHODS = {
+  forkPromptSuggestion: "fork.promptSuggestion",
   projectsListEntries: "projects.listEntries",
   projectsListIgnoredFiles: "projects.listIgnoredFiles",
   projectsReadFile: "projects.readFile",
@@ -1994,6 +2000,11 @@ export class RpcScopeAuthorization extends RpcMiddleware.Service<RpcScopeAuthori
 ) {}
 
 export const WsRpcGroup = RpcGroup.make(
+  Rpc.make(WS_METHODS.forkPromptSuggestion, {
+    payload: ForkPromptSuggestionInput,
+    success: ForkPromptSuggestionResult,
+    error: ForkPromptSuggestionError,
+  }),
   WsGuestShareCreateRpc,
   WsServerProbeRpc,
   WsServerGetConfigRpc,

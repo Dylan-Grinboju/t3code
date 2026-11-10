@@ -380,6 +380,18 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["dylan fork release build update newer download github sidebar"],
   },
   {
+    id: "fork-prompt-suggestions",
+    title: "Prompt suggestions",
+    to: "/settings/fork",
+    searchTerms: ["predict next prompt ghost text autocomplete tab right arrow"],
+  },
+  {
+    id: "fork-prompt-suggestion-model",
+    title: "Prompt suggestion model",
+    to: "/settings/fork",
+    searchTerms: ["predict next prompt model provider effort reasoning"],
+  },
+  {
     id: "thread-details-items",
     title: "Thread details",
     to: "/settings/appearance",

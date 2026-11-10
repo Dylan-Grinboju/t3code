@@ -98,6 +98,12 @@ export type ReviewGuideGenerationResult = Omit<
 >;
 
 export interface ProviderTextGeneration {
+  readonly generatePromptSuggestion?: (input: {
+    readonly cwd: string;
+    readonly messages: ReadonlyArray<import("./forkPromptSuggestion.ts").SuggestionMessage>;
+    readonly modelSelection: ModelSelection;
+  }) => Effect.Effect<{ readonly suggestion: string | null }, TextGenerationError>;
+
   readonly generateCommitMessage: (
     input: CommitMessageGenerationInput,
   ) => Effect.Effect<CommitMessageGenerationResult, TextGenerationError>;
