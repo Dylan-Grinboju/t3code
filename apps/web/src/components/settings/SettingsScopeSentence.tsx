@@ -226,7 +226,7 @@ function ScopeMenu({
   );
 }
 
-function EnvironmentScopeMenu({
+export function EnvironmentScopeMenu({
   value,
   groups,
   environments,

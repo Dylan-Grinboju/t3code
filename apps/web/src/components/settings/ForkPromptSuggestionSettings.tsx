@@ -2,7 +2,8 @@ import { createModelSelection } from "@t3tools/shared/model";
 import { usePromptSuggestionModel } from "../chat/forkPromptSuggestionSettings";
 import { useScopedSettings, useUpdateScopedSettings } from "./useScopedSettings";
 import { useSettingsScope } from "./SettingsScopeContext";
-import { useEnvironmentProviders } from "../../state/environments";
+import { useEnvironmentProviders, useEnvironments } from "../../state/environments";
+import { EnvironmentScopeMenu } from "./SettingsScopeSentence";
 import { EMPTY_SERVER_PROVIDERS } from "../../state/server";
 import { providerInstanceEntriesFor } from "../../providerInstances";
 import { getCustomModelOptionsByInstance } from "../../modelSelection";
@@ -18,8 +19,9 @@ import {
 import { searchableSetting } from "./settingsSearch";
 
 export function ForkPromptSuggestionSettings() {
-  const { environment } = useSettingsScope();
-  const environmentId = environment?.environmentId ?? null;
+  const scope = useSettingsScope();
+  const { environments } = useEnvironments();
+  const environmentId = scope.environment?.environmentId ?? null;
   const settings = useScopedSettings();
   const update = useUpdateScopedSettings();
   const { enabled, nativeClaude } = settings.forkPromptSuggestions;
@@ -35,7 +37,20 @@ export function ForkPromptSuggestionSettings() {
   const entries = providerInstanceEntriesFor(providers, settings, null);
   const entry = entries.find((candidate) => candidate.instanceId === selection.instanceId);
   return (
-    <SettingsSection id="fork-prompt-suggestions" title="Prompt suggestions">
+    <SettingsSection
+      id="fork-prompt-suggestions"
+      title="Prompt suggestions"
+      // The Fork page is device-only, so this section brings its own environment picker.
+      headerAction={
+        <EnvironmentScopeMenu
+          value={scope.search}
+          groups={scope.groups}
+          environments={environments}
+          singleEnvironment={scope.singleEnvironment}
+          onChange={scope.selectScope}
+        />
+      }
+    >
       <SettingsRow
         {...searchableSetting("fork-prompt-suggestions")}
         serverScoped
