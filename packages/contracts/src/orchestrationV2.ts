@@ -3360,6 +3360,7 @@ export const OrchestrationV2Command = Schema.Union([
     parentNodeId: NodeId,
     task: TrimmedNonEmptyString,
     title: Schema.optional(TrimmedNonEmptyString),
+    projectId: Schema.optional(ProjectId),
     modelSelection: ModelSelection,
     runtimeMode: RuntimeMode,
     interactionMode: ProviderInteractionMode,

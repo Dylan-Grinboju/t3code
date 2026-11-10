@@ -2438,15 +2438,15 @@ const make = Effect.gen(function* () {
           : readTask(scope, taskId, false, true);
       }
       const { scope, parent } = yield* loadThreadCaller(callerScope, "delegate_task");
-      if (
-        input.target?.projectId !== undefined &&
-        input.target.projectId !== parent.thread.projectId
-      ) {
-        return yield* failure(
-          "invalid_request",
-          "A local task runs in this thread's project. Omit target.projectId, or pass target.environmentId to run it in that environment's project.",
-        );
-      }
+      const childProjectId =
+        input.target?.projectId !== undefined && input.target.projectId !== parent.thread.projectId
+          ? input.target.projectId
+          : undefined;
+      if (childProjectId !== undefined) yield* requireProject(childProjectId);
+      const childParent =
+        childProjectId === undefined
+          ? parent
+          : { ...parent, thread: { ...parent.thread, projectId: childProjectId } };
       const parentRun = parent.runs
         .filter(ThreadManagementService.isActiveRun)
         .toSorted((left, right) => right.ordinal - left.ordinal)[0];
@@ -2469,7 +2469,7 @@ const make = Effect.gen(function* () {
       });
       const isRetryOfAcceptedDelegation = yield* threadManagement.hasReceipt(commandId);
       const target = yield* resolveTargetRechecking({
-        parent,
+        parent: childParent,
         target: input.target,
         providers,
         skipProjectEnablementFilter: isRetryOfAcceptedDelegation,
@@ -2484,7 +2484,24 @@ const make = Effect.gen(function* () {
         input.interactionMode,
       );
       let workspaceStrategy: OrchestrationV2ThreadLaunchWorkspaceStrategy | undefined;
-      if (input.isolation === "worktree" && !isRetryOfAcceptedDelegation) {
+      if (
+        input.isolation === "worktree" &&
+        !isRetryOfAcceptedDelegation &&
+        childProjectId !== undefined
+      ) {
+        const project = yield* requireProject(childProjectId);
+        const base = yield* gitDriver
+          .resolveCommit({ cwd: project.workspaceRoot, revision: "HEAD" })
+          .pipe(
+            Effect.mapError(() =>
+              failure(
+                "invalid_request",
+                `Unable to resolve the checkout commit of project "${project.title}".`,
+              ),
+            ),
+          );
+        workspaceStrategy = { type: "worktree", baseRef: base.commitSha, startFromOrigin: false };
+      } else if (input.isolation === "worktree" && !isRetryOfAcceptedDelegation) {
         const project = yield* requireProject(parent.thread.projectId);
         const base = yield* gitDriver
           .resolveCommit({
@@ -2527,6 +2544,7 @@ const make = Effect.gen(function* () {
           parentNodeId: parentRun.rootNodeId,
           task: taskPrompt(input),
           ...(input.title === undefined ? {} : { title: input.title }),
+          ...(childProjectId === undefined ? {} : { projectId: childProjectId }),
           modelSelection: target.modelSelection,
           runtimeMode,
           interactionMode,

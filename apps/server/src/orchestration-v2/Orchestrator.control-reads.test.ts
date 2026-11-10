@@ -1053,6 +1053,62 @@ it.effect("keeps delegated child pull-request links independent of the parent", 
   }).pipe(Effect.provide(layerTest)),
 );
 
+it.effect("starts a delegated child in another project from that project's checkout", () =>
+  Effect.gen(function* () {
+    const orchestrator = yield* Orchestrator.OrchestratorV2;
+    const projections = yield* ProjectionStore.ProjectionStoreV2;
+    const parentThreadId = ThreadId.make("thread:cross-project-parent");
+    const otherProjectId = ProjectId.make("project:cross-project-other");
+    yield* orchestrator.dispatch({
+      type: "thread.create",
+      commandId: CommandId.make("create-cross-project-parent"),
+      threadId: parentThreadId,
+      projectId: ProjectId.make("project:cross-project-parent"),
+      title: "Parent",
+      modelSelection,
+      runtimeMode: "full-access",
+      interactionMode: "default",
+      branch: "feature/parent",
+      worktreePath: "/parent-worktree",
+      createdBy: "user",
+      creationSource: "web",
+    });
+    yield* orchestrator.dispatch({
+      type: "message.dispatch",
+      commandId: CommandId.make("start-cross-project-parent"),
+      threadId: parentThreadId,
+      messageId: MessageId.make("message:cross-project-parent"),
+      text: "Delegate a review in the other repository",
+      attachments: [],
+      dispatchMode: { type: "start_immediately" },
+      createdBy: "user",
+      creationSource: "web",
+    });
+    const parentRun = (yield* projections.getThreadProjection(parentThreadId)).runs[0]!;
+    yield* orchestrator.dispatch({
+      type: "delegated_task.request",
+      commandId: CommandId.make("delegate-cross-project"),
+      parentThreadId,
+      parentRunId: parentRun.id,
+      parentNodeId: parentRun.rootNodeId!,
+      task: "Review the pull request",
+      projectId: otherProjectId,
+      modelSelection,
+      runtimeMode: "full-access",
+      interactionMode: "default",
+      createdBy: "agent",
+      creationSource: "mcp",
+    });
+    const task = (yield* projections.getThreadProjection(parentThreadId)).subagents[0]!;
+    const child = yield* projections.getThreadProjection(task.childThreadId!);
+    assert.equal(child.thread.projectId, otherProjectId);
+    assert.isNull(child.thread.worktreePath);
+    assert.isNull(child.thread.branch);
+    assert.equal(child.thread.lineage.relationshipToParent, "subagent");
+    assert.equal(child.thread.lineage.parentThreadId, parentThreadId);
+  }).pipe(Effect.provide(layerTest)),
+);
+
 it.effect("wakes the parent once when its delegated task asks a question", () =>
   Effect.gen(function* () {
     const orchestrator = yield* Orchestrator.OrchestratorV2;
