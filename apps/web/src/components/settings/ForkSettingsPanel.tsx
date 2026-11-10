@@ -59,6 +59,11 @@ const FORK_FEATURES = [
       "The shelf below thread details keeps screenshots and text you pin beside Cite. Select a text pin to return to its source. Pins stay on this device. Shift-click a file or thread reference to peek without leaving your conversation; Escape returns, and Open keeps it open.",
   },
   {
+    title: "Right Arrow accepts prompt suggestions",
+    description:
+      "When the empty composer shows a suggested prompt, Right Arrow fills it in, the same as Tab.",
+  },
+  {
     title: "Fork releases",
     description:
       "Mac and Windows builds come from the fork's own releases. When a newer one is out, the sidebar button and the Release row here download it, then install it and restart T3 Code. A download not installed within 24 hours is removed.",
