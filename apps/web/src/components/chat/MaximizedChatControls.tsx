@@ -10,10 +10,16 @@ export type MaximizedChatPresentation = "collapsed" | "expanded" | "tab";
 
 const FLOATING_CHAT_REVEAL = { duration: 200, easing: "cubic-bezier(0.2, 0, 0, 1)" };
 
-/** Shows the column's bottom `visibleHeight` px, or all of it; the negative sides keep its shadow. */
-function floatingChatClip(visibleHeight: number | null) {
-  const top = visibleHeight === null ? "-3rem" : `calc(100% - ${visibleHeight}px)`;
-  return `inset(${top} -3rem -3rem -3rem)`;
+function floatingChatElements(column: HTMLElement) {
+  return {
+    title: column.querySelector<HTMLElement>("[data-floating-chat-title]"),
+    composer: column.querySelector<HTMLElement>("[data-chat-composer-overlay]"),
+  };
+}
+
+/** Keeps the reveal edge aligned with the moving title; negative sides preserve the shadow. */
+function floatingChatClip(visibleHeight: number) {
+  return `inset(calc(100% - ${visibleHeight}px) -3rem -3rem -3rem)`;
 }
 
 /**
@@ -26,23 +32,75 @@ export function useFloatingChatReveal(
 ) {
   const columnRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<Animation | null>(null);
+  const titleAnimationRef = useRef<Animation | null>(null);
+  const collapsedGeometryRef = useRef<{
+    height: number;
+    titleTop: number;
+    titleInset: number;
+  } | null>(null);
+  const composerHeightDeltaRef = useRef(0);
   const previousRef = useRef(presentation);
 
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- starts a Web Animation on the committed DOM before paint
   useLayoutEffect(() => {
     const previous = previousRef.current;
     previousRef.current = presentation;
+    const column = columnRef.current;
+    if (presentation === "collapsed" && column) {
+      const { title, composer } = floatingChatElements(column);
+      if (title && composer) {
+        const bounds = column.getBoundingClientRect();
+        const titleBounds = title.getBoundingClientRect();
+        const composerBounds = composer.getBoundingClientRect();
+        collapsedGeometryRef.current = {
+          height: composerBounds.height,
+          titleTop: titleBounds.top - composerBounds.top,
+          titleInset: titleBounds.left - bounds.left,
+        };
+      }
+    }
     if (previous === presentation) return;
     animationRef.current?.cancel();
+    titleAnimationRef.current?.cancel();
     animationRef.current = null;
-    const column = columnRef.current;
+    titleAnimationRef.current = null;
     if (presentation !== "expanded" || previous !== "collapsed" || !column) return;
+    const geometry = collapsedGeometryRef.current;
+    const { title, composer } = floatingChatElements(column);
+    if (!geometry || !title || !composer) return;
+    composerHeightDeltaRef.current = geometry.height - composer.getBoundingClientRect().height;
     if (prefersReducedMotion()) return;
+    const bounds = column.getBoundingClientRect();
+    const titleBounds = title.getBoundingClientRect();
     animationRef.current = column.animate(
-      { clipPath: [floatingChatClip(collapsedHeight), floatingChatClip(null)] },
+      {
+        clipPath: [
+          floatingChatClip(geometry.height - geometry.titleTop),
+          floatingChatClip(bounds.bottom - titleBounds.top),
+        ],
+      },
       FLOATING_CHAT_REVEAL,
     );
+    titleAnimationRef.current = title.animate(
+      [
+        {
+          transform: `translate(${geometry.titleInset - (titleBounds.left - bounds.left)}px, ${bounds.bottom - geometry.height + geometry.titleTop - titleBounds.top}px)`,
+          width: `${bounds.width - 2 * geometry.titleInset}px`,
+        },
+        { transform: "translate(0, 0)", width: `${titleBounds.width}px` },
+      ],
+      FLOATING_CHAT_REVEAL,
+    );
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- composer resizes must refresh the collapsed geometry before the next reveal
   }, [presentation, collapsedHeight]);
+
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- cancels Web Animations and pending close callbacks when the chat unmounts
+  useLayoutEffect(() => {
+    return () => {
+      animationRef.current?.cancel();
+      titleAnimationRef.current?.cancel();
+    };
+  }, []);
 
   /** Shrinks the open conversation back into the composer, then runs `commit`. */
   const close = (commit: () => void) => {
@@ -52,10 +110,38 @@ export function useFloatingChatReveal(
       return;
     }
     if (animationRef.current?.id === "close") return;
+    const { title, composer } = floatingChatElements(column);
+    const geometry = collapsedGeometryRef.current;
+    if (!title || !composer || !geometry) {
+      commit();
+      return;
+    }
+    const clipPath = getComputedStyle(column).clipPath;
+    const titleStyle = getComputedStyle(title);
+    const titleFrom = { transform: titleStyle.transform, width: titleStyle.width };
     animationRef.current?.cancel();
+    titleAnimationRef.current?.cancel();
+    const bounds = column.getBoundingClientRect();
+    const titleBounds = title.getBoundingClientRect();
+    const targetHeight = composer.getBoundingClientRect().height + composerHeightDeltaRef.current;
     const animation = column.animate(
-      { clipPath: [floatingChatClip(null), floatingChatClip(collapsedHeight)] },
+      {
+        clipPath: [
+          clipPath === "none" ? floatingChatClip(bounds.bottom - titleBounds.top) : clipPath,
+          floatingChatClip(targetHeight - geometry.titleTop),
+        ],
+      },
       { ...FLOATING_CHAT_REVEAL, id: "close", fill: "forwards" },
+    );
+    titleAnimationRef.current = title.animate(
+      [
+        titleFrom,
+        {
+          transform: `translate(${geometry.titleInset - (titleBounds.left - bounds.left)}px, ${bounds.bottom - targetHeight + geometry.titleTop - titleBounds.top}px)`,
+          width: `${bounds.width - 2 * geometry.titleInset}px`,
+        },
+      ],
+      { ...FLOATING_CHAT_REVEAL, fill: "forwards" },
     );
     animationRef.current = animation;
     // A cancelled close rejects `finished`, which leaves the conversation open.
@@ -99,7 +185,8 @@ export function FloatingChatHeader(props: {
 }) {
   return (
     <div
-      className="flex h-9 shrink-0 cursor-pointer items-center gap-2 border-b border-border pr-1.5 pl-3 select-none"
+      data-floating-chat-title
+      className="relative z-30 flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-t-xl border-b border-border bg-background pr-1.5 pl-3 select-none"
       onClick={props.onToggle}
     >
       <BotIcon className="size-3.5 shrink-0 text-muted-foreground" />
@@ -119,7 +206,7 @@ export function FloatingChatTitleBanner(props: {
 }) {
   return (
     <ComposerBanner.Attachment>
-      <ComposerBanner.Root density="comfortable">
+      <ComposerBanner.Root density="comfortable" data-floating-chat-title>
         <ComposerBanner.Row className="cursor-pointer select-none" onClick={props.onToggle}>
           <ComposerBanner.Icon>
             <BotIcon />

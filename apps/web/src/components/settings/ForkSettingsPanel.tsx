@@ -41,7 +41,7 @@ const FORK_FEATURES = [
   {
     title: "Maximized panels keep the chat",
     description:
-      "Double-click any right panel tab to maximize it. The chat floats over it as a composer: click the thread title to show or hide the conversation, or click the panel behind it to hide it. The thread also appears as the first tab, to view the chat full size.",
+      "Double-click any right panel tab to maximize it. The chat floats over it as a composer: click the thread title to smoothly expand or collapse the conversation, or click the panel behind it to collapse it. The thread also appears as the first tab, to view the chat full size.",
   },
   {
     title: "Machines in the new thread picker",
