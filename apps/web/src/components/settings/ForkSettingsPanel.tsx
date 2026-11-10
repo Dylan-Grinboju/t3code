@@ -19,6 +19,7 @@ import {
   SettingsUnavailableGroup,
 } from "./settingsLayout";
 import { searchableSetting } from "./settingsSearch";
+import { AdvancedSettings } from "./AdvancedSettings";
 import { NewThreadMachineSettings } from "./NewThreadMachineSettings";
 import { SidebarDisplaySettings } from "./SidebarDisplaySettings";
 
@@ -26,12 +27,12 @@ const FORK_FEATURES = [
   {
     title: "Next prompt suggestions",
     description:
-      "Predict your next message in any model's conversation. Enable Prompt suggestions below and choose a separate prediction model, or turn on Native Claude suggestions for Claude conversations. Right Arrow or Tab accepts the gray suggestion; Enter sends it.",
+      "Predict your next message in any model's conversation. Enable Prompt suggestions above and choose a separate prediction model, or turn on Native Claude suggestions for Claude conversations. Right Arrow or Tab accepts the gray suggestion; Enter sends it.",
   },
   {
     title: "Sidebar status strip",
     description:
-      "With the sidebar closed, a thin strip of thread status icons can stay along the left edge. Set it under Sidebar below.",
+      "With the sidebar closed, a thin strip of thread status icons can stay along the left edge. Set it under Sidebar above.",
   },
   {
     title: "Hover to reveal the sidebar",
@@ -41,7 +42,7 @@ const FORK_FEATURES = [
   {
     title: "Usage bars",
     description:
-      "The sidebar footer shows Codex weekly, Claude session and Claude weekly limits. The bar is what's left (or what's used, set below), the line is where even spending would be, and the arrow says whether you're ahead of it. Hover for a forecast; click to open Usage.",
+      "The sidebar footer shows Codex weekly, Claude session and Claude weekly limits. The bar is what's left (or what's used, set above), the line is where even spending would be, and the arrow says whether you're ahead of it. Hover for a forecast; click to open Usage.",
   },
   {
     title: "Maximized panels keep the chat",
@@ -155,15 +156,6 @@ export function ForkSettingsPanel() {
           }
         />
       </SettingsSection>
-      <SettingsSection id="fork-features" title="What this fork adds">
-        {FORK_FEATURES.map((feature) => (
-          <SettingsRow
-            key={feature.title}
-            title={feature.title}
-            description={feature.description}
-          />
-        ))}
-      </SettingsSection>
       <SettingsSection id="fork-sidebar" title="Sidebar">
         <SidebarDisplaySettings />
       </SettingsSection>
@@ -177,6 +169,17 @@ export function ForkSettingsPanel() {
       </SettingsSection>
       <SettingsSection id="fork-new-thread-machines" title="New thread picker">
         <NewThreadMachineSettings />
+      </SettingsSection>
+      <SettingsSection id="fork-features" title="About the fork" hideTitle>
+        <AdvancedSettings label="About the fork" targetIds={[]}>
+          {FORK_FEATURES.map((feature) => (
+            <SettingsRow
+              key={feature.title}
+              title={feature.title}
+              description={feature.description}
+            />
+          ))}
+        </AdvancedSettings>
       </SettingsSection>
     </SettingsPageContainer>
   );
