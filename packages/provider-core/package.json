@@ -3,7 +3,6 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./server/forkPromptSuggestion": "./src/server/forkPromptSuggestion.ts",
     "./client": {
       "types": "./src/client.ts",
       "import": "./src/client.ts"

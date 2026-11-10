@@ -1,4 +1,3 @@
-import * as ForkNativePromptSuggestions from "../ForkNativePromptSuggestions.ts";
 import * as DocumentText from "../../provider/DocumentText.ts";
 import {
   compactDynamicToolOutput,
@@ -1750,7 +1749,6 @@ const subagentDeviceInstructions: HookCallback = () =>
   });
 
 export function makeClaudeQueryOptions(input: {
-  readonly promptSuggestions?: boolean;
   readonly modelSelection: ModelSelection;
   readonly nativeThreadId: string;
   readonly title?: string;
@@ -1833,7 +1831,6 @@ export function makeClaudeQueryOptions(input: {
         } as ClaudeSdkSettings);
   const deviceInstructions = input.mcpServers !== undefined && input.deviceToolsAvailable === true;
   const options: ClaudeAgentSdkQueryOptions = {
-    ...(input.promptSuggestions ? { promptSuggestions: true } : {}),
     model: compiledSelection.apiModelId,
     // T3 names threads; a supplied title skips Claude's redundant naming request.
     ...(input.title === undefined ? {} : { title: input.title }),
@@ -4415,9 +4412,6 @@ interface ActiveClaudeSubagent {
 }
 
 interface ClaudeLiveQueryContext {
-  readonly forkSuggestions: ReturnType<
-    typeof ForkNativePromptSuggestions.makeClaudeSuggestionTracker
-  > | null;
   readonly queryPolicy: ClaudeRuntimeQueryPolicy;
   readonly nativeThreadId: string;
   readonly query: ClaudeAgentSdkQuerySession;
@@ -4857,9 +4851,6 @@ export const makeClaudeAdapterV2 = Effect.fn("makeClaudeAdapterV2")(function* (
   const mcpSessions = yield* McpProviderSessions.McpProviderSessions;
   const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
   const serverSettings = yield* Effect.serviceOption(ServerSettings.ServerSettingsService);
-  const forkSuggestions = yield* Effect.serviceOption(
-    ForkNativePromptSuggestions.ForkNativePromptSuggestions,
-  );
   const { attachmentsDir, fileSystem, path, random, idAllocator, queryRunner } = adapterOptions;
   const subagentModelCatalog = scopeClaudeModelCatalog(
     BUNDLED_CLAUDE_MODEL_CATALOG,
@@ -10745,16 +10736,7 @@ export const makeClaudeAdapterV2 = Effect.fn("makeClaudeAdapterV2")(function* (
               ? {}
               : { allowedTools: queryPolicy.allowedTools }),
           });
-          const suggestionSettings = Option.isSome(serverSettings)
-            ? (yield* serverSettings.value.getSettings).forkPromptSuggestions
-            : undefined;
-          const nativeSuggestions =
-            suggestionSettings?.enabled === true &&
-            suggestionSettings.nativeClaude &&
-            Option.isSome(forkSuggestions);
-          const queryPolicyKey =
-            claudeEffectiveQueryPolicyKey(queryPolicy, mcpOverrides) +
-            (nativeSuggestions ? ":native-suggestions" : "");
+          const queryPolicyKey = claudeEffectiveQueryPolicyKey(queryPolicy, mcpOverrides);
           const compiledSelection = compileClaudeModelSelection(turnInput.modelSelection);
           const resumeSessionAt = yield* getNativeConversationHeadId(turnInput.providerThread);
           const existing = yield* Ref.get(queryContext);
@@ -10869,7 +10851,6 @@ export const makeClaudeAdapterV2 = Effect.fn("makeClaudeAdapterV2")(function* (
             launchArgSettings,
           );
           const queryOptions = makeClaudeQueryOptions({
-            promptSuggestions: nativeSuggestions,
             modelSelection: turnInput.modelSelection,
             nativeThreadId,
             title: turnInput.appThread.title,
@@ -10944,10 +10925,6 @@ export const makeClaudeAdapterV2 = Effect.fn("makeClaudeAdapterV2")(function* (
           });
           const closed = yield* Deferred.make<void, never>();
           const context: ClaudeLiveQueryContext = {
-            forkSuggestions:
-              nativeSuggestions && Option.isSome(forkSuggestions)
-                ? ForkNativePromptSuggestions.makeClaudeSuggestionTracker(forkSuggestions.value)
-                : null,
             queryPolicy,
             nativeThreadId,
             query: querySession,
@@ -11023,20 +11000,6 @@ export const makeClaudeAdapterV2 = Effect.fn("makeClaudeAdapterV2")(function* (
                       reportedContextWindows.set(model, window);
                       resultsReportingNewContextWindow.add(message);
                     }
-                  }
-                  if (message.type === "prompt_suggestion" || message.type === "result") {
-                    return Ref.get(queryContext).pipe(
-                      Effect.flatMap((current) =>
-                        current === context
-                          ? (context.forkSuggestions?.message(message) ?? Effect.void)
-                          : Effect.void,
-                      ),
-                      Effect.andThen(
-                        message.type === "prompt_suggestion"
-                          ? Effect.void
-                          : handleSdkMessage({ query: querySession, message }),
-                      ),
-                    );
                   }
                   return handleSdkMessage({ query: querySession, message });
                 }),
@@ -11198,9 +11161,6 @@ export const makeClaudeAdapterV2 = Effect.fn("makeClaudeAdapterV2")(function* (
               heldRootFrames: [],
             };
             const attachTurn = Effect.gen(function* () {
-              if (!isClaudeProviderContinuationTurn(turnInput)) {
-                yield* querySession.forkSuggestions?.start(turnInput) ?? Effect.void;
-              }
               querySession.lastTurn = context;
               yield* Ref.set(activeTurn, context);
               if (

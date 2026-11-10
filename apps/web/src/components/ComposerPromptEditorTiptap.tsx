@@ -161,8 +161,6 @@ export interface ComposerPromptEditorProps {
   skills: ReadonlyArray<ServerProviderSkill>;
   disabled: boolean;
   placeholder: string;
-  ghostSuggestion?: string | null | undefined;
-  onDismissGhostSuggestion?: () => void;
   ariaLabel?: string | undefined;
   suggestionListId?: string | undefined;
   activeSuggestionId?: string | undefined;
@@ -904,9 +902,6 @@ function ComposerPromptEditorTiptapInner(
   const latestValueRef = useRef(value);
   // The editor config is built once, so its handlers reach the current callbacks through here.
   const readCallbacks = useStableCallback(() => ({
-    ghostSuggestion: props.ghostSuggestion,
-    onDismissGhostSuggestion: props.onDismissGhostSuggestion,
-    hasContext: contextRecords.size > 0,
     onChange,
     onVisibleSelectionChange,
     onCommandKeyDown,
@@ -1049,29 +1044,6 @@ function ComposerPromptEditorTiptapInner(
       editorProps: {
         attributes: editorAttributes,
         handleKeyDown: (view, event) => {
-          const callbacks = readCallbacks();
-          if (
-            callbacks.ghostSuggestion &&
-            !callbacks.hasContext &&
-            view.state.doc.textContent === "" &&
-            !event.isComposing &&
-            !event.ctrlKey &&
-            !event.altKey &&
-            !event.metaKey &&
-            !event.shiftKey
-          ) {
-            if (event.key === "ArrowRight" || event.key === "Tab") {
-              event.preventDefault();
-              view.dispatch(view.state.tr.insertText(callbacks.ghostSuggestion));
-              callbacks.onDismissGhostSuggestion?.();
-              return true;
-            }
-            if (event.key === "Escape") {
-              event.preventDefault();
-              callbacks.onDismissGhostSuggestion?.();
-              return true;
-            }
-          }
           // In a right-to-left line the start is on the right.
           const backArrow = caretLineDirection(view.state) === "rtl" ? "ArrowRight" : "ArrowLeft";
           const boundary = event.metaKey
@@ -1806,15 +1778,14 @@ function ComposerPromptEditorTiptapInner(
               onCopyCapture={(event) => handleCopyCut(event, false)}
               onCutCapture={(event) => handleCopyCut(event, true)}
             />
-            {isEmpty && contextRecords.size === 0 && (props.ghostSuggestion || placeholder) ? (
+            {isEmpty && contextRecords.size === 0 && placeholder ? (
               <div
-                data-testid={props.ghostSuggestion ? "prompt-suggestion" : undefined}
                 className={cn(
                   "pointer-events-none absolute inset-0 leading-relaxed text-placeholder",
                   placeholderClassName,
                 )}
               >
-                {props.ghostSuggestion || placeholder}
+                {placeholder}
               </div>
             ) : null}
           </div>

@@ -97,8 +97,6 @@ import * as ProviderEventLoggers from "@t3tools/provider-core/server/ProviderEve
 import * as ProviderAdapter from "@t3tools/provider-core/server/ProviderAdapter";
 import type * as ProviderContinuationRequests from "@t3tools/provider-core/server/ProviderContinuationRequests";
 import { makeProviderFailure } from "@t3tools/provider-core/server/failure";
-import * as ForkNativeSuggestions from "../ForkNativePromptSuggestions.ts";
-import * as ServerSettings from "../../serverSettings.ts";
 import * as ClaudeAdapterV2 from "./ClaudeAdapterV2.ts";
 import * as IdAllocator from "@t3tools/provider-core/server/IdAllocator";
 import { ClaudeOrchestratorReplayHarness } from "./ClaudeAdapterV2.testkit.ts";
@@ -3385,55 +3383,6 @@ describe("ClaudeAdapterV2 background wake turns", () => {
       };
     });
   const makeWakeHarness = makeWakeHarnessWithOptions();
-
-  it.effect.each([false, true])(
-    "routes native suggestions after the terminal event only when enabled (%s)",
-    (enabled) =>
-      Effect.gen(function* () {
-        const harness = yield* makeWakeHarness;
-        const native = yield* ForkNativeSuggestions.ForkNativePromptSuggestions;
-        const input = makeClaudeTestTurnInput({
-          threadId: harness.threadId,
-          providerThread: harness.providerThread,
-          now: yield* DateTime.now,
-          attemptId: RunAttemptId.make("native-suggestion"),
-          text: "Show me an example next.",
-          attachments: [],
-        });
-        yield* harness.runtime.startTurn(input);
-        assert.equal(harness.getOpenedOptions()?.promptSuggestions, enabled ? true : undefined);
-        yield* harness.offerAndWait(
-          makeAssistantTextFrame({ uuid: "native-assistant", text: "Ready for the example?" }),
-        );
-        yield* harness.offerAndWait(
-          makeResultFrame({ uuid: "native-result", result: "Ready for the example?" }),
-        );
-        yield* harness.awaitTerminal(1);
-        yield* harness.offerAndWait(
-          claudeSdkFrame({
-            type: "prompt_suggestion",
-            suggestion: "Go ahead with the example.",
-            uuid: "native-suggestion",
-            session_id: WAKE_NATIVE_SESSION,
-          }),
-        );
-        assert.equal(yield* native.get(input), enabled ? "Go ahead with the example." : null);
-        assert.lengthOf(harness.terminalEvents(), 1);
-        assert.lengthOf(harness.continuationRequests, 0);
-      }).pipe(
-        Effect.scoped,
-        Effect.provide(
-          Layer.mergeAll(
-            IdAllocator.layer,
-            McpProviderSessions.layer,
-            NodeServices.layer,
-            NodeCrypto.layer,
-            ForkNativeSuggestions.layer,
-            ServerSettings.layerTest({ forkPromptSuggestions: { enabled, nativeClaude: true } }),
-          ),
-        ),
-      ),
-  );
 
   it.effect.each(["release-after", "cancel-after", "release-before", "resume-pending"] as const)(
     "keeps attachment reservations across compaction: %s boundary",

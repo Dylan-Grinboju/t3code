@@ -36,13 +36,11 @@ function Composer({
   richTextEnabled,
   skills,
   onChange,
-  ghostSuggestion,
 }: {
   value: string;
   richTextEnabled: boolean;
   skills: ReadonlyArray<ServerProviderSkill>;
   onChange?: ComposerPromptEditorProps["onChange"] | undefined;
-  ghostSuggestion?: string | undefined;
 }) {
   const [prompt, setPrompt] = useState({ value, cursor: value.length });
   return (
@@ -55,7 +53,6 @@ function Composer({
       skills={skills}
       disabled={false}
       placeholder=""
-      ghostSuggestion={ghostSuggestion}
       onChange={(...args) => {
         setPrompt({ value: args[0], cursor: args[1] });
         onChange?.(...args);
@@ -355,51 +352,6 @@ async function focusAt(editor: Editor, position: number | "end") {
 }
 
 describe("Markdown markers around styled text", () => {
-  it.each(["{ArrowRight}", "{Tab}"])(
-    "accepts a prediction with %s as editable text without submitting",
-    async (key) => {
-      const changed = vi.fn();
-      await using screen = await render(
-        <Composer
-          value=""
-          richTextEnabled
-          skills={[]}
-          onChange={changed}
-          ghostSuggestion="run the tests"
-        />,
-      );
-      const editor = editorIn(screen.container);
-      await act(() => {
-        editor.commands.focus();
-      });
-      await vi.waitFor(() => expect(document.activeElement).toBe(editor.view.dom));
-      await userEvent.keyboard(key);
-      await vi.waitFor(() => expect(editor.state.doc.textContent).toBe("run the tests"));
-      expect(changed.mock.calls.at(-1)?.[0]).toBe("run the tests");
-      await act(() => {
-        editor.commands.undo();
-      });
-      await vi.waitFor(() => expect(editor.state.doc.textContent).toBe(""));
-    },
-  );
-
-  it("does not accept a prediction with Enter or overwrite existing typing", async () => {
-    await using screen = await render(
-      <Composer value="" richTextEnabled skills={[]} ghostSuggestion="run the tests" />,
-    );
-    const editor = editorIn(screen.container);
-    await act(() => {
-      editor.commands.focus();
-    });
-    await vi.waitFor(() => expect(document.activeElement).toBe(editor.view.dom));
-    await userEvent.keyboard("{Enter}");
-    expect(editor.state.doc.textContent).toBe("");
-    await act(() => {
-      editor.commands.setContent("my prompt");
-    });
-    await userEvent.keyboard("{ArrowRight}");
-    expect(editor.state.doc.textContent).toBe("my prompt");
-  });
   it.each([
     { keys: "{Backspace}", expected: "**** after" },
     { keys: "X", expected: "**X** after" },

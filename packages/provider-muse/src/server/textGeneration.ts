@@ -10,10 +10,6 @@ import { sanitizeBranchFragment, sanitizeFeatureBranchName } from "@t3tools/shar
 import { getModelSelectionStringOptionValue } from "@t3tools/shared/model";
 import { extractJsonObject } from "@t3tools/shared/schemaJson";
 import * as Effect from "effect/Effect";
-import {
-  buildPromptSuggestionPrompt,
-  normalizePromptSuggestion,
-} from "@t3tools/provider-core/server/forkPromptSuggestion";
 import * as FileSystem from "effect/FileSystem";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
@@ -355,16 +351,6 @@ export const makeMuseTextGeneration = Effect.fn("makeMuseTextGeneration")(functi
     Effect.fail(investigationUnsupported("generateReviewGuide", "Muse Code"));
   return {
     generateCommitMessage,
-    generatePromptSuggestion: Effect.fn("MuseTextGeneration.generatePromptSuggestion")(
-      function* (input) {
-        const result = yield* runMuseJson({
-          operation: "generatePromptSuggestion",
-          ...buildPromptSuggestionPrompt(input.messages),
-          modelSelection: input.modelSelection,
-        });
-        return { suggestion: normalizePromptSuggestion(result.suggestion) };
-      },
-    ),
     generatePrContent,
     generateBranchName,
     generateThreadTitle,

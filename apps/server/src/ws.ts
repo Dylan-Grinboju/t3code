@@ -1,4 +1,3 @@
-import * as ForkPromptSuggestions from "./orchestration-v2/ForkPromptSuggestions.ts";
 import { OrchestrationDispatchCommandError } from "@t3tools/contracts";
 import * as Context from "effect/Context";
 import * as SecureRandom from "effect/crypto/SecureRandom";
@@ -1380,7 +1379,6 @@ export const layerWsRpc = (
       const scratchThreadPromotion = yield* ScratchThreadPromotion.ScratchThreadPromotion;
       const eventLoopMonitor = yield* EventLoopMonitor.EventLoopMonitor;
       const threadSearch = yield* ThreadSearch.ThreadSearch;
-      const promptSuggestions = yield* ForkPromptSuggestions.ForkPromptSuggestions;
 
       const providerSessionsV2 = yield* ProviderSessionManager.ProviderSessionManagerV2;
       const mcpAppRequests = yield* McpAppRequests.McpAppRequests;
@@ -2750,7 +2748,6 @@ export const layerWsRpc = (
           withPullRequestViewer(input, reviewGuides.get(input)),
         [WS_METHODS.pullRequestsGenerateReviewGuide]: (input) =>
           withPullRequestViewer(input, reviewGuides.generate(input)),
-        [WS_METHODS.forkPromptSuggestion]: (input) => promptSuggestions.generate(input),
         [WS_METHODS.pullRequestsThreadComments]: (input) =>
           withPullRequestViewer(input, pullRequests.threadComments(input)),
         [WS_METHODS.pullRequestsDiffFileContents]: (input) =>
