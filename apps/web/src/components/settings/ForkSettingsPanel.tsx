@@ -36,7 +36,7 @@ const FORK_FEATURES = [
   {
     title: "Usage bars",
     description:
-      "The sidebar footer shows Codex weekly, Claude session and Claude weekly limits. The bar is what's left (or what's used, set above), the line is where even spending would be, and the arrow says whether you're ahead of it. Hover for a forecast; click to open Usage.",
+      "The sidebar footer shows Codex weekly, Claude session and Claude weekly limits. The bar is what's left (or what's used, set above), the line is where even spending would be, and the number on the right is the bar's percent, amber when you're spending faster than even. Hover for a forecast; click to open Usage.",
   },
   {
     title: "Maximized panels keep the chat",
