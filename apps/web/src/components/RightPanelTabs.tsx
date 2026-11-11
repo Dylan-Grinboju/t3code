@@ -1,7 +1,7 @@
 import { sourceControlClients } from "@t3tools/client-runtime/source-control-clients";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/shell";
-import { threadTabAttention } from "~/lib/threadTabAttention";
+import { useThreadTabStatus } from "~/hooks/useThreadTabStatus";
 import {
   useProjects,
   useQuietThreadShell,
@@ -721,7 +721,7 @@ function SideChatTabIcon(props: { environmentId: EnvironmentId | null; threadId:
   const shell = useQuietThreadShell(
     props.environmentId === null ? null : scopeThreadRef(props.environmentId, props.threadId),
   );
-  const state = threadTabAttention(shell);
+  const state = useThreadTabStatus(shell);
   // Fork: the same surface also holds thread tabs.
   const Icon =
     shell === null || shell.lineage.sideChat === true
@@ -732,9 +732,9 @@ function SideChatTabIcon(props: { environmentId: EnvironmentId | null; threadId:
   return (
     <>
       <Icon className="size-3 shrink-0" />
-      {state === null ? null : (
+      {state === null || state.pulse || state.label === "Waiting" ? null : (
         <span
-          className="absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-success"
+          className={cn("absolute -top-0.5 -right-0.5 size-1.5 rounded-full", state.dotClass)}
           aria-hidden
         />
       )}
@@ -920,7 +920,7 @@ function RightPanelTab(
       : null,
   );
   const title = sideChatShell?.title ?? props.title;
-  const sideChatState = threadTabAttention(sideChatShell);
+  const sideChatState = useThreadTabStatus(sideChatShell);
   const content = (
     <>
       <PanelTabCloseButton label={`Close ${title}`} onClick={() => onClose(surface)}>
@@ -991,10 +991,15 @@ function RightPanelTab(
                   else if (surface.kind === "device" && props.canRename) onStartRename(surface.id);
                 }}
                 className="cursor-pointer flex min-w-0 items-center"
-                aria-label={sideChatState === null ? undefined : `${title}, ${sideChatState}`}
+                aria-label={sideChatState === null ? undefined : `${title}, ${sideChatState.label}`}
                 onClick={() => onActivate(surface)}
               >
                 <span className="truncate">{title}</span>
+                {sideChatState && (sideChatState.pulse || sideChatState.label === "Waiting") ? (
+                  <span className={cn("ml-1 shrink-0 text-2xs", sideChatState.colorClass)}>
+                    {sideChatState.label}
+                  </span>
+                ) : null}
               </button>
             }
           />
@@ -1008,7 +1013,7 @@ function RightPanelTab(
             ) : sideChatState === null ? (
               title
             ) : (
-              `${title}, ${sideChatState}`
+              `${title}, ${sideChatState.label}`
             )}
           </TooltipPopup>
         </Tooltip>

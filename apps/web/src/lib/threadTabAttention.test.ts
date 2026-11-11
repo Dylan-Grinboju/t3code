@@ -8,6 +8,9 @@ const runId = RunId.make("run-1");
 
 function thread(overrides: Partial<Input> = {}): Input {
   return {
+    hasActionableProposedPlan: false,
+    interactionMode: "default",
+    lastVisitedAt: "2026-11-11T12:00:00Z",
     hasPendingApprovals: false,
     hasPendingUserInput: false,
     pendingSubagentRequest: null,
@@ -44,54 +47,42 @@ function completedThread(): Input {
 }
 
 describe("thread tab attention", () => {
-  it("shows a ready reply only after work finishes, and clears it when work resumes", () => {
+  it("clears a viewed completion, respects mark-unread, and shows work resuming", () => {
     expect(threadTabAttention(null)).toBeNull();
     expect(threadTabAttention(thread())).toBeNull();
-    expect(threadTabAttention(thread({ runtime: runtime("idle") }))).toBeNull();
-    for (const status of ["queued", "preparing", "starting", "running", "waiting"] as const) {
-      expect(threadTabAttention(thread({ runtime: runtime(status) }))).toBeNull();
-      expect(threadTabAttention({ ...completedThread(), runtime: runtime(status) })).toBeNull();
-    }
-    expect(threadTabAttention(completedThread())).toBe("reply ready");
-    expect(threadTabAttention({ ...completedThread(), runtime: runtime("idle") })).toBe(
-      "reply ready",
+    const completed = completedThread();
+    expect(threadTabAttention(completed)?.label).toBe("Completed");
+    const visitedAt = "2026-11-11T12:02:00Z";
+    expect(threadTabAttention({ ...completed, lastVisitedAt: visitedAt })).toBeNull();
+    // A server rewind must win over a newer local visit when marking the chat unread.
+    expect(threadTabAttention(completed, visitedAt)?.label).toBe("Completed");
+    expect(threadTabAttention({ ...completed, lastVisitedAt: undefined }, visitedAt)).toBeNull();
+    expect(threadTabAttention({ ...completed, runtime: runtime("running") })?.label).toBe(
+      "Working",
     );
-    expect(threadTabAttention({ ...completedThread(), runtime: null })).toBe("reply ready");
+    expect(threadTabAttention({ ...completed, runtime: runtime("queued") })?.label).toBe(
+      "Connecting",
+    );
     expect(
-      threadTabAttention({
-        ...completedThread(),
-        runtime: { ...runtime("idle"), activeRunId: runId },
-      }),
-    ).toBeNull();
-    for (const status of ["failed", "interrupted", "cancelled", "rolled_back"] as const) {
-      const shell = completedThread();
-      expect(
-        threadTabAttention({ ...shell, latestRun: { ...shell.latestRun!, status } }),
-      ).toBeNull();
-      expect(threadTabAttention({ ...shell, runtime: runtime(status) })).toBeNull();
-    }
-    for (const kind of ["subagent", "background_task", "command", "monitor"] as const) {
-      const shell = { ...completedThread(), runtime: runtime("idle") };
-      const task = { taskId: "task-1", kind };
-      expect(threadTabAttention({ ...shell, pendingBackgroundTasks: [task] })).toBe(
-        kind === "command" || kind === "monitor" ? "reply ready" : null,
-      );
-      expect(
-        threadTabAttention({ ...shell, pendingBackgroundTasks: [{ ...task, awaited: true }] }),
-      ).toBeNull();
-    }
+      threadTabAttention({ ...completed, runtime: runtime("running"), blockedOnThreadWait: true })
+        ?.label,
+    ).toBe("Waiting");
   });
 
-  it("shows direct and delegated requests until they are answered, even during a run", () => {
-    const shell = thread({ runtime: runtime("running") });
-    expect(threadTabAttention({ ...shell, hasPendingApprovals: true })).toBe("needs approval");
-    expect(threadTabAttention({ ...shell, hasPendingUserInput: true })).toBe("needs input");
-    expect(threadTabAttention({ ...shell, pendingSubagentRequest: "approval" })).toBe(
-      "needs approval",
+  it("keeps direct and delegated requests visible after the chat is viewed", () => {
+    const shell = thread({ runtime: runtime("running"), lastVisitedAt: "2026-11-11T12:02:00Z" });
+    expect(threadTabAttention({ ...shell, hasPendingApprovals: true })?.label).toBe(
+      "Pending Approval",
     );
-    expect(threadTabAttention({ ...shell, pendingSubagentRequest: "user_input" })).toBe(
-      "needs input",
+    expect(threadTabAttention({ ...shell, hasPendingUserInput: true })?.label).toBe(
+      "Awaiting Input",
     );
-    expect(threadTabAttention(shell)).toBeNull();
+    expect(threadTabAttention({ ...shell, pendingSubagentRequest: "approval" })?.label).toBe(
+      "Pending Approval",
+    );
+    expect(threadTabAttention({ ...shell, pendingSubagentRequest: "user_input" })?.label).toBe(
+      "Awaiting Input",
+    );
+    expect(threadTabAttention(shell)?.label).toBe("Working");
   });
 });

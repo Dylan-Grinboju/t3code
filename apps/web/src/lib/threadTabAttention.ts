@@ -1,34 +1,17 @@
-import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/shell";
-import { backgroundWorkHoldsCompletion } from "@t3tools/shared/orchestrationV2PendingBackgroundWork";
+import { resolveThreadLastVisitedAt, resolveThreadStatusPill } from "../components/Sidebar.logic";
 
-type ThreadTabAttentionInput = Pick<
-  EnvironmentThreadShell,
-  | "hasPendingApprovals"
-  | "hasPendingUserInput"
-  | "pendingSubagentRequest"
-  | "runtime"
-  | "latestRun"
-  | "pendingBackgroundTasks"
->;
+type ThreadTabStatusInput = Parameters<typeof resolveThreadStatusPill>[0]["thread"];
 
-export function threadTabAttention(shell: ThreadTabAttentionInput | null) {
-  if (shell === null) return null;
-  if (shell.hasPendingApprovals || shell.pendingSubagentRequest === "approval") {
-    return "needs approval";
-  }
-  if (shell.hasPendingUserInput || shell.pendingSubagentRequest === "user_input") {
-    return "needs input";
-  }
-  if (
-    (shell.runtime !== null &&
-      shell.runtime.status !== "completed" &&
-      shell.runtime.status !== "idle") ||
-    backgroundWorkHoldsCompletion(shell.pendingBackgroundTasks)
-  ) {
-    return null;
-  }
-  return shell.latestRun?.status === "completed" &&
-    shell.runtime?.activeRunId !== shell.latestRun.runId
-    ? "reply ready"
-    : null;
+export function threadTabAttention(
+  shell: ThreadTabStatusInput | null,
+  localLastVisitedAt?: string,
+) {
+  return shell === null
+    ? null
+    : resolveThreadStatusPill({
+        thread: {
+          ...shell,
+          lastVisitedAt: resolveThreadLastVisitedAt(shell.lastVisitedAt, localLastVisitedAt),
+        },
+      });
 }
