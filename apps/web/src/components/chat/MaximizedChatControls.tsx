@@ -2,6 +2,7 @@ import { BotIcon, ChevronDownIcon } from "lucide-react";
 import { useLayoutEffect, useRef } from "react";
 import { flushSync } from "react-dom";
 
+import { cn } from "~/lib/utils";
 import { Button } from "../ui/button";
 import { ComposerBanner } from "./ComposerBanner";
 
@@ -12,7 +13,8 @@ const FLOATING_CHAT_REVEAL = { duration: 200, easing: "cubic-bezier(0.2, 0, 0, 1
 
 function floatingChatElements(column: HTMLElement) {
   return {
-    title: column.querySelector<HTMLElement>("[data-floating-chat-title]"),
+    banner: column.querySelector<HTMLElement>("[data-floating-chat-title]"),
+    header: column.querySelector<HTMLElement>("[data-floating-chat-header]"),
     composer: column.querySelector<HTMLElement>("[data-chat-composer-overlay]"),
   };
 }
@@ -20,6 +22,15 @@ function floatingChatElements(column: HTMLElement) {
 /** Keeps the reveal edge aligned with the moving title; negative sides preserve the shadow. */
 function floatingChatClip(visibleHeight: number) {
   return `inset(calc(100% - ${visibleHeight}px) -3rem -3rem -3rem)`;
+}
+
+function headerPlacement(column: HTMLElement, top: number, left: number, width: number) {
+  const bounds = column.getBoundingClientRect();
+  return {
+    top: `${top - bounds.top - column.clientTop}px`,
+    left: `${left - bounds.left - column.clientLeft}px`,
+    width: `${width}px`,
+  };
 }
 
 /**
@@ -34,9 +45,10 @@ export function useFloatingChatReveal(
   const animationRef = useRef<Animation | null>(null);
   const titleAnimationRef = useRef<Animation | null>(null);
   const collapsedGeometryRef = useRef<{
-    height: number;
-    titleTop: number;
-    titleInset: number;
+    composerHeight: number;
+    bannerTop: number;
+    bannerLeft: number;
+    bannerWidth: number;
   } | null>(null);
   const composerHeightDeltaRef = useRef(0);
   const previousRef = useRef(presentation);
@@ -47,15 +59,15 @@ export function useFloatingChatReveal(
     previousRef.current = presentation;
     const column = columnRef.current;
     if (presentation === "collapsed" && column) {
-      const { title, composer } = floatingChatElements(column);
-      if (title && composer) {
-        const bounds = column.getBoundingClientRect();
-        const titleBounds = title.getBoundingClientRect();
+      const { banner, composer } = floatingChatElements(column);
+      if (banner && composer) {
+        const bannerBounds = banner.getBoundingClientRect();
         const composerBounds = composer.getBoundingClientRect();
         collapsedGeometryRef.current = {
-          height: composerBounds.height,
-          titleTop: titleBounds.top - composerBounds.top,
-          titleInset: titleBounds.left - bounds.left,
+          composerHeight: composerBounds.height,
+          bannerTop: bannerBounds.top - composerBounds.top,
+          bannerLeft: bannerBounds.left - column.getBoundingClientRect().left,
+          bannerWidth: bannerBounds.width,
         };
       }
     }
@@ -66,28 +78,27 @@ export function useFloatingChatReveal(
     titleAnimationRef.current = null;
     if (presentation !== "expanded" || previous !== "collapsed" || !column) return;
     const geometry = collapsedGeometryRef.current;
-    const { title, composer } = floatingChatElements(column);
-    if (!geometry || !title || !composer) return;
-    composerHeightDeltaRef.current = geometry.height - composer.getBoundingClientRect().height;
+    const { header, composer } = floatingChatElements(column);
+    if (!geometry || !header || !composer) return;
+    const composerBounds = composer.getBoundingClientRect();
+    composerHeightDeltaRef.current = geometry.composerHeight - composerBounds.height;
     if (prefersReducedMotion()) return;
     const bounds = column.getBoundingClientRect();
-    const titleBounds = title.getBoundingClientRect();
+    const headerBounds = header.getBoundingClientRect();
+    const bannerTop = composerBounds.bottom - geometry.composerHeight + geometry.bannerTop;
     animationRef.current = column.animate(
       {
         clipPath: [
-          floatingChatClip(geometry.height - geometry.titleTop),
-          floatingChatClip(bounds.bottom - titleBounds.top),
+          floatingChatClip(bounds.bottom - bannerTop),
+          floatingChatClip(bounds.bottom - headerBounds.top),
         ],
       },
       FLOATING_CHAT_REVEAL,
     );
-    titleAnimationRef.current = title.animate(
+    titleAnimationRef.current = header.animate(
       [
-        {
-          transform: `translate(${geometry.titleInset - (titleBounds.left - bounds.left)}px, ${bounds.bottom - geometry.height + geometry.titleTop - titleBounds.top}px)`,
-          width: `${bounds.width - 2 * geometry.titleInset}px`,
-        },
-        { transform: "translate(0, 0)", width: `${titleBounds.width}px` },
+        headerPlacement(column, bannerTop, bounds.left + geometry.bannerLeft, geometry.bannerWidth),
+        { top: "0px", left: "0px", width: `${headerBounds.width}px` },
       ],
       FLOATING_CHAT_REVEAL,
     );
@@ -110,36 +121,34 @@ export function useFloatingChatReveal(
       return;
     }
     if (animationRef.current?.id === "close") return;
-    const { title, composer } = floatingChatElements(column);
+    const { header, composer } = floatingChatElements(column);
     const geometry = collapsedGeometryRef.current;
-    if (!title || !composer || !geometry) {
+    if (!header || !composer || !geometry) {
       commit();
       return;
     }
     const clipPath = getComputedStyle(column).clipPath;
-    const titleStyle = getComputedStyle(title);
-    const titleFrom = { transform: titleStyle.transform, width: titleStyle.width };
+    const headerStyle = getComputedStyle(header);
+    const headerFrom = { top: headerStyle.top, left: headerStyle.left, width: headerStyle.width };
     animationRef.current?.cancel();
     titleAnimationRef.current?.cancel();
     const bounds = column.getBoundingClientRect();
-    const titleBounds = title.getBoundingClientRect();
-    const targetHeight = composer.getBoundingClientRect().height + composerHeightDeltaRef.current;
+    const headerBounds = header.getBoundingClientRect();
+    const composerBounds = composer.getBoundingClientRect();
+    const bannerTop = composerBounds.top - composerHeightDeltaRef.current + geometry.bannerTop;
     const animation = column.animate(
       {
         clipPath: [
-          clipPath === "none" ? floatingChatClip(bounds.bottom - titleBounds.top) : clipPath,
-          floatingChatClip(targetHeight - geometry.titleTop),
+          clipPath === "none" ? floatingChatClip(bounds.bottom - headerBounds.top) : clipPath,
+          floatingChatClip(bounds.bottom - bannerTop),
         ],
       },
       { ...FLOATING_CHAT_REVEAL, id: "close", fill: "forwards" },
     );
-    titleAnimationRef.current = title.animate(
+    titleAnimationRef.current = header.animate(
       [
-        titleFrom,
-        {
-          transform: `translate(${geometry.titleInset - (titleBounds.left - bounds.left)}px, ${bounds.bottom - targetHeight + geometry.titleTop - titleBounds.top}px)`,
-          width: `${bounds.width - 2 * geometry.titleInset}px`,
-        },
+        headerFrom,
+        headerPlacement(column, bannerTop, bounds.left + geometry.bannerLeft, geometry.bannerWidth),
       ],
       { ...FLOATING_CHAT_REVEAL, fill: "forwards" },
     );
@@ -180,13 +189,17 @@ function MinimizeFloatingChatButton(props: { onMinimize: () => void }) {
 /** The open floating chat's title bar; click hides the conversation. */
 export function FloatingChatHeader(props: {
   title: string;
+  hidden: boolean;
   onToggle: () => void;
   onMinimize: () => void;
 }) {
   return (
     <div
-      data-floating-chat-title
-      className="relative z-30 flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-t-xl border-b border-border bg-background pr-1.5 pl-3 select-none"
+      data-floating-chat-header
+      className={cn(
+        "relative z-30 flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-t-xl border-b border-border bg-background pr-1.5 pl-3 select-none",
+        props.hidden && "invisible",
+      )}
       onClick={props.onToggle}
     >
       <BotIcon className="size-3.5 shrink-0 text-muted-foreground" />

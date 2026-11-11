@@ -3316,23 +3316,23 @@ export default function ChatView(props: ChatViewProps) {
           maximizedChat === "tab" &&
             "absolute inset-x-0 top-(--workspace-topbar-height) bottom-0 z-40 bg-background",
           (maximizedChat === "expanded" || maximizedChat === "collapsed") &&
-            "absolute inset-x-0 bottom-3 z-40 mx-auto w-[min(46rem,calc(100%-1.5rem))]",
+            "absolute inset-x-0 bottom-3 z-40 mx-auto h-[min(40rem,calc(100%-var(--workspace-topbar-height)-1.5rem))] w-[min(46rem,calc(100%-1.5rem))] border",
           maximizedChat === "expanded" &&
-            "h-[min(40rem,calc(100%-var(--workspace-topbar-height)-1.5rem))] overflow-hidden rounded-xl border border-border bg-background shadow-xl",
+            "overflow-hidden rounded-xl border-border bg-background shadow-xl",
           maximizedChat === "collapsed" && [
-            "pointer-events-none origin-bottom-right motion-safe:transition-[opacity,translate,scale] motion-safe:duration-200 motion-safe:ease-out",
+            "pointer-events-none origin-bottom-right border-transparent motion-safe:transition-[opacity,translate,scale] motion-safe:duration-200 motion-safe:ease-out",
             floatingChatMinimized && "translate-x-1/4 translate-y-2 scale-75 opacity-0",
           ],
         )}
         ref={floatingChatColumnRef}
-        style={maximizedChat === "collapsed" ? { height: composerReservedHeight } : undefined}
         inert={floatingChatMinimized}
         data-chat-column
         data-maximized-chat={maximizedChat ?? undefined}
       >
-        {maximizedChat === "expanded" ? (
+        {maximizedChat === "expanded" || maximizedChat === "collapsed" ? (
           <FloatingChatHeader
             title={activeThread.title}
+            hidden={maximizedChat === "collapsed"}
             onToggle={toggleFloatingChatStable}
             onMinimize={minimizeFloatingChatStable}
           />
