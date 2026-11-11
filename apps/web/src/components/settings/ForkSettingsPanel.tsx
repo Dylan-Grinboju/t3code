@@ -80,6 +80,11 @@ const FORK_FEATURES = [
       "Open threads as right panel tabs beside the main chat: Thread in the panel's + menu (N) starts one in the main thread's checkout, which you can change from the tab while it is empty (New worktree… makes it the main chat, then pick it under Run context), and Open as tab in a sidebar thread's right-click menu opens an existing one, from any project on the same machine. Subagent threads an agent starts open as tabs of their parent, including ones an agent starts in another project, and their tabs close once they are archived or deleted. The arrow on a tab makes it the main chat, and the X beside the main chat's title closes it, putting the next thread tab in its place.",
   },
   {
+    title: "Green chat tab bubbles",
+    description:
+      "Thread, subagent and side-chat tabs show a green bubble when a reply is ready or the chat needs your approval or input. The bubble disappears when work resumes and stays hidden while the chat waits for delegated work.",
+  },
+  {
     title: "Right Arrow accepts prompt suggestions",
     description:
       "When the empty composer shows a suggested prompt, Right Arrow fills it in, the same as Tab.",

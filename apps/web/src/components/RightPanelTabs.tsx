@@ -1,9 +1,7 @@
 import { sourceControlClients } from "@t3tools/client-runtime/source-control-clients";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
-import {
-  threadRuntimeIsActive,
-  type EnvironmentThreadShell,
-} from "@t3tools/client-runtime/state/shell";
+import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/shell";
+import { threadTabAttention } from "~/lib/threadTabAttention";
 import {
   useProjects,
   useQuietThreadShell,
@@ -719,24 +717,11 @@ function SurfaceIcon({
   }
 }
 
-/** What a side chat tab's dot shows and its title's accessible name says. */
-function sideChatTabState(shell: EnvironmentThreadShell | null) {
-  if (shell === null) return null;
-  if (shell.hasPendingApprovals || shell.pendingSubagentRequest === "approval") {
-    return "needs approval";
-  }
-  if (shell.hasPendingUserInput || shell.pendingSubagentRequest === "user_input") {
-    return "needs input";
-  }
-  return threadRuntimeIsActive(shell.runtime) ? "running" : null;
-}
-
-// Static dots: a side chat tab can stay open for a whole run.
 function SideChatTabIcon(props: { environmentId: EnvironmentId | null; threadId: ThreadId }) {
   const shell = useQuietThreadShell(
     props.environmentId === null ? null : scopeThreadRef(props.environmentId, props.threadId),
   );
-  const state = sideChatTabState(shell);
+  const state = threadTabAttention(shell);
   // Fork: the same surface also holds thread tabs.
   const Icon =
     shell === null || shell.lineage.sideChat === true
@@ -749,10 +734,7 @@ function SideChatTabIcon(props: { environmentId: EnvironmentId | null; threadId:
       <Icon className="size-3 shrink-0" />
       {state === null ? null : (
         <span
-          className={cn(
-            "absolute -top-0.5 -right-0.5 size-1.5 rounded-full",
-            state === "running" ? "bg-muted-foreground" : "bg-info",
-          )}
+          className="absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-success"
           aria-hidden
         />
       )}
@@ -938,7 +920,7 @@ function RightPanelTab(
       : null,
   );
   const title = sideChatShell?.title ?? props.title;
-  const sideChatState = sideChatTabState(sideChatShell);
+  const sideChatState = threadTabAttention(sideChatShell);
   const content = (
     <>
       <PanelTabCloseButton label={`Close ${title}`} onClick={() => onClose(surface)}>
@@ -1023,8 +1005,10 @@ function RightPanelTab(
                 environmentId={props.environmentId}
                 title={title}
               />
-            ) : (
+            ) : sideChatState === null ? (
               title
+            ) : (
+              `${title}, ${sideChatState}`
             )}
           </TooltipPopup>
         </Tooltip>
