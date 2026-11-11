@@ -77,7 +77,7 @@ const FORK_FEATURES = [
   {
     title: "Threads as tabs",
     description:
-      "Open threads as right panel tabs beside the main chat: Thread in the panel's + menu (N) starts one in the main thread's checkout, which you can change from the tab while it is empty (New worktree… makes it the main chat, then pick it under Run context), and Open as tab in a sidebar thread's right-click menu opens an existing one, from any project on the same machine. Subagent threads an agent starts open as tabs of their parent, including ones an agent starts in another project, and their tabs close once they are archived or deleted. The arrow on a tab makes it the main chat, and the X beside the main chat's title closes it, putting the next thread tab in its place.",
+      "Open threads as right panel tabs beside the main chat: Thread in the panel's + menu (N) starts one in the main thread's checkout, which you can change from the tab while it is empty (New worktree… makes it the main chat, then pick it under Run context), and Open as tab in a sidebar thread's right-click menu opens an existing one, from any project on the same machine. Subagent threads an agent starts open as tabs of their parent, including ones an agent starts in another project, and their tabs close once they are archived or deleted. The details button in a tab's title bar opens that thread's own details card (git, automations, lineage, shelf). The arrow on a tab makes it the main chat, and the X beside the main chat's title closes it, putting the next thread tab in its place.",
   },
   {
     title: "Chat tab status",

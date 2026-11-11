@@ -10,7 +10,7 @@ import {
 } from "@t3tools/contracts";
 import { useNavigate } from "@tanstack/react-router";
 import { ArrowUpLeftIcon, ChevronDownIcon, FolderGitIcon, FolderIcon, XIcon } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { ComposerHandleContext } from "../../composerHandleContext";
 import { useStableCallback } from "../../hooks/useStableCallback";
@@ -37,6 +37,7 @@ import { toastManager } from "../ui/toast";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { BackgroundThreadContext } from "./backgroundThread";
 import SideChatPane from "./SideChatPane";
+import { ThreadTabDetailsContext } from "./threadTabDetails";
 
 interface PaneProps {
   readonly parentRef: ScopedThreadRef;
@@ -182,6 +183,8 @@ function ThreadTabPane(props: PaneProps) {
   const snapshotLoaded = useEnvironmentShellHasSnapshot(parentRef.environmentId);
   const canOperate = useEnvironmentScope(parentRef.environmentId, AuthOrchestrationOperateScope);
   const empty = shell !== null && shell.latestRun === null && shell.latestUserMessageAt === null;
+  const headerRef = useRef<HTMLDivElement>(null);
+  const [detailsSlot, setDetailsSlot] = useState<HTMLSpanElement | null>(null);
   const makeMain = () => {
     const target = promoteThreadTab(parentRef, threadId, { closeHost: false });
     void navigate({ to: "/$environmentId/$threadId", params: buildThreadRouteParams(target) });
@@ -189,13 +192,17 @@ function ThreadTabPane(props: PaneProps) {
 
   return (
     <div data-side-chat-pane className="flex h-full min-h-0 flex-col">
-      <div className="flex h-9 shrink-0 items-center gap-1 border-b border-border pr-1 pl-3">
+      <div
+        ref={headerRef}
+        className="flex h-9 shrink-0 items-center gap-1 border-b border-border pr-1 pl-3"
+      >
         <span className="min-w-0 flex-1 truncate text-xs font-medium">
           {shell?.title ?? "Thread"}
         </span>
         {empty && canOperate ? (
           <ThreadTabCheckoutMenu threadRef={threadRef} mainRef={parentRef} onMakeMain={makeMain} />
         ) : null}
+        <span ref={setDetailsSlot} className="flex shrink-0 empty:hidden" />
         <Tooltip>
           <TooltipTrigger
             render={
@@ -230,12 +237,14 @@ function ThreadTabPane(props: PaneProps) {
       ) : (
         <BackgroundThreadContext value>
           <ComposerHandleContext value={null}>
-            <ChatView
-              environmentId={parentRef.environmentId}
-              threadId={threadId}
-              routeKind="server"
-              embedded={props.parentPanel}
-            />
+            <ThreadTabDetailsContext value={{ anchor: headerRef, slot: detailsSlot }}>
+              <ChatView
+                environmentId={parentRef.environmentId}
+                threadId={threadId}
+                routeKind="server"
+                embedded={props.parentPanel}
+              />
+            </ThreadTabDetailsContext>
           </ComposerHandleContext>
         </BackgroundThreadContext>
       )}

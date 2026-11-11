@@ -298,6 +298,7 @@ import {
 } from "./chat/MaximizedChatControls";
 import type { ExpandedImagePreview } from "./chat/ExpandedImagePreview";
 import { ThreadDetailsPanel } from "./chat/ThreadDetailsPanel";
+import { ThreadTabDetailsToggle, useThreadTabDetails } from "./chat/threadTabDetails";
 import { NoActiveThreadState } from "./NoActiveThreadState";
 import {
   resolveEffectiveEnvMode,
@@ -429,6 +430,7 @@ export default function ChatView(props: ChatViewProps) {
     embedded: parentPanel,
   } = props;
   const embedded = parentPanel !== undefined;
+  const threadTabDetails = useThreadTabDetails();
   const canOperateThread = useEnvironmentScope(environmentId, AuthOrchestrationOperateScope);
   const canOperateTerminal = useEnvironmentScope(environmentId, AuthTerminalOperateScope);
   const draftId = routeKind === "draft" ? props.draftId : null;
@@ -3885,8 +3887,14 @@ export default function ChatView(props: ChatViewProps) {
               />
             ) : null}
 
-            {embedded ? null : (
+            {embedded && threadTabDetails === null ? null : (
               <>
+                {threadTabDetails ? (
+                  <ThreadTabDetailsToggle
+                    slot={threadTabDetails.slot}
+                    {...panelToggleControlProps}
+                  />
+                ) : null}
                 <BranchRestoreConfirmHost
                   threadKey={activeThreadKey}
                   threadBranch={localCheckoutBranchMismatch?.threadBranch ?? ""}
@@ -3895,7 +3903,7 @@ export default function ChatView(props: ChatViewProps) {
                 />
 
                 <ThreadDetailsPanel
-                  anchor={threadPanelPopoverAnchorRef}
+                  anchor={threadTabDetails?.anchor ?? threadPanelPopoverAnchorRef}
                   handle={threadPanelPopoverHandle}
                   forceNewWorktree={multipleModelSelections !== null}
                   environmentId={activeThread.environmentId}
@@ -3905,7 +3913,9 @@ export default function ChatView(props: ChatViewProps) {
                   isServerThread={isServerThread}
                   {...(draftId ? { draftId } : {})}
                   activeProjectName={activeProject?.title}
-                  activeProjectScripts={activeProject ? activeProjectScripts : undefined}
+                  activeProjectScripts={
+                    activeProject && !embedded ? activeProjectScripts : undefined
+                  }
                   preferredScriptId={
                     activeProject ? (lastInvokedScriptByProjectId[activeProject.id] ?? null) : null
                   }
@@ -3913,6 +3923,7 @@ export default function ChatView(props: ChatViewProps) {
                   availableEditors={availableEditors}
                   showOpenInPicker={showOpenInPicker}
                   openInShortcutEnabled={
+                    !embedded &&
                     !(
                       rightPanelOpen &&
                       renderedRightPanelSurface?.kind === "file" &&
