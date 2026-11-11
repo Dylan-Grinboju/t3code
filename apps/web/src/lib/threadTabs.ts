@@ -1,6 +1,15 @@
-import { scopedThreadKey, scopeThreadRef } from "@t3tools/client-runtime/environment";
+import {
+  parseScopedThreadKey,
+  scopedThreadKey,
+  scopeThreadRef,
+} from "@t3tools/client-runtime/environment";
 import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/shell";
-import type { ScopedThreadRef, ThreadId } from "@t3tools/contracts";
+import {
+  type EnvironmentId,
+  isListedThreadLineage,
+  type ScopedThreadRef,
+  type ThreadId,
+} from "@t3tools/contracts";
 
 import { getClientSettings } from "../hooks/useSettings";
 import {
@@ -12,6 +21,7 @@ import {
 } from "../rightPanelStore";
 import { subscribeAtomChanges } from "../rpc/atomRegistry";
 import { readThreadShell } from "../state/entities";
+import { liveShellEnvironmentIdsAtom } from "../state/shell";
 import { readPanelAlwaysFullScreen } from "./forkPanelTabs";
 import { environmentThreadShells } from "../state/threads";
 
@@ -179,10 +189,56 @@ function openTabIfNewSubagent(shell: EnvironmentThreadShell, ref: ScopedThreadRe
   if (parentId !== null) openSubagentTab(scopeThreadRef(ref.environmentId, parentId), shell.id);
 }
 
+function closeGoneThreadTabs(gone: ReadonlySet<string>): void {
+  useRightPanelStore.setState((state) => {
+    const changed: Record<string, ThreadRightPanelState> = {};
+    for (const [panelKey, panel] of Object.entries(state.byThreadKey)) {
+      const host = parseScopedThreadKey(panelKey);
+      if (host === null) continue;
+      const removed = new Set(
+        panel.surfaces.flatMap((surface) =>
+          surface.kind === "side-chat" &&
+          gone.has(scopedThreadKey(scopeThreadRef(host.environmentId, surface.threadId)))
+            ? [surface.id]
+            : [],
+        ),
+      );
+      if (removed.size === 0) continue;
+      changed[panelKey] = withoutSurfaces(panel, removed);
+    }
+    if (Object.keys(changed).length === 0) return state;
+    return { byThreadKey: { ...state.byThreadKey, ...changed } };
+  });
+}
+
 /** Opens a tab under the parent thread for each subagent thread an agent starts. */
 export function startSubagentThreadTabs(): void {
   const handled = new Set<string>();
   const waiting = new Map<string, () => void>();
+  const unlisted = new Set<string>();
+  let presentKeys: ReadonlySet<string> = new Set();
+  let live: ReadonlySet<EnvironmentId> = new Set();
+  const noteShell = (key: string, shell: EnvironmentThreadShell) => {
+    if (!isListedThreadLineage(shell.lineage)) unlisted.add(key);
+  };
+  const closeGone = () => {
+    const gone = new Set<string>();
+    for (const key of unlisted) {
+      if (presentKeys.has(key)) continue;
+      const ref = parseScopedThreadKey(key);
+      if (ref !== null && live.has(ref.environmentId)) gone.add(key);
+    }
+    if (gone.size === 0) return;
+    for (const key of gone) {
+      unlisted.delete(key);
+      handled.delete(key);
+    }
+    closeGoneThreadTabs(gone);
+  };
+  subscribeAtomChanges(liveShellEnvironmentIdsAtom, (environmentIds) => {
+    live = environmentIds;
+    closeGone();
+  });
   subscribeAtomChanges(environmentThreadShells.threadRefsAtom, (refs) => {
     const present = new Set<string>();
     for (const ref of refs) {
@@ -192,6 +248,7 @@ export function startSubagentThreadTabs(): void {
       handled.add(key);
       const shell = readThreadShell(ref);
       if (shell !== null) {
+        noteShell(key, shell);
         openTabIfNewSubagent(shell, ref);
         continue;
       }
@@ -199,14 +256,17 @@ export function startSubagentThreadTabs(): void {
         if (next === null) return;
         waiting.get(key)?.();
         waiting.delete(key);
+        noteShell(key, next);
         openTabIfNewSubagent(next, ref);
       });
       waiting.set(key, stop);
     }
+    presentKeys = present;
     for (const [key, stop] of waiting) {
       if (present.has(key)) continue;
       stop();
       waiting.delete(key);
     }
+    closeGone();
   });
 }
