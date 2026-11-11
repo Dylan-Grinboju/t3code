@@ -9,7 +9,17 @@ import { type ThreadRightPanelState, useRightPanelStore } from "../rightPanelSto
 
 const FULL_SCREEN_KEY = "t3code:fork-panel-always-full-screen";
 
+const SUBAGENT_TABS_KEY = "t3code:fork-subagent-tabs";
+
 const FullScreen = Schema.Boolean;
+
+export function useSubagentTabs() {
+  return useLocalStorage(SUBAGENT_TABS_KEY, false, Schema.Boolean);
+}
+
+export function readSubagentTabs(): boolean {
+  return readLocalStorageValue(SUBAGENT_TABS_KEY, false, Schema.Boolean);
+}
 
 export function usePanelAlwaysFullScreen() {
   return useLocalStorage(FULL_SCREEN_KEY, false, FullScreen);

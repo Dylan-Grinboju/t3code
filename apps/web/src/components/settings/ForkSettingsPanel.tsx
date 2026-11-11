@@ -62,7 +62,7 @@ const FORK_FEATURES = [
   {
     title: "Full screen right panel",
     description:
-      "With Always open the right panel full screen on under Panel tabs above, the right panel opens maximized whenever it shows a tab, and a subagent an agent starts opens the panel that way with the main chat in view. Restore panel size un-maximizes it until the panel closes.",
+      "With Always open the right panel full screen on under Panel tabs above, the right panel opens maximized whenever it shows a tab, and with Open subagents as tabs on, a new subagent opens the panel that way with the main chat in view. Restore panel size un-maximizes it until the panel closes.",
   },
   {
     title: "Panel tab size",
@@ -77,7 +77,7 @@ const FORK_FEATURES = [
   {
     title: "Threads as tabs",
     description:
-      "Open threads as right panel tabs beside the main chat: Thread in the panel's + menu (N) starts one in the main thread's checkout, which you can change from the tab while it is empty (New worktree… makes it the main chat, then pick it under Run context), and Open as tab in a sidebar thread's right-click menu opens an existing one, from any project on the same machine. Subagent threads an agent starts open as tabs of their parent, including ones an agent starts in another project, and their tabs close once they are archived or deleted. The details button in a tab's title bar opens that thread's own details card (git, automations, lineage, shelf). The arrow on a tab makes it the main chat, and the X beside the main chat's title closes it, putting the next thread tab in its place.",
+      "Open threads as right panel tabs beside the main chat: Thread in the panel's + menu (N) starts one in the main thread's checkout, which you can change from the tab while it is empty (New worktree… makes it the main chat, then pick it under Run context), and Open as tab in a sidebar thread's right-click menu opens an existing one, from any project on the same machine. With Open subagents as tabs on under Panel tabs above, subagent threads an agent starts open as tabs of their parent, including ones an agent starts in another project. Subagent tabs close once their threads are archived or deleted. The details button in a tab's title bar opens that thread's own details card (git, automations, lineage, shelf). The arrow on a tab makes it the main chat, and the X beside the main chat's title closes it, putting the next thread tab in its place.",
   },
   {
     title: "Chat tab status",

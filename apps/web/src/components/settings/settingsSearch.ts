@@ -382,11 +382,19 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["slack app links external protocol permission prompt confirmation"],
   },
   {
+    id: "panel-subagent-tabs",
+    title: "Open subagents as tabs",
+    to: "/settings/fork",
+    searchTerms: [
+      "subagent sub agent delegate thread tab right panel open automatically auto side chat",
+    ],
+  },
+  {
     id: "panel-always-full-screen",
     title: "Always open the right panel full screen",
     to: "/settings/fork",
     searchTerms: [
-      "right panel maximize maximized full screen tabs browser terminal subagent thread tab open automatically",
+      "right panel maximize maximized full screen tabs browser terminal subagent thread tab",
     ],
   },
   {

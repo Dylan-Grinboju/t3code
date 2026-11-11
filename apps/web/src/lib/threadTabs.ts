@@ -22,7 +22,7 @@ import {
 import { subscribeAtomChanges } from "../rpc/atomRegistry";
 import { readThreadShell } from "../state/entities";
 import { liveShellEnvironmentIdsAtom } from "../state/shell";
-import { readPanelAlwaysFullScreen } from "./forkPanelTabs";
+import { readPanelAlwaysFullScreen, readSubagentTabs } from "./forkPanelTabs";
 import { environmentThreadShells } from "../state/threads";
 
 /**
@@ -185,6 +185,7 @@ export function newSubagentParentId(shell: EnvironmentThreadShell, nowMs: number
 }
 
 function openTabIfNewSubagent(shell: EnvironmentThreadShell, ref: ScopedThreadRef): void {
+  if (!readSubagentTabs()) return;
   const parentId = newSubagentParentId(shell, Date.now());
   if (parentId !== null) openSubagentTab(scopeThreadRef(ref.environmentId, parentId), shell.id);
 }
@@ -211,7 +212,7 @@ function closeGoneThreadTabs(gone: ReadonlySet<string>): void {
   });
 }
 
-/** Opens a tab under the parent thread for each subagent thread an agent starts. */
+/** Opens a tab under the parent thread for each subagent thread an agent starts, when enabled. */
 export function startSubagentThreadTabs(): void {
   const handled = new Set<string>();
   const waiting = new Map<string, () => void>();

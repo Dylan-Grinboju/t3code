@@ -1,4 +1,4 @@
-import { usePanelAlwaysFullScreen } from "../../lib/forkPanelTabs";
+import { usePanelAlwaysFullScreen, useSubagentTabs } from "../../lib/forkPanelTabs";
 import { type PanelTabSize, usePanelTabSize } from "../../lib/forkPanelTabSize";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../ui/select";
 import { Switch } from "../ui/switch";
@@ -12,14 +12,34 @@ const TAB_SIZE_LABELS: Record<PanelTabSize, string> = {
 };
 
 export function PanelTabSettings() {
+  const [subagentTabs, setSubagentTabs] = useSubagentTabs();
   const [fullScreen, setFullScreen] = usePanelAlwaysFullScreen();
   const [tabSize, setTabSize] = usePanelTabSize();
 
   return (
     <>
       <SettingsRow
+        {...searchableSetting("panel-subagent-tabs")}
+        description="Open each subagent an agent starts as a tab in its parent thread's right panel. Off by default, as upstream."
+        resetAction={
+          subagentTabs ? (
+            <SettingResetButton
+              label="open subagents as tabs"
+              onClick={() => setSubagentTabs(false)}
+            />
+          ) : null
+        }
+        control={
+          <Switch
+            checked={subagentTabs}
+            onCheckedChange={(checked) => setSubagentTabs(Boolean(checked))}
+            aria-label="Open subagents as tabs"
+          />
+        }
+      />
+      <SettingsRow
         {...searchableSetting("panel-always-full-screen")}
-        description="Open the right panel maximized whenever it shows a tab, with the chat floating over it. A subagent an agent starts opens the panel this way with the main chat in view."
+        description="Open the right panel maximized whenever it shows a tab, with the chat floating over it. With subagent tabs on, a new subagent opens the panel this way with the main chat in view."
         resetAction={
           fullScreen ? (
             <SettingResetButton
