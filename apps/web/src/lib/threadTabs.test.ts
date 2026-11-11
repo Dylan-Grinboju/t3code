@@ -34,6 +34,7 @@ vi.mock("../state/threads", () => ({
       `shell:${ref.environmentId}:${ref.threadId}`,
   },
 }));
+vi.mock("../state/shell", () => ({ liveShellEnvironmentIdsAtom: "live" }));
 vi.mock("../rpc/atomRegistry", () => ({
   subscribeAtomChanges: (atom: string, listener: (value: unknown) => void) => {
     const listeners = mocks.listeners.get(atom) ?? new Set();
@@ -238,5 +239,29 @@ describe("startSubagentThreadTabs", () => {
     emit(`shell:${environmentId}:child`, child);
 
     expect(surfaceIds(main)).toEqual([threadTabSurfaceId(ThreadId.make("child"))]);
+  });
+
+  it("closes a subagent's tab once a live shell drops it, but never a listed thread's", () => {
+    setup([shell("main"), shell("other")]);
+    using _now = vi.spyOn(Date, "now").mockReturnValue(Date.parse("2026-11-10T12:00:05.000Z"));
+    startSubagentThreadTabs();
+    mocks.shells.set(
+      `${environmentId}:child`,
+      shell("child", { parentThreadId: ThreadId.make("main"), relationshipToParent: "subagent" }),
+    );
+    emit("refs", [main, ref("child"), ref("other")]);
+    useRightPanelStore.getState().openSideChat(main, ThreadId.make("other"));
+    const childTab = threadTabSurfaceId(ThreadId.make("child"));
+    const otherTab = threadTabSurfaceId(ThreadId.make("other"));
+    expect(surfaceIds(main)).toEqual([childTab, otherTab]);
+
+    emit("refs", [main, ref("other")]);
+    expect(surfaceIds(main)).toEqual([childTab, otherTab]);
+
+    emit("live", new Set([environmentId]));
+    expect(surfaceIds(main)).toEqual([otherTab]);
+
+    emit("refs", [main]);
+    expect(surfaceIds(main)).toEqual([otherTab]);
   });
 });
