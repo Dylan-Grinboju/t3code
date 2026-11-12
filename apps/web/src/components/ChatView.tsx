@@ -1110,15 +1110,18 @@ export default function ChatView(props: ChatViewProps) {
       : floatingChatMode === "expanded" && !threadTabActive
         ? "expanded"
         : "collapsed";
-  const { columnRef: floatingChatColumnRef, close: closeFloatingChat } = useFloatingChatReveal(
-    maximizedChat,
-    composerReservedHeight,
-  );
+  const {
+    columnRef: floatingChatColumnRef,
+    open: openFloatingChat,
+    close: closeFloatingChat,
+  } = useFloatingChatReveal(maximizedChat);
   const closeFloatingChatStable = useStableCallback(() =>
     closeFloatingChat(() => setFloatingChatMode("collapsed")),
   );
   const toggleFloatingChatStable = useStableCallback(() =>
-    floatingChatMode === "expanded" ? closeFloatingChatStable() : setFloatingChatMode("expanded"),
+    floatingChatMode === "expanded"
+      ? closeFloatingChatStable()
+      : openFloatingChat(() => setFloatingChatMode("expanded")),
   );
   // Minimized keeps the collapsed layout mounted (draft, focus state) and only hides it.
   const floatingChatMinimized = maximizedChat === "collapsed" && floatingChatMode === "minimized";
@@ -3315,17 +3318,15 @@ export default function ChatView(props: ChatViewProps) {
       <div
         className={cn(
           "flex min-h-0 min-w-0 flex-col",
-          maximizedChat !== "collapsed" && "overflow-x-hidden",
+          (maximizedChat === null || maximizedChat === "tab") && "overflow-x-hidden",
           maximizedChat === null && "flex-1",
           // z-40 stays above the desktop browser's webviews, which stack at z-30.
           maximizedChat === "tab" &&
             "absolute inset-x-0 top-(--workspace-topbar-height) bottom-0 z-40 bg-background",
           (maximizedChat === "expanded" || maximizedChat === "collapsed") &&
-            "absolute inset-x-0 bottom-3 z-40 mx-auto h-[min(40rem,calc(100%-var(--workspace-topbar-height)-1.5rem))] w-[min(46rem,calc(100%-1.5rem))] border",
-          maximizedChat === "expanded" &&
-            "overflow-hidden rounded-xl border-border bg-background shadow-xl",
+            "absolute inset-x-0 bottom-3 z-40 mx-auto h-[min(40rem,calc(100%-var(--workspace-topbar-height)-1.5rem))] w-[min(46rem,calc(100%-1.5rem))] border border-transparent",
           maximizedChat === "collapsed" && [
-            "pointer-events-none origin-bottom-right border-transparent motion-safe:transition-[opacity,translate,scale] motion-safe:duration-200 motion-safe:ease-out",
+            "pointer-events-none origin-bottom-right motion-safe:transition-[opacity,translate,scale] motion-safe:duration-200 motion-safe:ease-out",
             floatingChatHidden && "translate-x-1/4 translate-y-2 scale-75 opacity-0",
           ],
         )}
@@ -3334,6 +3335,13 @@ export default function ChatView(props: ChatViewProps) {
         data-chat-column
         data-maximized-chat={maximizedChat ?? undefined}
       >
+        {maximizedChat === "expanded" || maximizedChat === "collapsed" ? (
+          <div
+            data-floating-chat-surface
+            hidden={maximizedChat === "collapsed"}
+            className="pointer-events-none absolute -inset-px origin-top-left rounded-xl border border-border bg-background shadow-xl"
+          />
+        ) : null}
         {maximizedChat === "expanded" || maximizedChat === "collapsed" ? (
           <FloatingChatHeader
             title={activeThread.title}
@@ -3389,8 +3397,10 @@ export default function ChatView(props: ChatViewProps) {
 
         {/* Collapsed, only the composer overlay opts back into visibility. */}
         <div
+          data-floating-chat-content
           className={cn(
             "relative flex min-h-0 min-w-0 flex-1",
+            maximizedChat === "expanded" && "overflow-hidden rounded-b-xl",
             maximizedChat === "collapsed" && "invisible",
           )}
         >
