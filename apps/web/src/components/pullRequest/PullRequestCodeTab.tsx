@@ -129,6 +129,10 @@ import {
 } from "./pullRequestDiff.logic";
 import { PullRequestDiffStat, PullRequestMetaLine } from "./pullRequestPresentation";
 import { PullRequestDiffUnavailableState } from "./PullRequestDiffUnavailableState";
+import {
+  canPreviewPullRequestMarkdownFile,
+  PullRequestMarkdownFilePreviewButton,
+} from "./PullRequestMarkdownFilePreview";
 import { usePullRequestFilesViewed } from "./usePullRequestFilesViewed";
 import {
   nextPendingReviewCommentId,
@@ -945,7 +949,7 @@ function PullRequestCodeTab({
       const withheld = omittedFileStats.get(path);
       if (withheld) ({ additions, deletions } = withheld);
     }
-    return (
+    const viewedToggle = (
       <FileViewedToggle
         fileKey={item.id}
         path={path}
@@ -957,6 +961,19 @@ function PullRequestCodeTab({
           />
         }
       />
+    );
+    if (!canPreviewPullRequestMarkdownFile(item.fileDiff, path)) return viewedToggle;
+    return (
+      <span className="flex items-center gap-2">
+        <PullRequestMarkdownFilePreviewButton
+          fileDiff={item.fileDiff}
+          path={path}
+          loadFile={loadDiffFiles}
+          cwd={detail.workspaceRoot}
+          environmentId={environmentId}
+        />
+        {viewedToggle}
+      </span>
     );
   };
 

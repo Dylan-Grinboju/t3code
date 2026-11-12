@@ -86,6 +86,11 @@ const FORK_FEATURES = [
       "Thread, subagent and side-chat tabs follow the sidebar status: a green bubble for an unread completion clears when you view the chat. Working, Connecting and Waiting appear as labels; approval and input requests keep their sidebar colors until you respond.",
   },
   {
+    title: "Rendered markdown in pull requests",
+    description:
+      "In a pull request's Code tab, markdown files have a Preview button in their header that shows the file as rendered at the pull request's latest version.",
+  },
+  {
     title: "Right Arrow accepts prompt suggestions",
     description:
       "When the empty composer shows a suggested prompt, Right Arrow fills it in, the same as Tab.",
