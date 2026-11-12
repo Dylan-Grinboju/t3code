@@ -83,6 +83,8 @@ or summary if it does nothing on mobile, and make sure it does not break the mob
 Releases are built by `.github/workflows/sidebar-release.yml`, which runs only on demand.
 
 1. Push the commits to `origin/main` first. The workflow builds the commit it is started from.
+   Check that `version` in `apps/desktop/package.json` matches the upstream release `main` is based
+   on. The workflow names the tag and the installers from it.
 2. Start it with `gh workflow run sidebar-release.yml -R Dylan-Grinboju/t3code --ref main`. It tags
    `v<upstream version>+sidebar.<n>`, builds both installers, and publishes the release as latest.
    Installed fork builds then offer it from the sidebar button and the Fork settings page.
@@ -116,6 +118,10 @@ If Dylan asks for help with one of those merges:
 
 - Merge the upstream release, not `upstream/main` at an arbitrary commit. Do not rebase: fork release
   tags point at commits on `main`.
+- Bump the version in the same sync. Upstream tags `vX` before its `chore(release): prepare vX`
+  commit, so the merged tree still carries the previous number. Set `version` to `X` in
+  `apps/desktop`, `apps/server`, `apps/web`, and `packages/contracts` `package.json`, and commit it
+  as `chore(release): align fork package versions with upstream X`.
 - Resolve conflicts in favor of upstream's structure, then reapply the fork's small hooks.
 - If upstream now ships something a fork feature did, ask Dylan whether to drop the fork version and
   its `FORK_FEATURES` entry.
