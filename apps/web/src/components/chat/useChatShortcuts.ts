@@ -12,6 +12,7 @@ import { getTerminalFocusOwner, type TerminalFocusOwner } from "../../lib/termin
 import type { ComposerHandleRef } from "../../composerHandleContext";
 import type { BranchToolbarHandle } from "../BranchToolbar";
 import { shouldTypeToFocusComposer } from "./composerFocusRedirect";
+import { claimTypeToCite } from "../../lib/forkTypeToCite";
 import { composerShortcutCommands } from "./composerShortcuts";
 
 /** Returning false lets the key event through untouched. */
@@ -68,6 +69,7 @@ export function useChatShortcuts(input: ChatShortcutsInput) {
     const terminalFocusOwner = getTerminalFocusOwner();
     if (event.defaultPrevented && terminalFocusOwner === null) return;
     const shortcutContext = input.getShortcutContext(event.target);
+    if (claimTypeToCite(event)) return;
 
     if (
       !shortcutContext.terminalFocus &&

@@ -8,6 +8,7 @@ import {
   useForkReleaseStatus,
   type ForkUpdateAction,
 } from "../../lib/forkRelease";
+import { useTypeToCite } from "../../lib/forkTypeToCite";
 import { Button } from "../ui/button";
 import { Switch } from "../ui/switch";
 import {
@@ -90,6 +91,11 @@ const FORK_FEATURES = [
       "When the empty composer shows a suggested prompt, Right Arrow fills it in, the same as Tab.",
   },
   {
+    title: "Type to cite",
+    description:
+      "With Type to cite on under Chat above, select text in a response and start typing: it cites the selection, the same as Cite, and what you type becomes the citation's comment.",
+  },
+  {
     title: "Fork releases",
     description:
       "Mac and Windows builds come from the fork's own releases. When a newer one is out, the sidebar button and the Release row here download it, then install it and restart T3 Code. A download not installed within 24 hours is removed.",
@@ -149,6 +155,29 @@ function SlackLinkTrustSetting() {
   );
 }
 
+function TypeToCiteSetting() {
+  const [typeToCite, setTypeToCite] = useTypeToCite();
+
+  return (
+    <SettingsRow
+      {...searchableSetting("fork-type-to-cite")}
+      description="Typing while text in a response is selected cites it and starts its comment, as if you pressed Cite. Off by default, as upstream."
+      resetAction={
+        typeToCite ? (
+          <SettingResetButton label="type to cite" onClick={() => setTypeToCite(false)} />
+        ) : null
+      }
+      control={
+        <Switch
+          checked={typeToCite}
+          onCheckedChange={(checked) => setTypeToCite(Boolean(checked))}
+          aria-label="Type to cite"
+        />
+      }
+    />
+  );
+}
+
 export function ForkSettingsPanel() {
   const snapshot = useForkReleaseStatus();
   const action = resolveForkUpdateAction(snapshot);
@@ -186,6 +215,9 @@ export function ForkSettingsPanel() {
       </SettingsSection>
       <SettingsSection id="fork-panel-tabs" title="Panel tabs">
         <PanelTabSettings />
+      </SettingsSection>
+      <SettingsSection id="fork-chat" title="Chat">
+        <TypeToCiteSetting />
       </SettingsSection>
       <SettingsSection id="fork-browser" title="Browser">
         <SettingsUnavailableGroup

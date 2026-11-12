@@ -376,6 +376,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["hide machine computer environment remote projects new thread picker ctrl tab"],
   },
   {
+    id: "fork-type-to-cite",
+    title: "Type to cite",
+    to: "/settings/fork",
+    searchTerms: ["cite citation quote selection selected text typing type comment keyboard"],
+  },
+  {
     id: "browser-trust-slack-links",
     title: "Always trust Slack links",
     to: "/settings/fork",

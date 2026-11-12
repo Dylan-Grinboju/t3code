@@ -21,6 +21,7 @@ import { Button } from "../ui/button";
 import { BackgroundThreadContext } from "./backgroundThread";
 import { useThreadShelfStore } from "../../threadShelfStore";
 import { toastManager } from "../ui/toast";
+import { useTypeToCiteListener } from "~/lib/forkTypeToCite";
 
 export function AssistantSelectionToolbar({
   viewport,
@@ -178,6 +179,17 @@ export function AssistantSelectionToolbar({
       actionsRef.current = null;
     };
   }, [backgroundThread, threadRef, viewport]);
+
+  useTypeToCiteListener(selection !== null && !backgroundThread, (comment) => {
+    if (!selection || selection.citation.text.length > ASSISTANT_CITATION_MAX_TEXT_LENGTH) {
+      return false;
+    }
+    if (!onCite({ ...selection.citation, comment }, selection.sourceAnchor)) return false;
+    window.getSelection()?.removeAllRanges();
+    actionsRef.current?.cancel();
+    setSelection(null);
+    return true;
+  });
 
   if (!selection) return null;
   const tooLong = selection.citation.text.length > ASSISTANT_CITATION_MAX_TEXT_LENGTH;
