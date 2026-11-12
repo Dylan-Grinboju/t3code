@@ -36,7 +36,8 @@ export function ThreadShelf({
   draftId?: DraftId;
 }) {
   // A detail read before the server has the thread 404s and parks it as deleted for this mount.
-  const shellExists = useQuietThreadShell(threadRef) !== null;
+  const shell = useQuietThreadShell(threadRef);
+  const shellExists = shell !== null;
   const items = useTimelineVisibleTurnItems(
     resolveThreadDetailRef(threadRef, { shellExists, waitForShell: true }),
   );
@@ -84,7 +85,14 @@ export function ThreadShelf({
               type="button"
               aria-label={`Go to pinned text: ${citation.text}`}
               className="block w-full rounded-lg py-2 pr-8 pl-2 text-left text-xs leading-relaxed hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring"
-              onClick={() => void navigate(assistantCitationNavigation(citation))}
+              onClick={() =>
+                void navigate(
+                  assistantCitationNavigation(
+                    citation,
+                    citation.threadId === threadRef.threadId ? shell : null,
+                  ),
+                )
+              }
             >
               <span dir="auto" className="line-clamp-5 whitespace-pre-wrap break-words">
                 {citation.text}

@@ -1,7 +1,6 @@
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import type { EnvironmentId, ScopedThreadRef, ThreadId } from "@t3tools/contracts";
-import { Check, ChevronDown, ChevronUp, Paperclip } from "lucide";
-import { TicketIcon } from "lucide-react";
+import { CheckIcon, ChevronDownIcon, ChevronUpIcon, PaperclipIcon, TicketIcon } from "lucide-react";
 import { type MouseEvent, useRef, useState } from "react";
 
 import { useOpenLink } from "~/browser/useOpenLink";
@@ -9,7 +8,6 @@ import { useCopyToClipboard } from "~/hooks/useCopyToClipboard";
 import { useOpenPrLink } from "~/lib/openPullRequestLink";
 
 import { useTimelineVisibleTurnItems } from "../../state/entities";
-import { MorphIcon } from "../MorphIcon";
 import { PullRequestGlyph } from "../pullRequest/pullRequestIcons";
 import { ThreadDetailsControl } from "./ThreadDetailsControl";
 import { ThreadDetailsSection } from "./ThreadDetailsSection";
@@ -129,11 +127,11 @@ function ThreadLinkGroup(props: {
           tone="muted"
           className="w-full active:scale-100"
         >
-          <MorphIcon
-            aria-hidden
-            className="size-4 shrink-0"
-            icon={hiddenCount > 0 ? ChevronDown : ChevronUp}
-          />
+          {hiddenCount > 0 ? (
+            <ChevronDownIcon aria-hidden className="size-4 shrink-0" />
+          ) : (
+            <ChevronUpIcon aria-hidden className="size-4 shrink-0" />
+          )}
           {hiddenCount > 0 ? `Show ${Math.min(hiddenCount, LINK_PAGE_COUNT)} more` : "Show less"}
         </ThreadDetailsControl>
       ) : null}
@@ -159,11 +157,11 @@ function ThreadLinkCopyButton(props: { readonly url: string }) {
       title="Copy link"
       onClick={() => copyToClipboard(props.url, undefined)}
     >
-      <MorphIcon
-        aria-hidden
-        className={isCopied ? "size-3.5 text-success" : "size-3.5"}
-        icon={isCopied ? Check : Paperclip}
-      />
+      {isCopied ? (
+        <CheckIcon aria-hidden className="size-3.5 text-success" />
+      ) : (
+        <PaperclipIcon aria-hidden className="size-3.5" />
+      )}
     </ThreadDetailsControl>
   );
 }
