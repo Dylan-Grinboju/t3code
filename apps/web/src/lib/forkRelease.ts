@@ -46,7 +46,10 @@ let snapshot: Snapshot = {
 const listeners = new Set<() => void>();
 let timer: ReturnType<typeof setInterval> | null = null;
 let expiryTimer: ReturnType<typeof setTimeout> | null = null;
-let inFlight: AbortController | null = null;
+let inFlight: { readonly controller: AbortController; readonly done: Promise<boolean> } | null =
+  null;
+
+export const isForkReleaseBuild = canCheck;
 
 function forkUpdateBridge() {
   return typeof window === "undefined" ? undefined : window.desktopBridge?.forkUpdate;
@@ -73,22 +76,35 @@ async function fetchLatestRelease(signal: AbortSignal): Promise<ForkRelease> {
   return { tag, url };
 }
 
-function checkForkReleaseNow() {
-  if (!canCheck || inFlight) return;
+function checkForkReleaseNow(): Promise<boolean> {
+  if (!canCheck) return Promise.resolve(false);
+  if (inFlight) return inFlight.done;
   const controller = new AbortController();
-  inFlight = controller;
   publish({ status: { kind: "checking", latest: latestOf(snapshot.status) } });
-  fetchLatestRelease(controller.signal).then(
+  const done = fetchLatestRelease(controller.signal).then(
     (latest) => {
       inFlight = null;
       publish({ status: { kind: "checked", latest } });
+      return true;
     },
     () => {
       inFlight = null;
       if (!controller.signal.aborted)
         publish({ status: { kind: "failed", latest: latestOf(snapshot.status) } });
+      return false;
     },
   );
+  inFlight = { controller, done };
+  return done;
+}
+
+export async function checkForkReleaseFromButton() {
+  if (await checkForkReleaseNow()) return;
+  toastManager.add({
+    type: "error",
+    title: "Could not check for updates",
+    description: "Could not reach GitHub to check for a newer fork release.",
+  });
 }
 
 function applyLocal(local: DesktopForkUpdateState) {
@@ -119,7 +135,7 @@ function refreshLocal() {
 function subscribe(listener: () => void) {
   listeners.add(listener);
   if (canCheck && timer === null) {
-    checkForkReleaseNow();
+    void checkForkReleaseNow();
     refreshLocal();
     timer = setInterval(checkForkReleaseNow, CHECK_INTERVAL_MS);
   }
@@ -130,7 +146,7 @@ function subscribe(listener: () => void) {
     timer = null;
     if (expiryTimer !== null) clearTimeout(expiryTimer);
     expiryTimer = null;
-    inFlight?.abort();
+    inFlight?.controller.abort();
     inFlight = null;
   };
 }
@@ -138,6 +154,10 @@ function subscribe(listener: () => void) {
 /** The fork's latest GitHub release and any downloaded build, checked while anything shows them. */
 export function useForkReleaseStatus() {
   return useSyncExternalStore(subscribe, () => snapshot);
+}
+
+export function useForkReleaseChecking() {
+  return useSyncExternalStore(subscribe, () => snapshot.status.kind === "checking");
 }
 
 function newerForkRelease(current: ForkReleaseStatus): ForkRelease | null {
@@ -222,7 +242,7 @@ async function installForkRelease(tag: string) {
 
 export function runForkUpdateAction(action: ForkUpdateAction) {
   if ("busy" in action && action.busy) return;
-  if (action.kind === "check") return checkForkReleaseNow();
+  if (action.kind === "check") return void checkForkReleaseNow();
   if (action.kind === "open") return void ensureLocalApi().shell.openExternal(action.release.url);
   if (action.kind === "download") return void downloadForkRelease(action.release.tag);
   return void installForkRelease(action.tag);

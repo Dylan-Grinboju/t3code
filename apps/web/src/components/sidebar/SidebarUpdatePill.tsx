@@ -8,6 +8,11 @@ import { type ComponentProps, useId, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { settlePromise, squashAtomCommandFailure } from "@t3tools/client-runtime/state/runtime";
 import { isElectron } from "../../env";
+import {
+  checkForkReleaseFromButton,
+  isForkReleaseBuild,
+  useForkReleaseChecking,
+} from "../../lib/forkRelease";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { cn } from "../../lib/utils";
 import { ensureLocalApi } from "../../localApi";
@@ -210,6 +215,7 @@ function SidebarUpdateControl() {
   const releaseNotesPopupRef = useRef<HTMLDivElement>(null);
   const releaseNotesTriggerId = useId();
   const prefersReducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
+  const isCheckingFork = useForkReleaseChecking();
 
   const updateStatus = state?.status;
   const [isCheckAnimationLatched, setIsCheckAnimationLatched] = useState(
@@ -239,7 +245,7 @@ function SidebarUpdateControl() {
   const isRunningEverything = run !== null;
   const showCheckIcon = shouldShowDesktopUpdateCheckIcon({
     isAnimationLatched: isCheckAnimationLatched,
-    isChecking: state?.status === "checking" || isCheckingProviders,
+    isChecking: state?.status === "checking" || isCheckingProviders || isCheckingFork,
     prefersReducedMotion,
   });
   const { iconStatus, showUpdateDetails, showUpdateIconState } = resolveSidebarUpdatePresentation({
@@ -250,7 +256,11 @@ function SidebarUpdateControl() {
     showCheckIcon,
   });
   const idleTooltip =
-    !showUpdateDetails && !showCheckIcon ? getDesktopUpdateIdleTooltip(state, updatesDenial) : null;
+    !showUpdateDetails && !showCheckIcon
+      ? isForkReleaseBuild && updatesDenial === undefined
+        ? { title: "Check for fork updates", detail: null }
+        : getDesktopUpdateIdleTooltip(state, updatesDenial)
+      : null;
   const tooltip = runsEverything
     ? everything.summary
     : showUpdateDetails
@@ -266,7 +276,9 @@ function SidebarUpdateControl() {
       ? false
       : showUpdateDetails
         ? isDesktopUpdateButtonDisabled(state)
-        : !canCheckForUpdate(state);
+        : isForkReleaseBuild
+          ? updatesDenial !== undefined
+          : !canCheckForUpdate(state);
   const isInteractionDisabled = disabled || isActionPending || isRunningEverything;
   const showReleaseNotesPopover =
     !isRunningEverything && shouldUseSidebarUpdateReleaseNotesPopover(showUpdateDetails, state);
@@ -332,6 +344,14 @@ function SidebarUpdateControl() {
       setIsCheckAnimationLatched(true);
       setCheckAnimationKey((key) => key + 1);
     }
+    if (isForkReleaseBuild) {
+      setProviderCheck("button");
+      const providersChecked = checkProviderUpdates().finally(() => setProviderCheck(null));
+      void Promise.allSettled([checkForkReleaseFromButton(), providersChecked]).then(() =>
+        setIsActionPending(false),
+      );
+      return;
+    }
     const appCheck = bridge
       .checkForUpdate()
       .then((result) => {
@@ -394,7 +414,7 @@ function SidebarUpdateControl() {
   const handleCheckAnimationIteration = () => {
     setIsCheckAnimationLatched(
       shouldContinueDesktopUpdateCheckAnimation({
-        isChecking: state?.status === "checking" || isCheckingProviders,
+        isChecking: state?.status === "checking" || isCheckingProviders || isCheckingFork,
         prefersReducedMotion,
       }),
     );
