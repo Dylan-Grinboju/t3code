@@ -6,6 +6,7 @@ import * as NodeCrypto from "node:crypto";
 import type { DesktopForkUpdateState } from "@t3tools/contracts";
 import * as Cause from "effect/Cause";
 import * as Clock from "effect/Clock";
+import * as DateTime from "effect/DateTime";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -23,6 +24,8 @@ import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 
 export const FORK_UPDATE_KEEP_MS = 24 * 60 * 60 * 1000;
 const MANIFEST = "manifest.json";
+// The install helpers append here. It outlives a failed install, so the next launch can say why.
+const INSTALL_LOG = "install.log";
 
 const Manifest = Schema.Struct({
   tag: Schema.String,
@@ -99,6 +102,30 @@ const readManifest = Effect.fn("ForkUpdate.readManifest")(function* (dir: string
   }).pipe(Effect.orElseSucceed((): Manifest | null => null));
 });
 
+/** Why the last install left the download in place, read from the helper's log. */
+function describeInstallLog(log: string, logPath: string): string {
+  const error = /^\S+ error: (.+)$/m.exec(log)?.[1]?.trim();
+  const code = /^\S+ installer exit code (-?\d+)\s*$/m.exec(log)?.[1];
+  const reason = error
+    ? `The install failed (${error}).`
+    : code === undefined
+      ? "The install did not finish."
+      : code === "0"
+        ? "The installer finished, but T3 Code did not update."
+        : `The installer exited with code ${code}.`;
+  return `${reason} Log: ${logPath}`;
+}
+
+const readInstallFailure = Effect.fn("ForkUpdate.readInstallFailure")(function* (dir: string) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const logPath = path.join(dir, INSTALL_LOG);
+  return yield* fs.readFileString(logPath).pipe(
+    Effect.map((log) => describeInstallLog(log, logPath)),
+    Effect.orElseSucceed((): string | null => null),
+  );
+});
+
 const removeDir = (dir: string) =>
   FileSystem.FileSystem.use((fs) => fs.remove(dir, { recursive: true, force: true })).pipe(
     Effect.ignore,
@@ -113,7 +140,11 @@ export const getForkUpdateState = Effect.fn("ForkUpdate.getState")(function* (
   const manifest = yield* readManifest(host.dir);
   const now = yield* Clock.currentTimeMillis;
   if (manifest !== null && now - manifest.downloadedAt < FORK_UPDATE_KEEP_MS) {
-    return state("downloaded", { tag: manifest.tag, downloadedAt: manifest.downloadedAt });
+    return state("downloaded", {
+      tag: manifest.tag,
+      downloadedAt: manifest.downloadedAt,
+      message: yield* readInstallFailure(host.dir),
+    });
   }
   yield* removeDir(host.dir);
   if (failure !== null) return state("failed", { tag: failure.tag, message: failure.message });
@@ -225,6 +256,7 @@ export const downloadForkUpdate = Effect.fn("ForkUpdate.download")(function* (
 // A failed swap still relaunches whatever is at the destination and keeps the download.
 const MAC_INSTALL_SCRIPT = `
 pid="$1"; src="$2"; dest="$3"; work="$4"
+exec >>"$work/${INSTALL_LOG}" 2>&1
 while kill -0 "$pid" 2>/dev/null; do sleep 0.5; done
 staged="$dest.updating"
 rm -rf "$staged"
@@ -232,6 +264,7 @@ if ditto "$src" "$staged" && rm -rf "$dest" && mv "$staged" "$dest"; then
   xattr -dr com.apple.quarantine "$dest" 2>/dev/null
   rm -rf "$work"
 else
+  echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) error: could not replace $dest"
   rm -rf "$staged" "$src"
 fi
 open "$dest"
@@ -239,6 +272,43 @@ open "$dest"
 
 function powershellQuote(value: string): string {
   return `'${value.replaceAll("'", "''")}'`;
+}
+
+/**
+ * Waits for every process of this install to exit (the server child shares the exe), then runs
+ * the NSIS installer silently and logs its exit code. A silent NSIS abort shows nothing otherwise.
+ */
+function windowsInstallScript(input: {
+  readonly pid: number;
+  readonly execPath: string;
+  readonly installer: string;
+  readonly log: string;
+}): string {
+  return `
+$ErrorActionPreference = 'Stop'
+$log = ${powershellQuote(input.log)}
+function Write-InstallLog($line) { Add-Content -LiteralPath $log -Value ((Get-Date).ToUniversalTime().ToString('o') + ' ' + $line) }
+try {
+  Wait-Process -Id ${input.pid} -Timeout 30 -ErrorAction SilentlyContinue
+  $exe = ${powershellQuote(input.execPath)}
+  for ($i = 0; $i -lt 60; $i++) {
+    $left = @(Get-Process | Where-Object { $_.Path -eq $exe })
+    if ($left.Count -eq 0) { break }
+    Start-Sleep -Milliseconds 500
+  }
+  if ($left.Count -gt 0) {
+    Write-InstallLog ('stopping processes still running: ' + (($left | ForEach-Object { $_.Id }) -join ', '))
+    $left | Stop-Process -Force -ErrorAction SilentlyContinue
+  }
+  Write-InstallLog 'running installer'
+  $installer = Start-Process -FilePath ${powershellQuote(input.installer)} -ArgumentList '--updated','/S','--force-run' -PassThru
+  $null = $installer.Handle
+  $installer.WaitForExit()
+  Write-InstallLog ('installer exit code ' + $installer.ExitCode)
+} catch {
+  Write-InstallLog ('error: ' + $_)
+}
+`;
 }
 
 function spawnDetached(command: string, args: ReadonlyArray<string>) {
@@ -289,7 +359,11 @@ export const startForkUpdateInstall = Effect.fn("ForkUpdate.install")(function* 
     return yield* getForkUpdateState(host);
   }
   const file = path.join(host.dir, manifest.file);
+  const log = path.join(host.dir, INSTALL_LOG);
   const started = yield* Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const startedAt = DateTime.formatIso(yield* DateTime.now);
+    yield* fs.writeFileString(log, `${startedAt} installing ${tag} over pid ${host.pid}\n`);
     if (host.platform === "darwin") {
       const dest = macApplicationsTarget(host.execPath);
       if (dest === null) {
@@ -302,17 +376,19 @@ export const startForkUpdateInstall = Effect.fn("ForkUpdate.install")(function* 
       return true;
     }
     if (host.platform === "win32") {
-      const command = [
-        `Wait-Process -Id ${host.pid} -ErrorAction SilentlyContinue`,
-        `Start-Process -FilePath ${powershellQuote(file)} -ArgumentList '--updated','/S','--force-run'`,
-      ].join("; ");
+      const script = windowsInstallScript({
+        pid: host.pid,
+        execPath: host.execPath,
+        installer: file,
+        log,
+      });
       spawnDetached("powershell.exe", [
         "-NoProfile",
         "-NonInteractive",
         "-WindowStyle",
         "Hidden",
-        "-Command",
-        command,
+        "-EncodedCommand",
+        Buffer.from(script, "utf16le").toString("base64"),
       ]);
       return true;
     }

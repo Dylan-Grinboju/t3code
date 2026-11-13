@@ -107,4 +107,36 @@ describe("getForkUpdateState", () => {
       assert.isFalse(yield* fs.exists(dir));
     }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
   );
+
+  it.effect("explains a failed install from the helper's log", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const dir = path.join(yield* fs.makeTempDirectoryScoped(), "fork-update");
+      const host = { dir, platform: "win32", arch: "x64", execPath: "", pid: 1 } as const;
+      const log = path.join(dir, "install.log");
+      yield* fs.makeDirectory(dir);
+      yield* fs.writeFileString(path.join(dir, "setup.exe"), "");
+      yield* fs.writeFileString(
+        path.join(dir, "manifest.json"),
+        JSON.stringify({ tag: "v1+sidebar.2", file: "setup.exe", downloadedAt: 0 }),
+      );
+      assert.isNull((yield* getForkUpdateState(host)).message);
+
+      const started = "2026-11-12T20:49:45.000Z installing v1+sidebar.2 over pid 1\n";
+      // The Windows helper writes with Add-Content, so its lines end in CRLF.
+      for (const [helperLines, reason] of [
+        ["", "The install did not finish."],
+        ["2026-11-12T20:50:01.0Z installer exit code 2\r\n", "The installer exited with code 2."],
+        ["2026-11-12T20:50:01.0Z installer exit code 0\r\n", "The installer finished, but"],
+        ["2026-11-12T20:50:01.0Z error: Access is denied.\r\n", "The install failed (Access is"],
+      ] as const) {
+        yield* fs.writeFileString(log, started + helperLines);
+        const result = yield* getForkUpdateState(host);
+        assert.strictEqual(result.status, "downloaded");
+        assert.isTrue(result.message?.startsWith(reason), result.message ?? "no message");
+        assert.isTrue(result.message?.endsWith(log), result.message ?? "no message");
+      }
+    }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
+  );
 });

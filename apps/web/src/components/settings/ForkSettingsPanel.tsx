@@ -103,18 +103,22 @@ const FORK_FEATURES = [
   {
     title: "Fork releases",
     description:
-      "Mac and Windows builds come from the fork's own releases. The sidebar's check-for-updates button checks for them, like Check now here. When a newer one is out, the sidebar button and the Release row here download it, then install it and restart T3 Code. A download not installed within 24 hours is removed.",
+      "Mac and Windows builds come from the fork's own releases. The sidebar's check-for-updates button checks for them, like Check now here. When a newer one is out, the sidebar button and the Release row here download it, then install it and restart T3 Code. A download not installed within 24 hours is removed. If an install fails, the Release row says why and where its log is.",
   },
 ] as const;
 
-function describeAction(action: ForkUpdateAction | null, checkFailed: boolean) {
+function describeAction(
+  action: ForkUpdateAction | null,
+  checkFailed: boolean,
+  installFailure: string | null,
+) {
   if (action === null)
     return "Development build. Update checks run only in builds from the fork's release workflow.";
   switch (action.kind) {
     case "install":
-      return action.busy
-        ? `Installing ${action.tag}. T3 Code will restart.`
-        : `${action.tag} is downloaded. Install it to restart into it. The download is removed after 24 hours.`;
+      if (action.busy) return `Installing ${action.tag}. T3 Code will restart.`;
+      if (installFailure) return `The last install of ${action.tag} failed. ${installFailure}`;
+      return `${action.tag} is downloaded. Install it to restart into it. The download is removed after 24 hours.`;
     case "download":
       return action.busy
         ? `Downloading ${action.release.tag}…`
@@ -200,7 +204,11 @@ export function ForkSettingsPanel() {
               </code>
             </span>
           }
-          description={describeAction(action, snapshot.status.kind === "failed")}
+          description={describeAction(
+            action,
+            snapshot.status.kind === "failed",
+            snapshot.local?.message ?? null,
+          )}
           control={
             action === null ? null : (
               <Button

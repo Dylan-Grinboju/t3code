@@ -11,12 +11,14 @@ import { SidebarMenuButton, SidebarMenuItem } from "../ui/sidebar";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 
 export function SidebarForkReleaseNotice() {
-  const action = resolveForkUpdateAction(useForkReleaseStatus());
+  const snapshot = useForkReleaseStatus();
+  const action = resolveForkUpdateAction(snapshot);
   if (action === null || action.kind === "check") return null;
   const busy = "busy" in action && action.busy;
+  const lastFailed = snapshot.local?.message ? "last try failed; " : "";
   const label =
     action.kind === "install" && !busy
-      ? `${forkUpdateActionLabel(action)} and restart (you have ${FORK_RELEASE_TAG})`
+      ? `${forkUpdateActionLabel(action)} and restart (${lastFailed}you have ${FORK_RELEASE_TAG})`
       : `${forkUpdateActionLabel(action)} (you have ${FORK_RELEASE_TAG})`;
   const Icon = busy
     ? HourglassIcon

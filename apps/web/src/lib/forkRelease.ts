@@ -127,6 +127,13 @@ function refreshLocal() {
   if (!canCheck || !bridge) return;
   void bridge.getState().then((local) => {
     applyLocal(local);
+    if (local.status === "downloaded" && local.message && local.tag !== FORK_RELEASE_TAG) {
+      toastManager.add({
+        type: "error",
+        title: `Installing ${local.tag} failed`,
+        description: local.message,
+      });
+    }
     // A download started before a reload is still running in the desktop process.
     if (local.status === "downloading" && local.tag) void downloadForkRelease(local.tag);
   });
