@@ -8,6 +8,7 @@ import {
   type SidebarListMarker,
   type SidebarSection,
 } from "./Sidebar.logic";
+import { projectYosiActiveRegion } from "./sidebar/yosiThreadGroups";
 
 const stationary = { x: 0, y: 0, scaleX: 1, scaleY: 1 };
 const hidden = { ...stationary, scaleY: 0 };
@@ -114,6 +115,12 @@ export function createSidebarSortingStrategy(input: {
     if (active?.kind !== "thread" || !over || !rects[0]) return [];
     const target = resolveSidebarDropTarget(items, active.key, sidebarListItemId(over));
     if (!target) return [];
+    const yosiRegion = projectYosiActiveRegion(
+      items,
+      active.key,
+      sidebarListItemId(over),
+      target.section,
+    );
     const groups: Record<SidebarSection, ThreadItem[]> = {
       pinned: [],
       active: [],
@@ -136,6 +143,10 @@ export function createSidebarSortingStrategy(input: {
         cardHeight ??= rects[index]?.height;
       else slimHeight ??= rects[index]?.height;
       if (item.key !== active.key) groups[item.section].push(item);
+    }
+    if (yosiRegion) {
+      const grouped = new Set(yosiRegion.map(sidebarListItemId));
+      groups.working = groups.working.filter((item) => !grouped.has(item.key));
     }
     const scale =
       slimHeight !== undefined ? slimHeight / 36 : (headerScale ?? (cardHeight ?? 82) / 82);
@@ -175,7 +186,11 @@ export function createSidebarSortingStrategy(input: {
     marker("pinned-header");
     projected.push(...groups.pinned);
     marker("pinned-divider");
-    section("active");
+    if (yosiRegion === null) section("active");
+    else {
+      if (!yosiRegion.some((item) => item.kind === "thread")) marker("active-placeholder");
+      projected.push(...yosiRegion);
+    }
     if (items.some((item) => item.kind === "marker" && item.marker === "working-header")) {
       marker("working-header");
       projected.push(...groups.working);

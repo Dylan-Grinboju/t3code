@@ -410,6 +410,14 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["right panel tab bar header height bigger larger font tabs strip"],
   },
   {
+    id: "yosi-features",
+    title: "Yosi features",
+    to: "/settings/fork",
+    searchTerms: [
+      "yosi thread groups grouping folders collapse order reorder drag manual sort working",
+    ],
+  },
+  {
     id: "fork-version",
     title: "Fork version",
     to: "/settings/fork",
