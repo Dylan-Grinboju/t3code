@@ -9,6 +9,7 @@ import {
   type ForkUpdateAction,
 } from "../../lib/forkRelease";
 import { useTypeToCite } from "../../lib/forkTypeToCite";
+import { ensureLocalApi } from "../../localApi";
 import { Button } from "../ui/button";
 import { Switch } from "../ui/switch";
 import {
@@ -23,6 +24,8 @@ import { AdvancedSettings } from "./AdvancedSettings";
 import { NewThreadMachineSettings } from "./NewThreadMachineSettings";
 import { PanelTabSettings } from "./PanelTabSettings";
 import { SidebarDisplaySettings } from "./SidebarDisplaySettings";
+
+const FORK_REPOSITORY_URL = "https://github.com/Dylan-Grinboju/t3code";
 
 const FORK_FEATURES = [
   {
@@ -220,6 +223,20 @@ export function ForkSettingsPanel() {
                 {forkUpdateActionLabel(action)}
               </Button>
             )
+          }
+        />
+        <SettingsRow
+          {...searchableSetting("fork-repository")}
+          title="Repository"
+          description="Dylan-Grinboju/t3code on GitHub: source, issues and releases."
+          control={
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => void ensureLocalApi().shell.openExternal(FORK_REPOSITORY_URL)}
+            >
+              Open on GitHub
+            </Button>
           }
         />
       </SettingsSection>

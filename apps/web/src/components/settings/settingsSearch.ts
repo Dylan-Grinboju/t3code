@@ -416,6 +416,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["dylan fork release build update newer download github sidebar"],
   },
   {
+    id: "fork-repository",
+    title: "Fork repository",
+    to: "/settings/fork",
+    searchTerms: ["dylan fork repo repository github source code link issues"],
+  },
+  {
     id: "thread-details-items",
     title: "Thread details",
     to: "/settings/appearance",
