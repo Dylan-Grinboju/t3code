@@ -282,6 +282,23 @@ import {
   SidebarSectionHeader,
   SidebarSectionPlaceholder,
 } from "./sidebar/SidebarListMarkers";
+import { useYosiFeatures } from "../lib/yosiFeatures";
+import {
+  arrangeYosiThreadGroups,
+  isYosiGroupMarker,
+  isYosiMenuId,
+  planYosiGroupDrop,
+  runYosiThreadMenuAction,
+  sortYosiActiveThreads,
+  useYosiThreadGroups,
+  yosiContextMenu,
+  yosiGroupListItems,
+  yosiNavigationParents,
+  yosiThreadGroupActions,
+  yosiThreadMenu,
+  yosiVisibleThreads,
+} from "./sidebar/yosiThreadGroups";
+import { YosiThreadGroupHeader } from "./sidebar/YosiThreadGroupHeader";
 
 function sameSidebarProviderEntries(
   left: ReadonlyMap<string, SidebarProviderEntry>,
@@ -365,6 +382,7 @@ interface SidebarThreadPartitionInput {
   readonly workingShelfEnabled: boolean;
   /** Boring mode: folders list active threads by the user's latest message. */
   readonly sortActiveBySend: boolean;
+  readonly manualActiveOrder: boolean;
   // Snooze wakes, the queued-turn grace and the Working shelf's exit grace depend
   // on the clock, so the minute tick, the precise snooze-wake tick and the inbox
   // tracker's expiry version are inputs: a new key repartitions.
@@ -450,6 +468,9 @@ function useSidebarThreads(input: {
   // Folders already separate the work, so boring mode has no Working shelf.
   const workingShelfEnabled =
     useClientSettings((s) => s.sidebarWorkingShelfEnabled) && folderGroups === null;
+  const [yosiFeaturesEnabled] = useYosiFeatures();
+  const yosiActive = yosiFeaturesEnabled && folderGroups === null;
+  const yosiGroups = useYosiThreadGroups();
   const inboxReturnsVersion = useSyncExternalStore(
     inboxReturns.subscribe,
     inboxReturns.getSnapshot,
@@ -495,11 +516,25 @@ function useSidebarThreads(input: {
     optimisticDrop,
     workingShelfEnabled,
     sortActiveBySend: folderGroups !== null,
+    manualActiveOrder: yosiActive,
     clockKey: `${nowMinute}:${snoozeWakeClock}:${inboxReturnsVersion}`,
   });
 
-  const { pinnedThreads, activeThreads, workingThreads, snoozedThreads, settledThreads } =
-    partition;
+  const { pinnedThreads, snoozedThreads, settledThreads } = partition;
+  const yosi = yosiActive
+    ? arrangeYosiThreadGroups({
+        groups: yosiGroups,
+        activeThreads: partition.activeThreads,
+        workingThreads: partition.workingThreads,
+        keyOf: threadShellKey,
+        routeThreadKey: routeRowThreadKey,
+      })
+    : null;
+  const activeThreads =
+    yosi === null
+      ? partition.activeThreads
+      : [...yosi.ungroupedThreads, ...yosi.blocks.flatMap((block) => block.threads)];
+  const workingThreads = yosi === null ? partition.workingThreads : yosi.ungroupedWorkingThreads;
   // Older settled threads load in pages; the shelf lists them only as far as they are loaded.
   const olderSettledShelf = useOlderSettledShelf({
     scopes: olderSettledScopes([...serverConfigs.keys()], scopedProjectKeys),
@@ -555,9 +590,11 @@ function useSidebarThreads(input: {
   const orderedThreads = [
     ...botThreads,
     ...pinnedThreads,
-    ...(projectFolders === null
-      ? activeThreads
-      : projectFolders.flatMap((folder) => folder.threads)),
+    ...(yosi !== null
+      ? yosiVisibleThreads(yosi)
+      : projectFolders === null
+        ? activeThreads
+        : projectFolders.flatMap((folder) => folder.threads)),
     ...visibleWorkingThreads,
     ...visibleSnoozedThreads,
     ...renderedSettledThreads,
@@ -566,7 +603,7 @@ function useSidebarThreads(input: {
   for (const [list, section] of [
     [pinnedThreads, "pinned"],
     [activeThreads, "active"],
-    [workingThreads, "working"],
+    [partition.workingThreads, "working"],
     [snoozedThreads, "snoozed"],
     [settledThreads, "settled"],
   ] as const) {
@@ -575,13 +612,18 @@ function useSidebarThreads(input: {
   return {
     ...partition,
     botThreads,
+    activeThreads,
+    workingThreads,
+    yosi,
+    groupedWorkingCount: partition.workingThreads.length - workingThreads.length,
+    activeTimeOrdered: workingShelfEnabled && !yosiActive,
     threads,
     workingShelfEnabled,
     searchableThreads: [
       ...botThreads,
       ...pinnedThreads,
       ...activeThreads,
-      ...workingThreads,
+      ...partition.workingThreads,
       ...snoozedThreads,
       ...settledThreads,
     ],
@@ -697,7 +739,9 @@ function partitionSidebarThreads(input: SidebarThreadPartitionInput) {
   const sortedActive = sortActiveBySend
     ? sortWorkingThreadsBySend(active)
     : workingShelfEnabled
-      ? sortInboxThreadsByReturn(active, inboxObservation.returnedAt)
+      ? input.manualActiveOrder
+        ? sortYosiActiveThreads(active, inboxObservation.returnedAt)
+        : sortInboxThreadsByReturn(active, inboxObservation.returnedAt)
       : sortThreadsForSidebar(active);
   return {
     pinnedThreads:
@@ -1310,8 +1354,10 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
   );
 
   const {
-    workingShelfEnabled,
     botThreads,
+    yosi,
+    groupedWorkingCount,
+    activeTimeOrdered,
     pinnedThreads,
     draggableThreadKeys,
     activeReorderableThreadKeys,
@@ -1364,6 +1410,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     keepEmptyFolders: (group) =>
       scopedProjectGroups.length > 0 || (group.pinned && !group.archived),
   });
+  const yosiParentByKey = yosi === null ? null : yosiNavigationParents(yosi, threadShellKey);
 
   // Ranked across environments as the palette ranks them, so one
   // environment's list does not sit above another's better matches; rows
@@ -1954,6 +2001,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
       pinnedThreads.length +
         activeThreads.length +
         workingThreads.length +
+        groupedWorkingCount +
         snoozedThreads.length +
         settledCount ===
         0
@@ -1964,7 +2012,8 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     const pinnedRows = rowsOf(pinnedThreads, "pinned");
     items.push(...pinnedRows);
     items.push({ kind: "marker", marker: "pinned-divider" });
-    const activeRows = rowsOf(activeThreads, "active");
+    const activeRows =
+      yosi === null ? rowsOf(activeThreads, "active") : yosiGroupListItems(yosi, threadShellKey);
     items.push({ kind: "marker", marker: "active-placeholder" });
     items.push(...activeRows);
     if (workingThreads.length > 0) {
@@ -2048,7 +2097,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
           threadByKey,
           settledThreads,
           activeThreads,
-          workingShelfEnabled,
+          workingShelfEnabled: activeTimeOrdered,
         });
   const sidebarSortingStrategy = createSidebarSortingStrategy({
     items: sidebarListItems,
@@ -2064,6 +2113,21 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
   const draggedThreadKey = dragState?.activeKey;
   const draggedFromSection = dragState?.activeSection;
   const dragActivationY = dragState?.activationY;
+  const planYosiDrop = (
+    activeKey: string,
+    activeSection: SidebarSection,
+    overId: string,
+    targetSection: SidebarSection,
+  ) =>
+    yosi === null || targetSection !== "active" || activeSection === "working"
+      ? null
+      : planYosiGroupDrop({
+          items: sidebarListItems,
+          activeKey,
+          overId,
+          groups: yosi.blocks.map((block) => block.group),
+          activeOrder: activeKeys,
+        });
   const dndCollisionDetection = (() => {
     if (draggedThreadKey === undefined || draggedFromSection === undefined)
       return createSidebarCollisionDetection(() => true);
@@ -2073,6 +2137,8 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
       (id) => {
         const target = resolveSidebarDropTarget(sidebarListItems, draggedThreadKey, id);
         if (target === null) return false;
+        const yosiDrop = planYosiDrop(draggedThreadKey, draggedFromSection, id, target.section);
+        if (yosiDrop?.membershipChanged) return true;
         return (
           planSidebarThreadDrop({
             activeKey: draggedThreadKey,
@@ -2080,14 +2146,14 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
             activePinned: source.pinnedAt != null,
             activeSettled: source.settledOverride === "settled",
             supportsSettlement: serverConfigs.has(source.environmentId),
-            target,
+            target: yosiDrop === null ? target : { ...target, activeOrder: yosiDrop.blockOrder },
             pinnedOrder: pinnedKeys,
             pinnedKeysById,
             reorderableKeys: draggableThreadKeys,
-            activeOrder: activeKeys,
+            activeOrder: yosiDrop === null ? activeKeys : yosiDrop.blockCurrentOrder,
             activeKeysById,
             activeReorderableKeys: activeReorderableThreadKeys,
-            activeTimeOrdered: workingShelfEnabled,
+            activeTimeOrdered,
           }).kind !== "none"
         );
       },
@@ -2108,20 +2174,25 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     const activeThread = threadByKey.get(activeKey);
     if (activeSection === undefined || target === null || activeThread === undefined) return;
     const threadRef = scopeThreadRef(activeThread.environmentId, activeThread.id);
+    const yosiDrop =
+      event.over === null
+        ? null
+        : planYosiDrop(activeKey, activeSection, String(event.over.id), target.section);
+    if (yosiDrop?.membershipChanged) yosiThreadGroupActions.move([activeKey], yosiDrop.groupId);
     const plan = planSidebarThreadDrop({
       activeKey,
       activeSection,
       activePinned: activeThread.pinnedAt != null,
       activeSettled: activeThread.settledOverride === "settled",
       supportsSettlement: serverConfigs.has(activeThread.environmentId),
-      target,
+      target: yosiDrop === null ? target : { ...target, activeOrder: yosiDrop.blockOrder },
       pinnedOrder: pinnedKeys,
       pinnedKeysById,
       reorderableKeys: draggableThreadKeys,
-      activeOrder: activeKeys,
+      activeOrder: yosiDrop === null ? activeKeys : yosiDrop.blockCurrentOrder,
       activeKeysById,
       activeReorderableKeys: activeReorderableThreadKeys,
-      activeTimeOrdered: workingShelfEnabled,
+      activeTimeOrdered,
     });
     if (plan.kind === "none") return;
     if (plan.kind === "settle" && settlingThreadKeysRef.current.has(activeKey)) return;
@@ -2152,7 +2223,12 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
         plan.kind === "pin" ||
         plan.kind === "settle" ||
         (plan.kind === "move-active" && plan.unsnooze),
-      order: plan.kind === "settle" ? null : plan.order,
+      order:
+        plan.kind === "settle"
+          ? null
+          : yosiDrop !== null && plan.kind === "move-active"
+            ? yosiDrop.heldOrder
+            : plan.order,
       keysAtDrop: target.section === "active" ? activeKeysById : pinnedKeysById,
       assignedKeys: new Map(assignments.map(({ id, orderKey }) => [id, orderKey])),
     };
@@ -2292,6 +2368,14 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     },
   );
 
+  const yosiMenuFor = (threadKeys: readonly string[]) =>
+    yosi === null
+      ? null
+      : yosiThreadMenu({
+          groups: yosi.blocks.map((block) => block.group),
+          threadKeys,
+          sectionOf: (key) => sectionByThreadKeyRef.current.get(key),
+        });
   const handleMultiSelectContextMenu = useStableCallback(
     async (position: { x: number; y: number }, source: ContextMenuSource) => {
       const api = readLocalApi();
@@ -2301,6 +2385,8 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
         threadByKeyRef.current.has(threadKey),
       );
       if (threadKeys.length === 0) return;
+      const yosiMenu = yosiMenuFor(threadKeys);
+      const showMenu = yosiContextMenu(api, yosiMenu, "mark-unread");
       const count = threadKeys.length;
       const selectionNow = new Date();
       const selectedThreads = threadKeys.flatMap((threadKey) => {
@@ -2339,7 +2425,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
         selectedThreads[0]!.environmentId,
       );
       const clicked = await settlePromise(() =>
-        api.contextMenu.show(
+        showMenu(
           [
             ...(unpinMenuItem
               ? [{ ...unpinMenuItem, disabled: !canOperateThreads(pinnedSelectedThreads) }]
@@ -2395,6 +2481,10 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
         ),
       );
       if (clicked._tag === "Failure" || clicked.value === null) return;
+      if (isYosiMenuId(clicked.value)) {
+        if (yosiMenu !== null) runYosiThreadMenuAction(clicked.value, yosiMenu.threadKeys);
+        return;
+      }
       const actionTargets =
         clicked.value === "unpin"
           ? pinnedSelectedThreads
@@ -2638,8 +2728,10 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                 projectRef.projectId === thread.projectId,
             ),
           ) ?? null;
+        const yosiMenu = yosiMenuFor([threadKey]);
+        const showMenu = yosiContextMenu(api, yosiMenu, "rename");
         const clicked = await settlePromise(() =>
-          api.contextMenu.show(
+          showMenu(
             buildThreadActionMenuItems({
               canOperate: readEnvironmentScope(
                 threadRef.environmentId,
@@ -2681,6 +2773,10 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
           ),
         );
         if (clicked._tag === "Failure" || clicked.value === null) return;
+        if (isYosiMenuId(clicked.value)) {
+          if (yosiMenu !== null) runYosiThreadMenuAction(clicked.value, yosiMenu.threadKeys);
+          return;
+        }
         if (threadActionRequiresOperate(clicked.value) && !checkThreadOperations([thread])) return;
         if (clicked.value?.startsWith("snooze:")) {
           const preset =
@@ -3317,6 +3413,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
           pinnedThreads.length +
             activeThreads.length +
             workingThreads.length +
+            groupedWorkingCount +
             snoozedThreads.length ===
             0 &&
           (settledCount === 0 || scopedProjectGroups.length > 0) ? (
@@ -3382,6 +3479,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                     className={cn(
                       "relative flex flex-col gap-px",
                       sidebarListItems.length > 0 && "flex-1",
+                      yosi !== null && "[&>li:has(>[data-sidebar-parent^=yosi-group])]:pl-3",
                       actionSweep !== null && "**:pointer-events-none",
                       // Projected rows (two boundary labels, two hints) extend the scroll range; a range that
                       // shrinks as the target changes clamps scrollTop and flips the target under a still pointer.
@@ -3422,6 +3520,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                             variant={rowVariant}
                             navigationParent={
                               folderRow ??
+                              yosiParentByKey?.get(threadKey) ??
                               (section === "working" ||
                               section === "snoozed" ||
                               section === "settled"
@@ -3526,6 +3625,24 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                           // Folders draw active rows in their own place below.
                           if (projectFolders !== null && item.section === "active") continue;
                           items.push(renderThreadRow(threadByKey.get(item.key)!, item.section));
+                          continue;
+                        }
+                        if (isYosiGroupMarker(item.marker)) {
+                          const block = yosi?.blocks.find(
+                            (candidate) => candidate.marker === item.marker,
+                          );
+                          if (block) {
+                            items.push(
+                              <YosiThreadGroupHeader
+                                key={item.marker}
+                                marker={block.marker}
+                                group={block.group}
+                                memberCount={block.threads.length + block.workingThreads.length}
+                                hiddenThreads={block.hiddenThreads}
+                                dragging={from !== null}
+                              />,
+                            );
+                          }
                           continue;
                         }
                         if (projectFolders !== null && item.marker === "active-placeholder") {

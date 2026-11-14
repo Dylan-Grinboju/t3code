@@ -24,6 +24,7 @@ import { AdvancedSettings } from "./AdvancedSettings";
 import { NewThreadMachineSettings } from "./NewThreadMachineSettings";
 import { PanelTabSettings } from "./PanelTabSettings";
 import { SidebarDisplaySettings } from "./SidebarDisplaySettings";
+import { YosiFeaturesSettings } from "./YosiFeaturesSettings";
 
 const FORK_REPOSITORY_URL = "https://github.com/Dylan-Grinboju/t3code";
 
@@ -122,6 +123,16 @@ const FORK_FEATURES = [
     title: "Type to cite",
     description:
       "With Type to cite on under Chat above, select text in a response and start typing: it cites the selection, the same as Cite, and what you type becomes the citation's comment.",
+  },
+  {
+    title: "Thread groups",
+    description:
+      "With Yosi features on under Yosi features above, right-click a thread and pick Move to group to file it in a named group that opens and closes. A thread working in a group waits at the bottom of the group instead of on the Working shelf.",
+  },
+  {
+    title: "Thread order",
+    description:
+      "With Yosi features on under Yosi features above, drag active threads into any order, also with the Working shelf on. A thread you placed keeps its spot.",
   },
   {
     title: "Fork releases",
@@ -278,6 +289,9 @@ export function ForkSettingsPanel() {
       </SettingsSection>
       <SettingsSection id="fork-new-thread-machines" title="New thread picker">
         <NewThreadMachineSettings />
+      </SettingsSection>
+      <SettingsSection id="fork-yosi-features" title="Yosi features">
+        <YosiFeaturesSettings />
       </SettingsSection>
       <SettingsSection id="fork-features" title="About the fork" hideTitle>
         <AdvancedSettings label="About the fork" targetIds={[]}>

@@ -530,6 +530,24 @@ describe("sidebar drag projection", () => {
     expect(byTime.get("w")).toEqual(stationary);
   });
 
+  it("keeps a thread group's header and working rows in the group while a row joins it", () => {
+    const items = [
+      pinnedHeader,
+      divider,
+      marker("active-placeholder"),
+      thread("u", "active"),
+      marker("yosi-group:g"),
+      thread("a", "active"),
+      thread("w", "working"),
+      settledHeader,
+      marker("settled-placeholder"),
+    ];
+    const result = preview({ items, settledOrder: [], settledExpanded: false }, "u", "a");
+    expect(result.get(sidebarMarkerId("yosi-group:g"))).toEqual({ ...stationary, y: -84 });
+    expect(result.get("a")).toEqual({ ...stationary, y: -84 });
+    expect(result.get("w")).toEqual({ ...stationary, y: -1 });
+  });
+
   it("updates the projection when the target or measured geometry changes", () => {
     const strategy = createSidebarSortingStrategy({
       items: pinned,
