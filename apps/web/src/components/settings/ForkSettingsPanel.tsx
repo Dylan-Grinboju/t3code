@@ -29,6 +29,11 @@ const FORK_REPOSITORY_URL = "https://github.com/Dylan-Grinboju/t3code";
 
 const FORK_FEATURES = [
   {
+    title: "CLI permissions for integrations",
+    description:
+      "Local integrations can use t3 auth session issue --runtime-mode-ceiling auto to open Auto threads. Without that option, MCP connections keep requiring approval.",
+  },
+  {
     title: "Sidebar status strip",
     description:
       "With the sidebar closed, a thin strip of thread status icons can stay along the left edge. Set it under Sidebar above.",
@@ -111,7 +116,7 @@ const FORK_FEATURES = [
   {
     title: "Fork releases",
     description:
-      "Mac and Windows builds come from the fork's own releases. The sidebar's check-for-updates button checks for them, like Check now here. When a newer one is out, the sidebar button and the Release row here download it, then install it and restart T3 Code. A download not installed within 24 hours is removed. If an install fails, the Release row says why and where its log is.",
+      "Mac and Windows builds come from the fork's own releases. The sidebar's check-for-updates button checks for them, like Check now here. When a newer one is out, the sidebar button and the Release row here download it, then install it and restart T3 Code. If another release is detected before you install, the old download is discarded and the newer one downloads automatically. A download not installed within 24 hours is removed. If an install fails, the Release row says why and where its log is.",
   },
 ] as const;
 

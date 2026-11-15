@@ -1,4 +1,4 @@
-import { AuthSessionId, AuthStandardClientScopes } from "@t3tools/contracts";
+import { AuthSessionId, AuthStandardClientScopes, RuntimeMode } from "@t3tools/contracts";
 import * as Console from "effect/Console";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -172,6 +172,12 @@ const sessionIssueCommand = Command.make("issue", {
   ttl: ttlFlag,
   label: labelFlag,
   subject: subjectFlag,
+  runtimeModeCeiling: Flag.Literals("runtime-mode-ceiling", RuntimeMode.literals).pipe(
+    Flag.withDescription(
+      "Maximum runtime mode for an MCP client session; defaults to approval-required.",
+    ),
+    Flag.optional,
+  ),
   tokenOnly: tokenOnlyFlag,
   json: jsonFlag,
 }).pipe(
@@ -186,6 +192,9 @@ const sessionIssueCommand = Command.make("issue", {
             ...(Option.isSome(flags.ttl) ? { ttl: flags.ttl.value } : {}),
             ...(Option.isSome(flags.label) ? { label: flags.label.value } : {}),
             ...(Option.isSome(flags.subject) ? { subject: flags.subject.value } : {}),
+            ...(Option.isSome(flags.runtimeModeCeiling)
+              ? { runtimeModeCeiling: flags.runtimeModeCeiling.value }
+              : {}),
           });
           yield* Console.log(
             formatIssuedSession(issued, {

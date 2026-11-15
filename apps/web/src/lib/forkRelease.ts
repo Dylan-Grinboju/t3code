@@ -85,6 +85,7 @@ function checkForkReleaseNow(): Promise<boolean> {
     (latest) => {
       inFlight = null;
       publish({ status: { kind: "checked", latest } });
+      replaceStaleDownload();
       return true;
     },
     () => {
@@ -120,6 +121,15 @@ function applyLocal(local: DesktopForkUpdateState) {
     expiryTimer = setTimeout(refreshLocal, Math.max(0, remaining) + 1000);
   }
   publish({ local });
+  replaceStaleDownload();
+}
+
+function replaceStaleDownload() {
+  if (snapshot.status.kind !== "checked") return;
+  const newer = newerForkRelease(snapshot.status);
+  if (newer && snapshot.local?.status === "downloaded" && snapshot.local.tag !== newer.tag) {
+    void downloadForkRelease(newer.tag, true);
+  }
 }
 
 function refreshLocal() {
@@ -195,11 +205,19 @@ export function resolveForkUpdateAction(current: Snapshot): ForkUpdateAction | n
   return { kind: "check", busy: current.status.kind === "checking" };
 }
 
-async function downloadForkRelease(tag: string) {
+async function downloadForkRelease(tag: string, discardPrevious = false) {
   const bridge = forkUpdateBridge();
   if (!bridge) return;
   publish({ local: { status: "downloading", tag, downloadedAt: null, message: null } });
-  const local = await bridge.download(REPOSITORY, tag).catch(failedState(tag));
+  const download = discardPrevious
+    ? bridge.discard().then((discarded) => {
+        if (discarded.status === "downloaded") {
+          throw new Error("Could not discard the previous update.");
+        }
+        return discarded.status === "idle" ? bridge.download(REPOSITORY, tag) : discarded;
+      })
+    : bridge.download(REPOSITORY, tag);
+  const local = await download.catch(failedState(tag));
   applyLocal(local);
   if (local.status === "failed") {
     toastManager.add({
