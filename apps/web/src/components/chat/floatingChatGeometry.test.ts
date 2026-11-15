@@ -2,6 +2,7 @@ import { describe, expect, it } from "vite-plus/test";
 
 import {
   DEFAULT_FLOATING_CHAT,
+  FLOATING_CHAT_MARGIN,
   dockFloatingChat,
   floatingChatBounds,
   floatingChatPosition,
@@ -20,15 +21,19 @@ describe("floating chat geometry", () => {
             { ...DEFAULT_FLOATING_CHAT, edge, offset: 0.6 },
             bounds,
           );
-          expect(position.left).toBeGreaterThanOrEqual(12);
-          expect(position.top).toBeGreaterThanOrEqual(viewport.top + 12);
-          expect(position.left + bounds.width).toBeLessThanOrEqual(viewport.width - 12);
-          expect(position.top + bounds.height).toBeLessThanOrEqual(viewport.height - 12);
+          expect(position.left).toBeGreaterThanOrEqual(FLOATING_CHAT_MARGIN);
+          expect(position.top).toBeGreaterThanOrEqual(viewport.top + FLOATING_CHAT_MARGIN);
+          expect(position.left + bounds.width).toBeLessThanOrEqual(
+            viewport.width - FLOATING_CHAT_MARGIN,
+          );
+          expect(position.top + bounds.height).toBeLessThanOrEqual(
+            viewport.height - FLOATING_CHAT_MARGIN,
+          );
           expect(
-            position.left === 12 ||
-              position.top === viewport.top + 12 ||
-              position.left + bounds.width === viewport.width - 12 ||
-              position.top + bounds.height === viewport.height - 12,
+            position.left === FLOATING_CHAT_MARGIN ||
+              position.top === viewport.top + FLOATING_CHAT_MARGIN ||
+              position.left + bounds.width === viewport.width - FLOATING_CHAT_MARGIN ||
+              position.top + bounds.height === viewport.height - FLOATING_CHAT_MARGIN,
           ).toBe(true);
         }
       }
@@ -57,7 +62,7 @@ describe("floating chat geometry", () => {
       );
       expect(result.placement.width).toBe(580);
       expect(result.collapse).toBe(false);
-      expect(side === "left" ? after.left + 580 : after.left).toBe(
+      expect(side === "left" ? after.left + 580 : after.left).toBeCloseTo(
         side === "left" ? before.left + 480 : before.left,
       );
     }

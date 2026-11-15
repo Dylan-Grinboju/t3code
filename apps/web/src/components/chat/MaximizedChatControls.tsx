@@ -37,6 +37,11 @@ function headerPlacement(column: HTMLElement, top: number, left: number, width: 
   };
 }
 
+function bannerPlacement(column: HTMLElement, input: HTMLElement, top: number, inset: number) {
+  const inputBounds = input.getBoundingClientRect();
+  return headerPlacement(column, top, inputBounds.left + inset, inputBounds.width - 2 * inset);
+}
+
 function surfacePlacement(surface: HTMLElement, input: HTMLElement, top: number) {
   const bounds = surface.getBoundingClientRect();
   const inputBounds = input.getBoundingClientRect();
@@ -60,8 +65,7 @@ export function useFloatingChatReveal(presentation: MaximizedChatPresentation | 
     composerHeight: number;
     composerBottom: number;
     bannerTop: number;
-    bannerLeft: number;
-    bannerWidth: number;
+    bannerInset: number;
   } | null>(null);
   const composerHeightDeltaRef = useRef(0);
   const previousRef = useRef(presentation);
@@ -87,7 +91,6 @@ export function useFloatingChatReveal(presentation: MaximizedChatPresentation | 
     const composerBounds = composer.getBoundingClientRect();
     composerHeightDeltaRef.current = geometry.composerHeight - composerBounds.height;
     if (prefersReducedMotion()) return;
-    const bounds = column.getBoundingClientRect();
     const headerBounds = header.getBoundingClientRect();
     const bannerTop = composerBounds.bottom - geometry.composerHeight + geometry.bannerTop;
     animationRef.current = content.animate(
@@ -101,7 +104,7 @@ export function useFloatingChatReveal(presentation: MaximizedChatPresentation | 
     );
     titleAnimationRef.current = header.animate(
       [
-        headerPlacement(column, bannerTop, bounds.left + geometry.bannerLeft, geometry.bannerWidth),
+        bannerPlacement(column, input, bannerTop, geometry.bannerInset),
         { transform: "translate(0, 0)", width: `${headerBounds.width}px` },
       ],
       FLOATING_CHAT_REVEAL,
@@ -169,15 +172,7 @@ export function useFloatingChatReveal(presentation: MaximizedChatPresentation | 
       { ...FLOATING_CHAT_REVEAL, id: "close", fill: "forwards" },
     );
     titleAnimationRef.current = header.animate(
-      [
-        headerFrom,
-        headerPlacement(
-          column,
-          bannerTop,
-          bounds.left + geometry.bannerLeft,
-          bounds.width - 2 * geometry.bannerLeft,
-        ),
-      ],
+      [headerFrom, bannerPlacement(column, input, bannerTop, geometry.bannerInset)],
       { ...FLOATING_CHAT_REVEAL, fill: "forwards" },
     );
     surfaceAnimationRef.current = surface.animate(
@@ -209,16 +204,15 @@ export function useFloatingChatReveal(presentation: MaximizedChatPresentation | 
   const open = (commit: () => void) => {
     const column = columnRef.current;
     if (presentation === "collapsed" && column) {
-      const { banner, composer } = floatingChatElements(column);
-      if (banner && composer) {
+      const { banner, composer, input } = floatingChatElements(column);
+      if (banner && composer && input) {
         const bannerBounds = banner.getBoundingClientRect();
         const composerBounds = composer.getBoundingClientRect();
         collapsedGeometryRef.current = {
           composerHeight: composerBounds.height,
           composerBottom: composerBounds.bottom,
           bannerTop: bannerBounds.top - composerBounds.top,
-          bannerLeft: bannerBounds.left - column.getBoundingClientRect().left,
-          bannerWidth: bannerBounds.width,
+          bannerInset: bannerBounds.left - input.getBoundingClientRect().left,
         };
       }
     }

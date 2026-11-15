@@ -16,7 +16,9 @@ import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import {
   DEFAULT_FLOATING_CHAT,
+  FLOATING_CHAT_FRAME_PADDING,
   FLOATING_CHAT_ICON_SIZE,
+  FLOATING_CHAT_MARGIN,
   FLOATING_CHAT_MAX_WIDTH,
   FLOATING_CHAT_MIN_WIDTH,
   dockFloatingChat,
@@ -88,8 +90,12 @@ export function FloatingChatDock({
   );
   const [area, setArea] = useState({ width: 0, height: 0, top: 0, composerHeight: 160 });
   const gesture = useRef<Gesture | null>(null);
-  const columnHeight = Math.min(640, Math.max(0, area.height - area.top - 24));
+  const columnHeight = Math.min(
+    640,
+    Math.max(0, area.height - area.top - FLOATING_CHAT_MARGIN * 2),
+  );
   const visibleHeight = presentation === "expanded" ? columnHeight : area.composerHeight;
+  const framePadding = presentation === "expanded" ? FLOATING_CHAT_FRAME_PADDING : 0;
   const width = Math.max(
     FLOATING_CHAT_MIN_WIDTH,
     Math.min(FLOATING_CHAT_MAX_WIDTH, placement.width),
@@ -239,9 +245,9 @@ export function FloatingChatDock({
         style={
           floating
             ? {
-                left: position.left,
+                left: position.left - framePadding,
                 top: position.top + bounds.height - columnHeight,
-                width: bounds.width,
+                width: bounds.width + framePadding * 2,
                 height: columnHeight,
               }
             : undefined
@@ -272,7 +278,10 @@ export function FloatingChatDock({
                 aria-label="Resize floating chat"
                 aria-orientation="vertical"
                 aria-valuemin={Math.min(FLOATING_CHAT_MIN_WIDTH, bounds.width)}
-                aria-valuemax={Math.min(FLOATING_CHAT_MAX_WIDTH, area.width - 24)}
+                aria-valuemax={Math.min(
+                  FLOATING_CHAT_MAX_WIDTH,
+                  area.width - FLOATING_CHAT_MARGIN * 2,
+                )}
                 aria-valuenow={Math.round(bounds.width)}
                 tabIndex={0}
                 className={cn(

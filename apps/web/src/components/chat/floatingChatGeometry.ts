@@ -6,7 +6,8 @@ export interface FloatingChatPlacement {
   width: number;
 }
 
-const FLOATING_CHAT_MARGIN = 12;
+export const FLOATING_CHAT_MARGIN = 20;
+export const FLOATING_CHAT_FRAME_PADDING = 12;
 export const FLOATING_CHAT_MIN_WIDTH = 320;
 export const FLOATING_CHAT_MAX_WIDTH = 960;
 const FLOATING_CHAT_COLLAPSE_WIDTH = 240;
