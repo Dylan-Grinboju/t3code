@@ -153,32 +153,36 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))(
       }).pipe(Effect.provide(layerEnvironmentAuth())),
     );
 
-    it.effect("issues bearer access token sessions without exposing raw tokens", () =>
-      Effect.gen(function* () {
-        const environmentAuth = yield* EnvironmentAuth.EnvironmentAuth;
-        const sessionCredentials = yield* SessionStore.SessionStore;
+    it.effect.each([undefined, "auto"] as const)(
+      "issues bearer access token sessions with ceiling %s without exposing raw tokens",
+      (runtimeModeCeiling) =>
+        Effect.gen(function* () {
+          const environmentAuth = yield* EnvironmentAuth.EnvironmentAuth;
+          const sessionCredentials = yield* SessionStore.SessionStore;
 
-        const issued = yield* environmentAuth.issueSession({
-          label: "deploy-bot",
-        });
-        const verified = yield* sessionCredentials.verify(issued.token);
-        const listedBeforeRevoke = yield* environmentAuth.listSessions();
-        const revoked = yield* environmentAuth.revokeSession(issued.sessionId);
-        const listedAfterRevoke = yield* environmentAuth.listSessions();
+          const issued = yield* environmentAuth.issueSession({
+            label: "deploy-bot",
+            ...(runtimeModeCeiling ? { runtimeModeCeiling } : {}),
+          });
+          const verified = yield* sessionCredentials.verify(issued.token);
+          const listedBeforeRevoke = yield* environmentAuth.listSessions();
+          const revoked = yield* environmentAuth.revokeSession(issued.sessionId);
+          const listedAfterRevoke = yield* environmentAuth.listSessions();
 
-        expect(issued.method).toBe("bearer-access-token");
-        expect(issued.scopes).toEqual(AuthStandardClientScopes);
-        expect(issued.client.deviceType).toBe("bot");
-        expect(issued.client.label).toBe("deploy-bot");
-        expect(verified.sessionId).toBe(issued.sessionId);
-        expect(verified.scopes).toEqual(AuthStandardClientScopes);
-        expect(verified.method).toBe("bearer-access-token");
-        expect(listedBeforeRevoke).toHaveLength(1);
-        expect(listedBeforeRevoke[0]?.sessionId).toBe(issued.sessionId);
-        expect("token" in (listedBeforeRevoke[0] ?? {})).toBe(false);
-        expect(revoked).toBe(true);
-        expect(listedAfterRevoke).toHaveLength(0);
-      }).pipe(Effect.provide(layerEnvironmentAuth())),
+          expect(issued.method).toBe("bearer-access-token");
+          expect(issued.scopes).toEqual(AuthStandardClientScopes);
+          expect(issued.client.deviceType).toBe("bot");
+          expect(issued.client.label).toBe("deploy-bot");
+          expect(verified.sessionId).toBe(issued.sessionId);
+          expect(verified.scopes).toEqual(AuthStandardClientScopes);
+          expect(verified.method).toBe("bearer-access-token");
+          expect(verified.runtimeModeCeiling).toBe(runtimeModeCeiling);
+          expect(listedBeforeRevoke).toHaveLength(1);
+          expect(listedBeforeRevoke[0]?.sessionId).toBe(issued.sessionId);
+          expect("token" in (listedBeforeRevoke[0] ?? {})).toBe(false);
+          expect(revoked).toBe(true);
+          expect(listedAfterRevoke).toHaveLength(0);
+        }).pipe(Effect.provide(layerEnvironmentAuth())),
     );
   },
 );
