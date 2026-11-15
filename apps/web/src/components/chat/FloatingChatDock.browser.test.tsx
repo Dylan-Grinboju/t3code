@@ -6,23 +6,16 @@ import "~/index.css";
 
 import { act, render } from "../../../test/render";
 import { FloatingChatDock } from "./FloatingChatDock";
-import {
-  FloatingChatHeader,
-  FloatingChatTitleBanner,
-  useFloatingChatReveal,
-} from "./MaximizedChatControls";
+import { FloatingChatHeader } from "./MaximizedChatControls";
 
 function FloatingChat() {
   const [mode, setMode] = useState<"collapsed" | "expanded" | "minimized">("collapsed");
   const presentation = mode === "expanded" ? "expanded" : "collapsed";
-  const { columnRef, open, close } = useFloatingChatReveal(presentation);
-  const toggle = () =>
-    mode === "expanded" ? close(() => setMode("collapsed")) : open(() => setMode("expanded"));
+  const toggle = () => setMode((current) => (current === "expanded" ? "collapsed" : "expanded"));
   const minimize = () => setMode("minimized");
   return (
     <div className="relative h-[700px] w-[900px] [--workspace-topbar-height:52px]">
       <FloatingChatDock
-        columnRef={columnRef}
         presentation={presentation}
         minimized={mode === "minimized"}
         title="Draft thread"
@@ -33,26 +26,14 @@ function FloatingChat() {
         data-testid="column"
         data-mode={mode}
       >
-        <div
-          data-floating-chat-surface
-          hidden={presentation === "collapsed"}
-          className="pointer-events-none absolute inset-0"
-        />
         <FloatingChatHeader
           title="Draft thread"
-          hidden={presentation === "collapsed"}
+          expanded={presentation === "expanded"}
           onToggle={toggle}
           onMinimize={minimize}
         />
         <div data-floating-chat-content className="relative flex-1">
           <div data-chat-composer-overlay className="absolute inset-x-0 bottom-0">
-            {presentation === "collapsed" ? (
-              <FloatingChatTitleBanner
-                title="Draft thread"
-                onToggle={toggle}
-                onMinimize={minimize}
-              />
-            ) : null}
             <input data-chat-composer-main-surface aria-label="Draft" className="h-20 w-full" />
           </div>
         </div>

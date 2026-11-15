@@ -7,7 +7,7 @@ import {
   useState,
   type ComponentProps,
   type PointerEvent,
-  type RefObject,
+  type CSSProperties,
 } from "react";
 
 import { readLocalStorageValue, writeLocalStorageValue } from "../../hooks/useLocalStorage";
@@ -16,7 +16,6 @@ import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import {
   DEFAULT_FLOATING_CHAT,
-  FLOATING_CHAT_FRAME_PADDING,
   FLOATING_CHAT_ICON_SIZE,
   FLOATING_CHAT_MARGIN,
   FLOATING_CHAT_MAX_WIDTH,
@@ -28,6 +27,8 @@ import {
   type FloatingChatPlacement,
 } from "./floatingChatGeometry";
 import type { MaximizedChatPresentation } from "./MaximizedChatControls";
+
+import "./floatingChatDock.css";
 
 const STORAGE_KEY = "t3code:floating-chat-placement";
 const PlacementSchema = Schema.Struct({
@@ -72,7 +73,6 @@ export function FloatingChatDock({
   title,
   onMinimize,
   onRestore,
-  columnRef,
   children,
   className,
   ...props
@@ -82,26 +82,39 @@ export function FloatingChatDock({
   title: string;
   onMinimize: () => void;
   onRestore: () => void;
-  columnRef: RefObject<HTMLDivElement | null>;
 }) {
   const floating = presentation === "collapsed" || presentation === "expanded";
   const [placement, setPlacement] = useState(() =>
     readLocalStorageValue(STORAGE_KEY, DEFAULT_FLOATING_CHAT, PlacementSchema),
   );
-  const [area, setArea] = useState({ width: 0, height: 0, top: 0, composerHeight: 160 });
+  const [area, setArea] = useState({
+    width: 0,
+    height: 0,
+    top: 0,
+    composerHeight: 160,
+    headerHeight: 36,
+  });
   const gesture = useRef<Gesture | null>(null);
   const columnHeight = Math.min(
     640,
     Math.max(0, area.height - area.top - FLOATING_CHAT_MARGIN * 2),
   );
-  const visibleHeight = presentation === "expanded" ? columnHeight : area.composerHeight;
-  const framePadding = presentation === "expanded" ? FLOATING_CHAT_FRAME_PADDING : 0;
+  const collapsedHeight = Math.min(columnHeight, area.composerHeight + area.headerHeight + 2);
+  const visibleHeight = presentation === "expanded" ? columnHeight : collapsedHeight;
   const width = Math.max(
     FLOATING_CHAT_MIN_WIDTH,
     Math.min(FLOATING_CHAT_MAX_WIDTH, placement.width),
   );
   const bounds = floatingChatBounds(area, width, visibleHeight);
   const position = floatingChatPosition(placement, bounds);
+  const collapsedPosition = floatingChatPosition(
+    placement,
+    floatingChatBounds(area, width, collapsedHeight),
+  );
+  const expandedPosition = floatingChatPosition(
+    placement,
+    floatingChatBounds(area, width, columnHeight),
+  );
   const iconBounds = floatingChatBounds(area, FLOATING_CHAT_ICON_SIZE, FLOATING_CHAT_ICON_SIZE);
   const iconPosition = floatingChatPosition(placement, iconBounds);
 
@@ -212,10 +225,10 @@ export function FloatingChatDock({
       <div
         {...props}
         ref={(node) => {
-          columnRef.current = node;
           if (!node || !floating || !node.parentElement) return;
           const parent = node.parentElement;
           const composer = node.querySelector<HTMLElement>("[data-chat-composer-overlay]");
+          const header = node.querySelector<HTMLElement>("[data-floating-chat-header]");
           const inset = node.querySelector<HTMLElement>("[data-floating-chat-inset]");
           const measure = () => {
             const next = {
@@ -223,45 +236,45 @@ export function FloatingChatDock({
               height: parent.clientHeight,
               top: inset ? parseFloat(getComputedStyle(inset).top) || 0 : 0,
               composerHeight: composer?.offsetHeight ?? 160,
+              headerHeight: header?.offsetHeight ?? 36,
             };
             setArea((previous) =>
               previous.width === next.width &&
               previous.height === next.height &&
               previous.top === next.top &&
-              previous.composerHeight === next.composerHeight
+              previous.composerHeight === next.composerHeight &&
+              previous.headerHeight === next.headerHeight
                 ? previous
                 : next,
             );
           };
           measure();
-          return observeResize(composer ? [parent, composer] : parent, measure);
+          return observeResize(
+            [parent, ...(composer ? [composer] : []), ...(header ? [header] : [])],
+            measure,
+          );
         }}
         className={cn(
           className,
-          floating && "absolute z-40 border border-transparent",
-          presentation === "collapsed" && "[&_.chat-composer-lane]:px-0",
-          presentation === "expanded" && "[&_.chat-composer-lane]:px-3",
+          floating &&
+            "absolute z-40 overflow-hidden rounded-xl border border-border bg-background shadow-xl [&_.chat-composer-lane]:px-3",
         )}
         style={
           floating
-            ? {
-                left: position.left - framePadding,
-                top: position.top + bounds.height - columnHeight,
-                width: bounds.width + framePadding * 2,
-                height: columnHeight,
-              }
+            ? ({
+                left: position.left,
+                width: bounds.width,
+                "--floating-chat-content-height": `${columnHeight - area.headerHeight - 2}px`,
+                "--floating-chat-collapsed-height": `${collapsedHeight}px`,
+                "--floating-chat-height-travel": `${columnHeight - collapsedHeight}px`,
+                "--floating-chat-top": `${collapsedPosition.top}px`,
+                "--floating-chat-top-travel": `${expandedPosition.top - collapsedPosition.top}px`,
+              } as CSSProperties)
             : undefined
         }
+        data-floating-chat-dock={floating || undefined}
         data-floating-chat-edge={floating ? placement.edge : undefined}
-        data-floating-chat-vertical-anchor={
-          floating
-            ? placement.edge === "top"
-              ? 0
-              : placement.edge === "bottom"
-                ? 1
-                : Math.max(0, Math.min(1, placement.offset))
-            : undefined
-        }
+        data-floating-chat-expanded={floating ? presentation === "expanded" : undefined}
       >
         {floating ? (
           <span
@@ -285,11 +298,10 @@ export function FloatingChatDock({
                 aria-valuenow={Math.round(bounds.width)}
                 tabIndex={0}
                 className={cn(
-                  "pointer-events-auto absolute bottom-0 z-40 w-2 touch-none cursor-ew-resize rounded-full focus-visible:bg-ring/40 focus-visible:outline-none",
+                  "pointer-events-auto absolute inset-y-0 z-40 w-2 touch-none cursor-ew-resize rounded-full focus-visible:bg-ring/40 focus-visible:outline-none",
                   side === "left" ? "-left-1" : "-right-1",
                   placement.edge === side && "hidden",
                 )}
-                style={{ height: bounds.height }}
                 {...pointerHandlers}
                 onPointerDown={(event) => start(event, side)}
                 onKeyDown={(event) => {

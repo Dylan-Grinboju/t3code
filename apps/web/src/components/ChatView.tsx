@@ -296,7 +296,6 @@ import {
   FloatingChatBackdrop,
   FloatingChatHeader,
   type MaximizedChatPresentation,
-  useFloatingChatReveal,
 } from "./chat/MaximizedChatControls";
 import { FloatingChatDock } from "./chat/FloatingChatDock";
 import type { ExpandedImagePreview } from "./chat/ExpandedImagePreview";
@@ -1118,18 +1117,9 @@ export default function ChatView(props: ChatViewProps) {
       : floatingChatMode === "expanded" && !threadTabActive
         ? "expanded"
         : "collapsed";
-  const {
-    columnRef: floatingChatColumnRef,
-    open: openFloatingChat,
-    close: closeFloatingChat,
-  } = useFloatingChatReveal(maximizedChat);
-  const closeFloatingChatStable = useStableCallback(() =>
-    closeFloatingChat(() => setFloatingChatMode("collapsed")),
-  );
+  const closeFloatingChatStable = useStableCallback(() => setFloatingChatMode("collapsed"));
   const toggleFloatingChatStable = useStableCallback(() =>
-    floatingChatMode === "expanded"
-      ? closeFloatingChatStable()
-      : openFloatingChat(() => setFloatingChatMode("expanded")),
+    setFloatingChatMode((mode) => (mode === "expanded" ? "collapsed" : "expanded")),
   );
   // Minimized keeps the collapsed layout mounted (draft, focus state) and only hides it.
   const floatingChatMinimized = maximizedChat === "collapsed" && floatingChatMode === "minimized";
@@ -3329,7 +3319,6 @@ export default function ChatView(props: ChatViewProps) {
         title={activeThread.title}
         onMinimize={minimizeFloatingChatStable}
         onRestore={restoreFloatingChatStable}
-        columnRef={floatingChatColumnRef}
         className={cn(
           "flex min-h-0 min-w-0 flex-col",
           (maximizedChat === null || maximizedChat === "tab") && "overflow-x-hidden",
@@ -3337,26 +3326,16 @@ export default function ChatView(props: ChatViewProps) {
           // z-40 stays above the desktop browser's webviews, which stack at z-30.
           maximizedChat === "tab" &&
             "absolute inset-x-0 top-(--workspace-topbar-height) bottom-0 z-40 bg-background",
-          maximizedChat === "collapsed" && [
-            "pointer-events-none origin-bottom-right motion-safe:transition-[opacity,translate,scale] motion-safe:duration-200 motion-safe:ease-out",
-            floatingChatHidden && "translate-x-1/4 translate-y-2 scale-75 opacity-0",
-          ],
+          floatingChatHidden && "pointer-events-none invisible",
         )}
         inert={floatingChatHidden}
         data-chat-column
         data-maximized-chat={maximizedChat ?? undefined}
       >
         {maximizedChat === "expanded" || maximizedChat === "collapsed" ? (
-          <div
-            data-floating-chat-surface
-            hidden={maximizedChat === "collapsed"}
-            className="pointer-events-none absolute -inset-px origin-top-left rounded-xl border border-border bg-background shadow-xl"
-          />
-        ) : null}
-        {maximizedChat === "expanded" || maximizedChat === "collapsed" ? (
           <FloatingChatHeader
             title={activeThread.title}
-            hidden={maximizedChat === "collapsed"}
+            expanded={maximizedChat === "expanded"}
             onToggle={toggleFloatingChatStable}
             onMinimize={minimizeFloatingChatStable}
           />
@@ -3406,15 +3385,7 @@ export default function ChatView(props: ChatViewProps) {
           </header>
         )}
 
-        {/* Collapsed, only the composer overlay opts back into visibility. */}
-        <div
-          data-floating-chat-content
-          className={cn(
-            "relative flex min-h-0 min-w-0 flex-1",
-            maximizedChat === "expanded" && "overflow-hidden rounded-b-xl",
-            maximizedChat === "collapsed" && "invisible",
-          )}
-        >
+        <div data-floating-chat-content className="relative flex min-h-0 min-w-0 flex-1">
           <ThreadFindCanvas
             findOptions={{
               skills: timelineSkills,
@@ -3455,6 +3426,8 @@ export default function ChatView(props: ChatViewProps) {
             />
             <div
               {...conversationArea}
+              inert={maximizedChat === "collapsed"}
+              data-floating-chat-conversation
               className="relative flex min-h-0 flex-1 flex-col bg-background"
             >
               <WorkspaceMutationIdContext value={workspaceMutationId}>
@@ -3579,7 +3552,6 @@ export default function ChatView(props: ChatViewProps) {
                 isDraftHeroState
                   ? "pointer-events-none absolute inset-0 z-20 flex items-center [@media(max-height:34rem)]:items-end"
                   : "pointer-events-none absolute inset-x-0 bottom-0 z-20 pt-1.5 sm:pt-2",
-                maximizedChat === "collapsed" && "visible",
               )}
             >
               <div ref={draftHeroTransitionGroupRef} className="chat-composer-lane w-full">
@@ -3648,13 +3620,6 @@ export default function ChatView(props: ChatViewProps) {
                             ) : null}
                             {!composerMounted ? null : (
                               <ChatComposer
-                                {...(maximizedChat === "collapsed"
-                                  ? {
-                                      floatingChatTitle: activeThread.title,
-                                      onToggleFloatingChat: toggleFloatingChatStable,
-                                      onMinimizeFloatingChat: minimizeFloatingChatStable,
-                                    }
-                                  : {})}
                                 canOperateThread={canOperateThread}
                                 reportedModelSelection={reportedModelSelection}
                                 multipleModelSelections={multipleModelSelections}
