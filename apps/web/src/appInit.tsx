@@ -18,6 +18,7 @@ import { startPermissionUpdateNotices } from "./components/PermissionUpdateNotic
 import { startAgentOpenedPreviews } from "./components/preview/agentOpenedPreviews";
 import { startSubagentThreadTabs } from "./lib/threadTabs";
 import { startPanelAlwaysFullScreen } from "./lib/forkPanelTabs";
+import { startTabHistory } from "./lib/forkTabHistory";
 import { startPanelTabSize } from "./lib/forkPanelTabSize";
 import { startMainAppLocationTracking } from "./components/sidebar/mainAppLocation";
 import { startDesktopUpdateLaunchNotice } from "./components/sidebar/updateEverythingRun";
@@ -192,6 +193,7 @@ export function startAppServices(): AppRouter {
   startAgentOpenedPreviews();
   startSubagentThreadTabs();
   startPanelAlwaysFullScreen();
+  startTabHistory(router);
   startPanelTabSize();
   if (isElectron) startElectronBrowserHost();
   startPreviewTitleRecording();

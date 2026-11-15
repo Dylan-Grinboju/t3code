@@ -69,6 +69,11 @@ const FORK_FEATURES = [
       "With Always open the right panel full screen on under Panel tabs above, the right panel opens maximized whenever it shows a tab, and with Open subagents as tabs on, a new subagent opens the panel that way with the main chat in view. Restore panel size un-maximizes it until the panel closes.",
   },
   {
+    title: "Back and Forward through tabs",
+    description:
+      "With Back and Forward through tabs on under Panel tabs above, Back (mouse back button, Alt+Left or a swipe) returns to the right panel tab or main chat you were on before, and only then to the previous thread. Forward goes the other way. Tabs closed since are skipped.",
+  },
+  {
     title: "Panel tab size",
     description:
       "Make the tabs along the top of the right panel taller with larger text. Set it under Panel tabs above.",

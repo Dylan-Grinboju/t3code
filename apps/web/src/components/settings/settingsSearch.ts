@@ -404,6 +404,14 @@ export const SETTINGS_SEARCH_ITEMS = [
     ],
   },
   {
+    id: "panel-tab-history",
+    title: "Back and Forward through tabs",
+    to: "/settings/fork",
+    searchTerms: [
+      "history back forward mouse buttons thumb navigation previous tab right panel chat",
+    ],
+  },
+  {
     id: "panel-tab-size",
     title: "Panel tab size",
     to: "/settings/fork",

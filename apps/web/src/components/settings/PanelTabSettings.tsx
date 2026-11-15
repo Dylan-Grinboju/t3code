@@ -1,5 +1,6 @@
 import { usePanelAlwaysFullScreen, useSubagentTabs } from "../../lib/forkPanelTabs";
 import { type PanelTabSize, usePanelTabSize } from "../../lib/forkPanelTabSize";
+import { useTabHistory } from "../../lib/forkTabHistory";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../ui/select";
 import { Switch } from "../ui/switch";
 import { SettingResetButton, SettingsRow } from "./settingsLayout";
@@ -15,6 +16,7 @@ export function PanelTabSettings() {
   const [subagentTabs, setSubagentTabs] = useSubagentTabs();
   const [fullScreen, setFullScreen] = usePanelAlwaysFullScreen();
   const [tabSize, setTabSize] = usePanelTabSize();
+  const [tabHistory, setTabHistory] = useTabHistory();
 
   return (
     <>
@@ -53,6 +55,25 @@ export function PanelTabSettings() {
             checked={fullScreen}
             onCheckedChange={(checked) => setFullScreen(Boolean(checked))}
             aria-label="Always open the right panel full screen"
+          />
+        }
+      />
+      <SettingsRow
+        {...searchableSetting("panel-tab-history")}
+        description="Back and Forward, including mouse buttons, return to the previous right panel tab or the main chat before switching threads. Off by default, as upstream."
+        resetAction={
+          tabHistory ? (
+            <SettingResetButton
+              label="back and forward through tabs"
+              onClick={() => setTabHistory(false)}
+            />
+          ) : null
+        }
+        control={
+          <Switch
+            checked={tabHistory}
+            onCheckedChange={(checked) => setTabHistory(Boolean(checked))}
+            aria-label="Back and Forward through tabs"
           />
         }
       />
