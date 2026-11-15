@@ -46,7 +46,7 @@ const FORK_FEATURES = [
   {
     title: "Maximized panels keep the chat",
     description:
-      "Double-click any right panel tab to maximize it. The chat floats over it as a composer: click the thread title to grow the conversation out of the text box or fold it back, or click the panel behind it to collapse it. The thread also appears as the first tab, to view the chat full size.",
+      "Double-click a right panel tab to maximize it, then drag the floating chat by its dots to any edge or drag its sides to resize; position and width are remembered on this device. Click its title to show or fold the conversation, minimize it to a robot with the minus button or by shrinking it, and click the robot to restore it; the first tab opens the chat full size.",
   },
   {
     title: "Machines in the new thread picker",

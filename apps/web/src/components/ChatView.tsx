@@ -296,9 +296,9 @@ import {
   FloatingChatBackdrop,
   FloatingChatHeader,
   type MaximizedChatPresentation,
-  MinimizedFloatingChatPill,
   useFloatingChatReveal,
 } from "./chat/MaximizedChatControls";
+import { FloatingChatDock } from "./chat/FloatingChatDock";
 import type { ExpandedImagePreview } from "./chat/ExpandedImagePreview";
 import { ThreadDetailsPanel } from "./chat/ThreadDetailsPanel";
 import { ThreadTabDetailsToggle, useThreadTabDetails } from "./chat/threadTabDetails";
@@ -3323,7 +3323,13 @@ export default function ChatView(props: ChatViewProps) {
       {maximizedChat === "expanded" ? (
         <FloatingChatBackdrop onClose={closeFloatingChatStable} />
       ) : null}
-      <div
+      <FloatingChatDock
+        presentation={maximizedChat}
+        minimized={floatingChatMinimized && !threadTabActive}
+        title={activeThread.title}
+        onMinimize={minimizeFloatingChatStable}
+        onRestore={restoreFloatingChatStable}
+        columnRef={floatingChatColumnRef}
         className={cn(
           "flex min-h-0 min-w-0 flex-col",
           (maximizedChat === null || maximizedChat === "tab") && "overflow-x-hidden",
@@ -3331,14 +3337,11 @@ export default function ChatView(props: ChatViewProps) {
           // z-40 stays above the desktop browser's webviews, which stack at z-30.
           maximizedChat === "tab" &&
             "absolute inset-x-0 top-(--workspace-topbar-height) bottom-0 z-40 bg-background",
-          (maximizedChat === "expanded" || maximizedChat === "collapsed") &&
-            "absolute inset-x-0 bottom-3 z-40 mx-auto h-[min(40rem,calc(100%-var(--workspace-topbar-height)-1.5rem))] w-[min(46rem,calc(100%-1.5rem))] border border-transparent",
           maximizedChat === "collapsed" && [
             "pointer-events-none origin-bottom-right motion-safe:transition-[opacity,translate,scale] motion-safe:duration-200 motion-safe:ease-out",
             floatingChatHidden && "translate-x-1/4 translate-y-2 scale-75 opacity-0",
           ],
         )}
-        ref={floatingChatColumnRef}
         inert={floatingChatHidden}
         data-chat-column
         data-maximized-chat={maximizedChat ?? undefined}
@@ -4020,17 +4023,7 @@ export default function ChatView(props: ChatViewProps) {
             onAddTerminalContext={addTerminalContextToDraftStable}
           />
         )}
-      </div>
-
-      {floatingChatMinimized && !threadTabActive ? (
-        // Left of the PR detail panel's comment button, which owns right-4 bottom-3.
-        <div className="absolute right-16 bottom-3 z-40 origin-bottom-right motion-safe:transition-[opacity,scale] motion-safe:duration-200 motion-safe:ease-out motion-safe:starting:scale-90 motion-safe:starting:opacity-0">
-          <MinimizedFloatingChatPill
-            title={activeThread.title}
-            onRestore={restoreFloatingChatStable}
-          />
-        </div>
-      ) : null}
+      </FloatingChatDock>
 
       {rightPanelPresent && activeThreadRef && !embedded ? (
         <ChatRightPanel

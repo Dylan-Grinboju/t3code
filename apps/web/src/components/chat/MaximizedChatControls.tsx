@@ -1,10 +1,11 @@
-import { BotIcon, ChevronDownIcon } from "lucide-react";
+import { BotIcon, ChevronDownIcon, MinusIcon } from "lucide-react";
 import { useLayoutEffect, useRef } from "react";
 import { flushSync } from "react-dom";
 
 import { cn } from "~/lib/utils";
 import { Button } from "../ui/button";
 import { ComposerBanner } from "./ComposerBanner";
+import { FloatingChatDragHandle } from "./FloatingChatDock";
 
 /** How the thread's chat shows while the right panel is maximized over it. */
 export type MaximizedChatPresentation = "collapsed" | "expanded" | "tab";
@@ -54,8 +55,10 @@ export function useFloatingChatReveal(presentation: MaximizedChatPresentation | 
   const animationRef = useRef<Animation | null>(null);
   const titleAnimationRef = useRef<Animation | null>(null);
   const surfaceAnimationRef = useRef<Animation | null>(null);
+  const columnAnimationRef = useRef<Animation | null>(null);
   const collapsedGeometryRef = useRef<{
     composerHeight: number;
+    composerBottom: number;
     bannerTop: number;
     bannerLeft: number;
     bannerWidth: number;
@@ -72,9 +75,11 @@ export function useFloatingChatReveal(presentation: MaximizedChatPresentation | 
     animationRef.current?.cancel();
     titleAnimationRef.current?.cancel();
     surfaceAnimationRef.current?.cancel();
+    columnAnimationRef.current?.cancel();
     animationRef.current = null;
     titleAnimationRef.current = null;
     surfaceAnimationRef.current = null;
+    columnAnimationRef.current = null;
     if (presentation !== "expanded" || previous !== "collapsed" || !column) return;
     const geometry = collapsedGeometryRef.current;
     const { header, composer, input, content, surface } = floatingChatElements(column);
@@ -105,6 +110,15 @@ export function useFloatingChatReveal(presentation: MaximizedChatPresentation | 
       [surfacePlacement(surface, input, bannerTop), { transform: "none", opacity: 1 }],
       FLOATING_CHAT_REVEAL,
     );
+    columnAnimationRef.current = column.animate(
+      {
+        transform: [
+          `translateY(${geometry.composerBottom - composerBounds.bottom}px)`,
+          "translateY(0)",
+        ],
+      },
+      FLOATING_CHAT_REVEAL,
+    );
   }, [presentation]);
 
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- cancels Web Animations and pending close callbacks when the chat unmounts
@@ -113,6 +127,7 @@ export function useFloatingChatReveal(presentation: MaximizedChatPresentation | 
       animationRef.current?.cancel();
       titleAnimationRef.current?.cancel();
       surfaceAnimationRef.current?.cancel();
+      columnAnimationRef.current?.cancel();
     };
   }, []);
 
@@ -135,12 +150,15 @@ export function useFloatingChatReveal(presentation: MaximizedChatPresentation | 
     const headerFrom = { transform: headerStyle.transform, width: headerStyle.width };
     const surfaceStyle = getComputedStyle(surface);
     const surfaceFrom = { transform: surfaceStyle.transform, opacity: surfaceStyle.opacity };
+    const columnFrom = getComputedStyle(column).transform;
     animationRef.current?.cancel();
     titleAnimationRef.current?.cancel();
     surfaceAnimationRef.current?.cancel();
+    columnAnimationRef.current?.cancel();
     const bounds = column.getBoundingClientRect();
     const headerBounds = header.getBoundingClientRect();
     const composerBounds = composer.getBoundingClientRect();
+    const inputBounds = input.getBoundingClientRect();
     const bannerTop = composerBounds.top - composerHeightDeltaRef.current + geometry.bannerTop;
     const animation = content.animate(
       {
@@ -152,14 +170,22 @@ export function useFloatingChatReveal(presentation: MaximizedChatPresentation | 
       { ...FLOATING_CHAT_REVEAL, id: "close", fill: "forwards" },
     );
     titleAnimationRef.current = header.animate(
-      [
-        headerFrom,
-        headerPlacement(column, bannerTop, bounds.left + geometry.bannerLeft, geometry.bannerWidth),
-      ],
+      [headerFrom, headerPlacement(column, bannerTop, inputBounds.left, inputBounds.width)],
       { ...FLOATING_CHAT_REVEAL, fill: "forwards" },
     );
     surfaceAnimationRef.current = surface.animate(
       [surfaceFrom, surfacePlacement(surface, input, bannerTop)],
+      { ...FLOATING_CHAT_REVEAL, fill: "forwards" },
+    );
+    const anchor = Number(column.dataset.floatingChatVerticalAnchor ?? 1);
+    const collapsedHeight = composerBounds.height + composerHeightDeltaRef.current;
+    columnAnimationRef.current = column.animate(
+      {
+        transform: [
+          columnFrom,
+          `translateY(${(1 - anchor) * (collapsedHeight - bounds.height)}px)`,
+        ],
+      },
       { ...FLOATING_CHAT_REVEAL, fill: "forwards" },
     );
     animationRef.current = animation;
@@ -182,6 +208,7 @@ export function useFloatingChatReveal(presentation: MaximizedChatPresentation | 
         const composerBounds = composer.getBoundingClientRect();
         collapsedGeometryRef.current = {
           composerHeight: composerBounds.height,
+          composerBottom: composerBounds.bottom,
           bannerTop: bannerBounds.top - composerBounds.top,
           bannerLeft: bannerBounds.left - column.getBoundingClientRect().left,
           bannerWidth: bannerBounds.width,
@@ -209,7 +236,7 @@ function MinimizeFloatingChatButton(props: { onMinimize: () => void }) {
         props.onMinimize();
       }}
     >
-      <ChevronDownIcon />
+      <MinusIcon />
     </Button>
   );
 }
@@ -230,11 +257,23 @@ export function FloatingChatHeader(props: {
       )}
       onClick={props.onToggle}
     >
+      <MinimizeFloatingChatButton onMinimize={props.onMinimize} />
       <BotIcon className="size-3.5 shrink-0 text-muted-foreground" />
       <span className="min-w-0 flex-1 truncate font-medium text-foreground text-xs">
         {props.title}
       </span>
-      <MinimizeFloatingChatButton onMinimize={props.onMinimize} />
+      <Button
+        size="icon-xs"
+        variant="ghost"
+        aria-label="Collapse conversation"
+        onClick={(event) => {
+          event.stopPropagation();
+          props.onToggle();
+        }}
+      >
+        <ChevronDownIcon />
+      </Button>
+      <FloatingChatDragHandle />
     </div>
   );
 }
@@ -250,13 +289,24 @@ export function FloatingChatTitleBanner(props: {
       <ComposerBanner.Root density="comfortable" data-floating-chat-title>
         <ComposerBanner.Row className="cursor-pointer select-none" onClick={props.onToggle}>
           <ComposerBanner.Icon>
-            <BotIcon />
+            <MinimizeFloatingChatButton onMinimize={props.onMinimize} />
           </ComposerBanner.Icon>
           <ComposerBanner.Content className="truncate font-medium text-foreground">
             {props.title}
           </ComposerBanner.Content>
           <ComposerBanner.Actions>
-            <MinimizeFloatingChatButton onMinimize={props.onMinimize} />
+            <Button
+              size="icon-xs"
+              variant="ghost"
+              aria-label="Expand conversation"
+              onClick={(event) => {
+                event.stopPropagation();
+                props.onToggle();
+              }}
+            >
+              <ChevronDownIcon className="rotate-180" />
+            </Button>
+            <FloatingChatDragHandle />
           </ComposerBanner.Actions>
         </ComposerBanner.Row>
       </ComposerBanner.Root>
@@ -272,15 +322,5 @@ export function FloatingChatBackdrop(props: { onClose: () => void }) {
       className="absolute inset-x-0 top-(--workspace-topbar-height) bottom-0 z-40"
       onClick={props.onClose}
     />
-  );
-}
-
-/** Stands in for the minimized floating chat; click brings the composer back. */
-export function MinimizedFloatingChatPill(props: { title: string; onRestore: () => void }) {
-  return (
-    <Button variant="glass" aria-label={`Show chat: ${props.title}`} onClick={props.onRestore}>
-      <BotIcon />
-      <span className="max-w-48 truncate text-xs">{props.title}</span>
-    </Button>
   );
 }
