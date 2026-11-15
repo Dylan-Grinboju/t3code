@@ -232,8 +232,9 @@ export function FloatingChatDock({
         }}
         className={cn(
           className,
-          floating &&
-            "absolute z-40 border border-transparent [&_.chat-composer-lane]:px-0 [&_[data-slot=composer-shell]]:[--chat-composer-drawer-inset:0px]",
+          floating && "absolute z-40 border border-transparent",
+          presentation === "collapsed" && "[&_.chat-composer-lane]:px-0",
+          presentation === "expanded" && "[&_.chat-composer-lane]:px-3",
         )}
         style={
           floating

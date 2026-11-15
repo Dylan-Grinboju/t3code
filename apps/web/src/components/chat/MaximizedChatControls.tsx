@@ -158,7 +158,6 @@ export function useFloatingChatReveal(presentation: MaximizedChatPresentation | 
     const bounds = column.getBoundingClientRect();
     const headerBounds = header.getBoundingClientRect();
     const composerBounds = composer.getBoundingClientRect();
-    const inputBounds = input.getBoundingClientRect();
     const bannerTop = composerBounds.top - composerHeightDeltaRef.current + geometry.bannerTop;
     const animation = content.animate(
       {
@@ -170,7 +169,15 @@ export function useFloatingChatReveal(presentation: MaximizedChatPresentation | 
       { ...FLOATING_CHAT_REVEAL, id: "close", fill: "forwards" },
     );
     titleAnimationRef.current = header.animate(
-      [headerFrom, headerPlacement(column, bannerTop, inputBounds.left, inputBounds.width)],
+      [
+        headerFrom,
+        headerPlacement(
+          column,
+          bannerTop,
+          bounds.left + geometry.bannerLeft,
+          bounds.width - 2 * geometry.bannerLeft,
+        ),
+      ],
       { ...FLOATING_CHAT_REVEAL, fill: "forwards" },
     );
     surfaceAnimationRef.current = surface.animate(
