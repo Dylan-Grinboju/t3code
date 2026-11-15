@@ -87,6 +87,7 @@ export function FloatingChatDock({
   const [placement, setPlacement] = useState(() =>
     readLocalStorageValue(STORAGE_KEY, DEFAULT_FLOATING_CHAT, PlacementSchema),
   );
+  const [restorePlacement, setRestorePlacement] = useState<FloatingChatPlacement | null>(null);
   const [area, setArea] = useState({
     width: 0,
     height: 0,
@@ -116,7 +117,23 @@ export function FloatingChatDock({
     floatingChatBounds(area, width, columnHeight),
   );
   const iconBounds = floatingChatBounds(area, FLOATING_CHAT_ICON_SIZE, FLOATING_CHAT_ICON_SIZE);
-  const iconPosition = floatingChatPosition(placement, iconBounds);
+  const iconPlacement = restorePlacement ?? placement;
+  const iconPosition = floatingChatPosition(iconPlacement, iconBounds);
+  const anchorX = Math.max(
+    0,
+    Math.min(
+      1,
+      iconPlacement.edge === "left" ? 0 : iconPlacement.edge === "right" ? 1 : iconPlacement.offset,
+    ),
+  );
+  const anchorY = Math.max(
+    0,
+    Math.min(
+      1,
+      iconPlacement.edge === "top" ? 0 : iconPlacement.edge === "bottom" ? 1 : iconPlacement.offset,
+    ),
+  );
+  const transformOrigin = `${anchorX * 100}% ${anchorY * 100}%`;
 
   const commit = (next: FloatingChatPlacement) => {
     setPlacement(next);
@@ -171,7 +188,7 @@ export function FloatingChatDock({
     gesture.current = null;
     if (cancel) setPlacement(current.placement);
     else if (current.collapse) {
-      commit(current.placement);
+      setRestorePlacement(current.placement);
       onMinimize();
     } else if (current.moved) commit(current.next);
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
@@ -224,6 +241,7 @@ export function FloatingChatDock({
     <DragContext value={dragHandlers}>
       <div
         {...props}
+        inert={minimized || props.inert}
         ref={(node) => {
           if (!node || !floating || !node.parentElement) return;
           const parent = node.parentElement;
@@ -264,6 +282,7 @@ export function FloatingChatDock({
             ? ({
                 left: position.left,
                 width: bounds.width,
+                transformOrigin: `${iconPosition.left + FLOATING_CHAT_ICON_SIZE * anchorX - position.left}px ${anchorY * 100}%`,
                 "--floating-chat-content-height": `${columnHeight - area.headerHeight - 2}px`,
                 "--floating-chat-collapsed-height": `${collapsedHeight}px`,
                 "--floating-chat-height-travel": `${columnHeight - collapsedHeight}px`,
@@ -273,6 +292,7 @@ export function FloatingChatDock({
             : undefined
         }
         data-floating-chat-dock={floating || undefined}
+        data-floating-chat-minimized={floating ? minimized : undefined}
         data-floating-chat-edge={floating ? placement.edge : undefined}
         data-floating-chat-expanded={floating ? presentation === "expanded" : undefined}
       >
@@ -319,13 +339,26 @@ export function FloatingChatDock({
             ))
           : null}
       </div>
-      {minimized ? (
-        <div className="absolute z-40" style={{ left: iconPosition.left, top: iconPosition.top }}>
+      {floating ? (
+        <div
+          className="absolute z-40"
+          style={{ left: iconPosition.left, top: iconPosition.top, transformOrigin }}
+          data-floating-chat-icon
+          data-floating-chat-minimized={minimized}
+          inert={!minimized}
+          aria-hidden={!minimized}
+        >
           <Button
             variant="glass"
             size="icon-xl"
             aria-label={`Show chat: ${title}`}
-            onClick={onRestore}
+            onClick={() => {
+              if (restorePlacement) {
+                commit(restorePlacement);
+                setRestorePlacement(null);
+              }
+              onRestore();
+            }}
           >
             <BotIcon />
           </Button>

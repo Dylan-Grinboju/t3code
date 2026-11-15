@@ -1121,10 +1121,8 @@ export default function ChatView(props: ChatViewProps) {
   const toggleFloatingChatStable = useStableCallback(() =>
     setFloatingChatMode((mode) => (mode === "expanded" ? "collapsed" : "expanded")),
   );
-  // Minimized keeps the collapsed layout mounted (draft, focus state) and only hides it.
   const floatingChatMinimized = maximizedChat === "collapsed" && floatingChatMode === "minimized";
-  const floatingChatHidden =
-    floatingChatMinimized || (maximizedChat === "collapsed" && threadTabActive);
+  const floatingChatHidden = maximizedChat === "collapsed" && threadTabActive;
   const inlineRightPanelOwnsTitleBar = rightPanelOpen && !shouldUsePlanSidebarSheet;
   const [threadPanelPopoverHandle] = useState(PopoverCreateHandle);
   const [chatCanvasStore] = useState(createChatCanvasStore);

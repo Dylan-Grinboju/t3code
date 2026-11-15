@@ -90,7 +90,7 @@ it("moves and resizes without opening the conversation, cancels interrupted gest
   await expect.element(column).toHaveAttribute("data-mode", "minimized");
   await screen.getByRole("button", { name: "Show chat: Draft thread" }).click();
   await expect.element(draft).toHaveValue("Keep this draft");
-  expect(column.element().getBoundingClientRect().width).toBe(580);
+  expect(getComputedStyle(column.element()).width).toBe("580px");
 
   await screen.getByRole("button", { name: "Expand conversation" }).click();
   await expect.element(column).toHaveAttribute("data-mode", "expanded");

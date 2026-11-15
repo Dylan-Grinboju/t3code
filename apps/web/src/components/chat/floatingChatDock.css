@@ -6,6 +6,8 @@
 
 [data-floating-chat-dock] {
   --floating-chat-reveal: 0;
+  opacity: 1;
+  scale: 1;
   top: calc(
     var(--floating-chat-top) + var(--floating-chat-top-travel) * var(--floating-chat-reveal)
   );
@@ -13,6 +15,27 @@
     var(--floating-chat-collapsed-height) + var(--floating-chat-height-travel) *
       var(--floating-chat-reveal)
   );
+}
+
+[data-floating-chat-dock][data-floating-chat-minimized="true"] {
+  opacity: 0;
+  scale: 0.12;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+[data-floating-chat-icon] {
+  opacity: 0;
+  scale: 0.65;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+[data-floating-chat-icon][data-floating-chat-minimized="true"] {
+  opacity: 1;
+  scale: 1;
+  visibility: visible;
+  pointer-events: auto;
 }
 
 [data-floating-chat-dock][data-floating-chat-expanded="true"] {
@@ -31,7 +54,26 @@
 
 @media (prefers-reduced-motion: no-preference) {
   [data-floating-chat-dock] {
-    transition: --floating-chat-reveal 280ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    transition:
+      --floating-chat-reveal 280ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      scale 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      opacity 160ms ease-out,
+      visibility 0s;
+  }
+
+  [data-floating-chat-dock][data-floating-chat-minimized="true"] {
+    transition-delay: 0s, 0s, 0s, 260ms;
+  }
+
+  [data-floating-chat-icon] {
+    transition:
+      scale 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      opacity 120ms ease-out,
+      visibility 0s 260ms;
+  }
+
+  [data-floating-chat-icon][data-floating-chat-minimized="true"] {
+    transition-delay: 0s, 40ms, 0s;
   }
 
   [data-floating-chat-dock][data-floating-chat-expanded="false"] [data-floating-chat-conversation] {

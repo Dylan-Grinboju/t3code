@@ -74,3 +74,29 @@ that calls no hook. Lint misses some bailouts, notably `try` with `finally` and
 compiles every file and fails on any skip. Async handlers rarely need `try`: an
 atom command settles into a result, so cleanup can follow the `await`. `useStableCallback` still
 marks handlers that leave a large component, as described above.
+
+## Floating chat motion
+
+The November 2026 floating-chat clipping case persisted through several geometry patches because
+opening swapped title elements, changed composer padding, and coordinated separate animations for
+the content mask, title, background, and column. Passing expanded/collapsed assertions did not show
+whether those pieces agreed between the endpoints. The fix in `3c9c69931b` kept one title and frame,
+a stable composer width, and a fixed-size conversation canvas behind the reveal. This was an
+animation-structure problem; it did not require replacing React or adding an animation library.
+
+Keep the canvas size independent of the animated frame. Its size drives the virtualized timeline,
+scroll anchoring, and composer measurements; resizing it every frame causes work beyond the visible
+border. Keep the composer mounted to preserve the draft and editor state. Minimize and restore need
+both the frame and icon to remain mounted long enough to animate, with interaction disabled on the
+inactive surface. Delay visibility changes only when hiding: using the exit delay on restore leaves
+an empty interval and then pops the fully sized chat into view. Their motion follows the saved
+docking anchor, including side offsets; a fixed bottom-right origin only works in one position. The relevant boundaries are
+[`FloatingChatDock`](../../apps/web/src/components/chat/FloatingChatDock.tsx) and its
+[animation stylesheet](../../apps/web/src/components/chat/floatingChatDock.css).
+
+Verify motion in the real client with a populated conversation, record it, and inspect intermediate
+frames as well as the resting states. Cover opening and folding, minimizing from both states,
+restoring, rapid reversals, every docking edge, resizing, and reduced motion. Check draft retention
+and that the canvas does not resize during the transition. Endpoint tests protect interactions;
+they cannot establish visual continuity. Keep recordings outside the repository and attach them to
+the change rather than committing evidence assets.

@@ -46,7 +46,7 @@ const FORK_FEATURES = [
   {
     title: "Maximized panels keep the chat",
     description:
-      "Double-click a right panel tab to maximize it, then drag the floating chat by its dots to any edge or drag its sides to resize; position and width are remembered on this device. Click its title to show or fold the conversation, minimize it to a robot with the minus button or by shrinking it, and click the robot to restore it; the first tab opens the chat full size.",
+      "Double-click a right panel tab to maximize it, then drag the floating chat by its dots to any edge or drag its sides to resize; position and width are remembered on this device. Click its title to show or fold the conversation, minimize it into a robot at the same edge with the minus button or by shrinking it, and click the robot to restore it; the first tab opens the chat full size.",
   },
   {
     title: "Machines in the new thread picker",
