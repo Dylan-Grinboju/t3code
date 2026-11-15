@@ -116,7 +116,7 @@ const FORK_FEATURES = [
   {
     title: "Fork releases",
     description:
-      "Mac and Windows builds come from the fork's own releases. The sidebar's check-for-updates button checks for them, like Check now here. When a newer one is out, the sidebar button and the Release row here download it, then install it and restart T3 Code. A download not installed within 24 hours is removed. If an install fails, the Release row says why and where its log is.",
+      "Mac and Windows builds come from the fork's own releases. The sidebar's check-for-updates button checks for them, like Check now here. When a newer one is out, the sidebar button and the Release row here download it, then install it and restart T3 Code. If another release is detected before you install, the old download is discarded and the newer one downloads automatically. A download not installed within 24 hours is removed. If an install fails, the Release row says why and where its log is.",
   },
 ] as const;
 
