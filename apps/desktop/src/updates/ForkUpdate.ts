@@ -19,6 +19,8 @@ import * as HttpClientResponse from "effect/http/HttpClientResponse";
 import * as ChildProcess from "effect/process/ChildProcess";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 
+import { launchWindowsForkUpdateHelper } from "./windowsForkUpdateHelper.ts";
+
 // The fork ships unsigned builds whose version matches upstream's, so electron-updater can
 // neither verify nor order them. This downloads the fork's GitHub release asset and swaps it in.
 
@@ -382,14 +384,11 @@ export const startForkUpdateInstall = Effect.fn("ForkUpdate.install")(function* 
         installer: file,
         log,
       });
-      spawnDetached("powershell.exe", [
-        "-NoProfile",
-        "-NonInteractive",
-        "-WindowStyle",
-        "Hidden",
-        "-EncodedCommand",
-        Buffer.from(script, "utf16le").toString("base64"),
-      ]);
+      yield* Effect.tryPromise({
+        try: () => launchWindowsForkUpdateHelper(script),
+        catch: (error) =>
+          new ForkUpdateError({ message: failureMessage(error, "Could not start the install.") }),
+      });
       return true;
     }
     return false;
