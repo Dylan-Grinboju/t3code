@@ -1,3 +1,4 @@
+import { botNeedsFreshContext } from "./threadBot.ts";
 import type {
   OrchestrationV2ThreadLinkMetadata,
   GuestShareId,
@@ -4851,6 +4852,7 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
           return {
             ...thread,
             ...(command.title === undefined ? {} : { title: command.title }),
+            ...(command.bot === undefined ? {} : { bot: command.bot }),
             ...(command.limitRecovery === undefined ? {} : { limitRecovery }),
             ...(command.limitRecovery !== undefined &&
             limitRecovery?.snooze === true &&
@@ -7129,7 +7131,22 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
     ) {
       dispatchMode = { type: "start_immediately" };
     }
-    const freshContext = command.freshContext === true;
+    const freshContext =
+      command.freshContext === true ||
+      (!command.text.trimStart().startsWith("/") &&
+        command.createdBy === "user" &&
+        !projection.runs.some(isActiveRun) &&
+        botNeedsFreshContext(
+          projection.thread.bot,
+          projection.runs.filter((run) => !isScheduledFreshRun(run, projection.turnItems)),
+        ) &&
+        derivePendingBackgroundWork({
+          latestRun: projection.runs.findLast((run) => run.status !== "queued"),
+          providerThreads: projection.providerThreads,
+          turnItems: projection.turnItems,
+          activeProviderThreadId: projection.thread.activeProviderThreadId,
+          runs: projection.runs,
+        }).length === 0);
     if (
       freshContext &&
       (dispatchMode.type === "steer_active" || dispatchMode.type === "restart_active")

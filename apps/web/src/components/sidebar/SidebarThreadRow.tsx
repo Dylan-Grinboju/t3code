@@ -1075,6 +1075,7 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
       )}
       dir={textDirection(thread.title)}
     >
+      {thread.bot ? "Bot · " : ""}
       {thread.title}
     </span>
   );
