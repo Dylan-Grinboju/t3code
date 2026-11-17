@@ -1,3 +1,5 @@
+import type { ScopedThreadRef } from "@t3tools/contracts";
+import { BotHeaderActions } from "../bots/BotHeaderActions";
 import { BotIcon, ChevronDownIcon, MinusIcon } from "lucide-react";
 
 import { cn } from "~/lib/utils";
@@ -23,6 +25,7 @@ function MinimizeFloatingChatButton(props: { onMinimize: () => void }) {
 }
 
 export function FloatingChatHeader(props: {
+  threadRef?: ScopedThreadRef | null;
   title: string;
   expanded: boolean;
   onToggle: () => void;
@@ -32,13 +35,22 @@ export function FloatingChatHeader(props: {
     <div
       data-floating-chat-header
       className="relative z-30 flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-t-xl border-b border-border bg-background pr-1.5 pl-3 select-none"
-      onClick={props.onToggle}
+      onClick={(event) => {
+        if (
+          !(event.target instanceof Element) ||
+          !event.currentTarget.contains(event.target) ||
+          event.target.closest("button")
+        )
+          return;
+        props.onToggle();
+      }}
     >
       <MinimizeFloatingChatButton onMinimize={props.onMinimize} />
       <BotIcon className="size-3.5 shrink-0 text-muted-foreground" />
       <span className="min-w-0 flex-1 truncate font-medium text-foreground text-xs">
         {props.title}
       </span>
+      {props.threadRef ? <BotHeaderActions threadRef={props.threadRef} /> : null}
       <Button
         size="icon-xs"
         variant="ghost"

@@ -1,3 +1,4 @@
+import { BotHeaderActions } from "./bots/BotHeaderActions";
 import { ChildThreadApprovals } from "./chat/ChildThreadApprovals";
 import { workspaceAreaProps } from "../lib/workspaceFocus";
 import { sourceControlClients } from "@t3tools/client-runtime/source-control-clients";
@@ -3392,6 +3393,7 @@ export default function ChatView(props: ChatViewProps) {
       >
         {maximizedChat === "expanded" || maximizedChat === "collapsed" ? (
           <FloatingChatHeader
+            threadRef={activeThreadRef}
             title={activeThread.title}
             expanded={maximizedChat === "expanded"}
             onToggle={toggleFloatingChatStable}
@@ -3939,6 +3941,7 @@ export default function ChatView(props: ChatViewProps) {
               <>
                 {threadTabDetails ? (
                   <ThreadTabDetailsToggle
+                    threadRef={activeThreadRef}
                     slot={threadTabDetails.slot}
                     {...panelToggleControlProps}
                   />
@@ -4070,6 +4073,7 @@ export default function ChatView(props: ChatViewProps) {
               ? undefined
               : {
                   title: activeThread.title,
+                  actions: <BotHeaderActions threadRef={activeThreadRef} />,
                   active: maximizedChat === "tab",
                   onActivate: () => {
                     if (activeThreadRef)

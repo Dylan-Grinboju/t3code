@@ -162,7 +162,9 @@ export interface RightPanelTabsProps {
   /** Double-clicking a tab calls this. */
   onToggleMaximized?: (() => void) | undefined;
   /** The thread's own chat as a leading tab, offered while the panel is maximized. */
-  chatTab?: { title: string; active: boolean; onActivate: () => void } | undefined;
+  chatTab?:
+    | { title: string; active: boolean; onActivate: () => void; actions?: ReactNode }
+    | undefined;
   children: ReactNode;
 }
 
@@ -1595,6 +1597,7 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
             </Tooltip>
           </div>
         ) : null}
+        {props.chatTab?.active ? props.chatTab.actions : null}
         {props.layoutControls}
         {ownsDesktopTitleBar && !props.layoutControls ? (
           <span aria-hidden className="hidden w-24 shrink-0 wco:block" />

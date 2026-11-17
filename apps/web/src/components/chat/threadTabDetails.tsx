@@ -1,3 +1,5 @@
+import type { ScopedThreadRef } from "@t3tools/contracts";
+import { BotHeaderActions } from "../bots/BotHeaderActions";
 import { createContext, use, type RefObject } from "react";
 import { createPortal } from "react-dom";
 
@@ -19,17 +21,24 @@ export function useThreadTabDetails() {
 
 export function ThreadTabDetailsToggle({
   slot,
+  threadRef,
   ...props
-}: PanelLayoutControlsProps & { readonly slot: HTMLElement | null }) {
+}: PanelLayoutControlsProps & {
+  readonly slot: HTMLElement | null;
+  readonly threadRef: ScopedThreadRef | null;
+}) {
   if (slot === null) return null;
   return createPortal(
-    <PanelLayoutControls
-      {...props}
-      // The keybinding toggles the main chat's card, not the tab's.
-      threadPanelShortcutLabel={null}
-      showTerminalControl={false}
-      showRightPanelControl={false}
-    />,
+    <>
+      {threadRef ? <BotHeaderActions threadRef={threadRef} /> : null}
+      <PanelLayoutControls
+        {...props}
+        // The keybinding toggles the main chat's card, not the tab's.
+        threadPanelShortcutLabel={null}
+        showTerminalControl={false}
+        showRightPanelControl={false}
+      />
+    </>,
     slot,
   );
 }

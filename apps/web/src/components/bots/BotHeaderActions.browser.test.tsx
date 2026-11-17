@@ -13,7 +13,7 @@ import {
   useQuietThreadShell,
   useHiddenThreadKeys,
 } from "../../state/entities";
-import { BotHeaderActions } from "./BotHeaderActions";
+import { FloatingChatHeader } from "../chat/MaximizedChatControls";
 
 vi.mock("../../state/entities", { spy: true });
 vi.mock("../chat/ThreadRelationshipsControl", () => ({
@@ -53,13 +53,23 @@ it("opens work conversations from the header without occupying the timeline", as
       ],
     },
   });
-  await using screen = await render(<BotHeaderActions threadRef={ref} />);
+  const toggle = vi.fn();
+  await using screen = await render(
+    <FloatingChatHeader
+      title={shell.title}
+      threadRef={ref}
+      expanded
+      onToggle={toggle}
+      onMinimize={() => {}}
+    />,
+  );
   await expect.element(page.getByRole("region", { name: "Bot work" })).not.toBeInTheDocument();
   await userEvent.click(screen.getByRole("button", { name: "Bot work", exact: true }));
   await expect
     .element(page.getByRole("link", { name: /Coach my PR/ }))
     .toHaveAttribute("href", `/${shell.environmentId}/${child.id}`);
   await expect.element(page.getByText("Background worker inspector")).toBeVisible();
+  expect(toggle).not.toHaveBeenCalled();
   await userEvent.keyboard("{Escape}");
   await expect.element(page.getByRole("region", { name: "Bot work" })).not.toBeInTheDocument();
 });
