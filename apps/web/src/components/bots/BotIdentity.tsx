@@ -2,16 +2,23 @@ import { BotIcon } from "lucide-react";
 import { cn } from "../../lib/utils";
 import type { botStatus } from "./botPresentation";
 
-export function BotAvatar({ needsYou = false }: { needsYou?: boolean }) {
+export function BotAvatar({
+  needsYou = false,
+  compact = false,
+}: {
+  needsYou?: boolean;
+  compact?: boolean;
+}) {
   return (
     <span
       aria-hidden
       className={cn(
-        "flex size-9 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-gradient-to-br from-primary/15 to-primary/5 text-primary shadow-xs",
+        "flex shrink-0 items-center justify-center border border-primary/20 bg-gradient-to-br from-primary/15 to-primary/5 text-primary shadow-xs",
+        compact ? "size-6 rounded-md" : "size-9 rounded-xl",
         needsYou && "border-warning/25 from-warning/15 to-warning/5 text-warning-foreground",
       )}
     >
-      <BotIcon className="size-4.5" />
+      <BotIcon className={compact ? "size-3.5" : "size-4.5"} />
     </span>
   );
 }

@@ -74,7 +74,7 @@ function BotRow({ bot, ...props }: BotRowProps & { bot: EnvironmentThreadShell }
   });
   const jumpLabel = props.jumpLabelByKey?.get(key) ?? null;
   const className = cn(
-    "group flex w-full items-center gap-2.5 rounded-xl border border-transparent px-2.5 py-3 text-left hover:bg-sidebar-row-hover focus-visible:outline-2 focus-visible:outline-ring motion-safe:transition-colors",
+    "group flex w-full items-center gap-2 rounded-lg border border-transparent px-2.5 py-1.5 text-left hover:bg-sidebar-row-hover focus-visible:outline-2 focus-visible:outline-ring motion-safe:transition-colors",
     props.activeKey === key && "border-primary/15 bg-sidebar-row-active shadow-xs",
   );
   const handleContextMenu = (event: ReactMouseEvent) => {
@@ -82,7 +82,13 @@ function BotRow({ bot, ...props }: BotRowProps & { bot: EnvironmentThreadShell }
     props.onContextMenu(ref, { x: event.clientX, y: event.clientY }, contextMenuSourceOf(event));
   };
   const statusLine = (
-    <span className={cn("mt-1 flex items-center gap-1.5 text-2xs", status.colorClass)}>
+    <span
+      className={cn(
+        "flex shrink-0 items-center gap-1.5 text-2xs",
+        status.needsYou && "mt-0.5",
+        status.colorClass,
+      )}
+    >
       <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-current" />
       <span className="truncate">
         {status.needsYou ? "Needs you · " : ""}
@@ -93,9 +99,9 @@ function BotRow({ bot, ...props }: BotRowProps & { bot: EnvironmentThreadShell }
   if (props.renamingKey === key) {
     return (
       <div className={className} data-sidebar-row={key}>
-        <BotAvatar needsYou={status.needsYou} />
-        <span className="min-w-0 flex-1">
-          <span className="flex">
+        <BotAvatar needsYou={status.needsYou} compact={!status.needsYou} />
+        <span className={cn("min-w-0 flex-1", !status.needsYou && "flex items-center gap-2")}>
+          <span className="flex min-w-0 flex-1">
             <ThreadRenameInput
               title={props.renamingTitle}
               onTitleChange={props.onRenameTitleChange}
@@ -124,9 +130,9 @@ function BotRow({ bot, ...props }: BotRowProps & { bot: EnvironmentThreadShell }
       onContextMenu={handleContextMenu}
       className={className}
     >
-      <BotAvatar needsYou={status.needsYou} />
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-medium">{bot.title}</span>
+      <BotAvatar needsYou={status.needsYou} compact={!status.needsYou} />
+      <span className={cn("min-w-0 flex-1", !status.needsYou && "flex items-center gap-2")}>
+        <span className="block min-w-0 flex-1 truncate text-xs font-medium">{bot.title}</span>
         {statusLine}
       </span>
       {jumpLabel ? (

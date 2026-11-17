@@ -1,3 +1,4 @@
+import { openBotSettings } from "./bots/botSettingsState";
 import { attachSidebarTree } from "../lib/sidebarTree";
 import { type EnvironmentId, type ScopedProjectRef } from "@t3tools/contracts";
 import type { EnvironmentServerConfig } from "@t3tools/client-runtime/connection";
@@ -2644,6 +2645,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                 threadRef.environmentId,
                 AuthOrchestrationOperateScope,
               ),
+              isBot: thread.bot != null,
               branch: thread.branch ?? null,
               // An archived project is not a filter choice.
               projectFilter:
@@ -2789,6 +2791,9 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
           }
           case "rename":
             startThreadRename(threadRef, thread.title);
+            return;
+          case "bot-settings":
+            openBotSettings(threadRef);
             return;
           case "share-guest":
             openGuestShareDialog(threadRef);

@@ -57,10 +57,7 @@ export function BotWorkPanel({ threadRef }: { threadRef: ScopedThreadRef }) {
       !hidden.has(scopedThreadKey(scopeThreadRef(threadRef.environmentId, threadId))),
   );
   return (
-    <section
-      aria-label="Bot work"
-      className="mt-3 max-h-[40dvh] overflow-y-auto overscroll-contain rounded-xl border bg-background p-4"
-    >
+    <section aria-label="Bot work" className="max-h-[60dvh] overflow-y-auto overscroll-contain p-4">
       <div className="flex items-center gap-2">
         <MessagesSquareIcon aria-hidden className="size-4 text-primary" />
         <h3 className="text-sm font-medium">Work conversations</h3>

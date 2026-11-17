@@ -1,5 +1,5 @@
 import type { ThreadBot, ScopedThreadRef } from "@t3tools/contracts";
-import { type ComponentProps, useLayoutEffect, useState } from "react";
+import { type ComponentProps, useLayoutEffect } from "react";
 import { useIncrementalTimelineEntries } from "../../hooks/useIncrementalTimelineEntries";
 import type { TimelineEntriesInput, TimelineEntry } from "../../session-logic";
 import { useTimelineVisibleTurnItems } from "../../state/entities";
@@ -9,7 +9,7 @@ import {
   resolveThreadSwitchTimeline,
   timelineHasEphemeralPreviewUrls,
 } from "../ChatView.logic";
-import { BotControls } from "./BotControls";
+import { useBotView } from "../bots/botViewState";
 import { botTimelineEntries } from "./botTimeline";
 import { useThreadFindOpen } from "./threadFindStore";
 import { MessagesTimeline } from "./MessagesTimeline";
@@ -40,9 +40,7 @@ export function ThreadTimeline({
   detailLoading: boolean;
   bot?: ThreadBot | null | undefined;
 }) {
-  const [view, setView] = useState({ key: activeThreadKey, activity: false, history: false });
-  const activity = view.key === activeThreadKey && view.activity;
-  const history = view.key === activeThreadKey && view.history;
+  const [{ activity, history }] = useBotView(bot ? threadDetailRef : null);
   const findOpen = useThreadFindOpen(threadDetailRef, bot != null);
   const visibleTurnItems = useTimelineVisibleTurnItems(threadDetailRef);
   const serverEntries = useIncrementalTimelineEntries(activeThreadKey, {
@@ -64,30 +62,16 @@ export function ThreadTimeline({
     rememberReadyThreadTimeline({ threadKey: activeThreadKey, entries });
   }, [activeThreadKey, detailLoading, entries]);
   return (
-    <>
-      {threadDetailRef && (
-        <BotControls
-          key={activeThreadKey}
-          threadRef={threadDetailRef}
-          bot={bot}
-          canOperate={timelineProps.canOperateThread === true}
-          activity={activity}
-          history={history}
-          onActivity={() => setView({ key: activeThreadKey, activity: !activity, history })}
-          onHistory={() => setView({ key: activeThreadKey, activity, history: !history })}
-        />
-      )}
-      <MessagesTimeline
-        {...timelineProps}
-        timelineEntries={botTimelineEntries({
-          entries: displayedEntries,
-          bot: bot != null,
-          activity,
-          history,
-          findOpen,
-          citationActive: timelineProps.citationRequest != null,
-        })}
-      />
-    </>
+    <MessagesTimeline
+      {...timelineProps}
+      timelineEntries={botTimelineEntries({
+        entries: displayedEntries,
+        bot: bot != null,
+        activity,
+        history,
+        findOpen,
+        citationActive: timelineProps.citationRequest != null,
+      })}
+    />
   );
 }

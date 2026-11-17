@@ -1,3 +1,4 @@
+import { BotHeaderActions } from "../bots/BotHeaderActions";
 import {
   AuthOrchestrationOperateScope,
   type EnvironmentId,
@@ -399,6 +400,7 @@ export const ChatHeader = memo(function ChatHeader({
           ) : null}
         </WorkspaceBreadcrumbItem>
       </WorkspaceBreadcrumb>
+      {isServerThread ? <BotHeaderActions threadRef={activeThreadRef} /> : null}
       {isServerThread ? <GuestShareIndicator threadRef={activeThreadRef} /> : null}
       {isServerThread ? <MainThreadCloseButton threadRef={activeThreadRef} /> : null}
     </div>

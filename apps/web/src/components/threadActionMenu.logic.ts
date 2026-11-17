@@ -3,6 +3,7 @@ import type { SnoozePreset } from "@t3tools/client-runtime/state/thread-settled"
 
 export type ThreadActionMenuId =
   | "open-in-tab"
+  | "bot-settings"
   | "find"
   | "new-thread-on-branch"
   | "filter-by-project"
@@ -70,6 +71,7 @@ export function buildDraftActionMenuItems(options: {
 
 export interface ThreadActionMenuState {
   readonly canOperate: boolean;
+  readonly isBot?: boolean;
   readonly canFind?: boolean;
   readonly branch: string | null;
   readonly projectFilter: {
@@ -185,6 +187,7 @@ export function buildThreadActionMenuItems(
           },
         ]
       : []),
+    { id: "bot-settings", label: state.isBot ? "Bot settings" : "Make this a bot", icon: "bot" },
     { id: "mark-unread", label: "Mark unread", icon: "mail-open" },
     ...(state.canShareWithGuest
       ? [{ id: "share-guest" as const, label: "Share with guest", icon: "user-plus" }]
