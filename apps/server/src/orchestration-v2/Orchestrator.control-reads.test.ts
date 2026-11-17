@@ -3052,6 +3052,22 @@ it.effect(
       });
       assert.deepEqual((yield* projections.getThreadProjection(threadId)).thread.bot, bot);
       assert.deepEqual((yield* projections.getThreadShell(threadId))?.bot, bot);
+      const coloredBot = { ...bot, iconColor: "purple" as const };
+      yield* orchestrator.dispatch({
+        type: "thread.metadata.update",
+        commandId: CommandId.make("color-bot"),
+        threadId,
+        bot: coloredBot,
+      });
+      assert.deepEqual((yield* projections.getThreadProjection(threadId)).thread.bot, coloredBot);
+      assert.deepEqual((yield* projections.getThreadShell(threadId))?.bot, coloredBot);
+      yield* orchestrator.dispatch({
+        type: "thread.metadata.update",
+        commandId: CommandId.make("reset-bot-color"),
+        threadId,
+        bot,
+      });
+      assert.deepEqual((yield* projections.getThreadShell(threadId))?.bot, bot);
       yield* orchestrator.dispatch({
         type: "thread.metadata.update",
         commandId: CommandId.make("disable-bot"),

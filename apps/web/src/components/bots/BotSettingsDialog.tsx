@@ -26,6 +26,7 @@ import {
 } from "../ui/dialog";
 import { botSettingsThreadAtom } from "./botSettingsState";
 import { BotSkillPicker } from "./BotSkillPicker";
+import { BotIconColorPicker } from "./BotIconColorPicker";
 
 export function BotSettingsDialogHost() {
   const threadRef = useAtomValue(botSettingsThreadAtom);
@@ -48,6 +49,8 @@ export function BotSettingsDialog({
   const [{ activity, history }, setView] = useBotView(threadRef);
   const shell = useQuietThreadShell(threadRef);
   const bot = shell?.bot;
+  const [draftIconColor, setIconColor] = useState<ThreadBot["iconColor"] | null>(null);
+  const iconColor = draftIconColor === null ? bot?.iconColor : draftIconColor;
   const canOperate = useEnvironmentScope(threadRef.environmentId, AuthOrchestrationOperateScope);
   const [confirmingDisable, setConfirmingDisable] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -130,10 +133,12 @@ export function BotSettingsDialog({
                 skillPath: String(data.get("skillPath")).trim(),
                 statePath: String(data.get("statePath")).trim(),
                 freshAfterTurns: Number(data.get("freshAfterTurns")),
+                ...(iconColor ? { iconColor } : {}),
               });
             }}
           >
             <fieldset disabled={saving || !canOperate} className="grid min-w-0 gap-4">
+              <BotIconColorPicker color={iconColor} onChange={setIconColor} />
               <label className="grid gap-1.5 text-xs font-medium">
                 Standing objective
                 <Textarea

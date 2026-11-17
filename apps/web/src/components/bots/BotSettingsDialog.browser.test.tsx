@@ -64,3 +64,41 @@ it("keeps settings when disabling is canceled and removes them only after confir
     input: { threadId: ref.threadId, bot: null },
   });
 });
+
+it("edits and resets a bot's icon color without changing its standing settings", async () => {
+  const bot = {
+    objective: "Review work",
+    skillPath: "~/review/SKILL.md",
+    statePath: "~/review.sqlite",
+    freshAfterTurns: 12,
+    iconColor: "green" as const,
+  };
+  const shell = makeThreadFixture({ bot });
+  const ref = scopeThreadRef(shell.environmentId, shell.id);
+  const update = vi.fn().mockResolvedValue(AsyncResult.success(undefined));
+  const onClose = vi.fn();
+  vi.mocked(useQuietThreadShell).mockReturnValue(shell);
+  vi.mocked(useEnvironmentScope).mockReturnValue(true);
+  vi.mocked(useOrchestrationCommand).mockReturnValue(update);
+  await using screen = await render(<BotSettingsDialog threadRef={ref} onClose={onClose} />);
+  const colors = page.getByRole("group", { name: "Bot icon color" });
+  await expect
+    .element(colors.getByRole("button", { name: "Green", exact: true }))
+    .toHaveAttribute("aria-pressed", "true");
+  await userEvent.click(colors.getByRole("button", { name: "Purple", exact: true }));
+  await userEvent.click(page.getByRole("button", { name: "Save bot", exact: true }));
+  await vi.waitFor(() => expect(onClose).toHaveBeenCalledOnce());
+  expect(update).toHaveBeenLastCalledWith({
+    environmentId: ref.environmentId,
+    input: { threadId: ref.threadId, bot: { ...bot, iconColor: "purple" } },
+  });
+  await screen.rerender(<BotSettingsDialog key="reset" threadRef={ref} onClose={onClose} />);
+  await userEvent.click(page.getByRole("button", { name: "Default", exact: true }));
+  await userEvent.click(page.getByRole("button", { name: "Save bot", exact: true }));
+  await vi.waitFor(() => expect(onClose).toHaveBeenCalledTimes(2));
+  const { iconColor: _iconColor, ...defaultBot } = bot;
+  expect(update).toHaveBeenLastCalledWith({
+    environmentId: ref.environmentId,
+    input: { threadId: ref.threadId, bot: defaultBot },
+  });
+});

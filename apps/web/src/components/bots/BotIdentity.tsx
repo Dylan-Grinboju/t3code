@@ -1,21 +1,29 @@
 import { BotIcon } from "lucide-react";
+import type { ThreadBot } from "@t3tools/contracts";
 import { cn } from "../../lib/utils";
+import { projectIconColorClassName } from "../../projectIconColors";
 import type { botStatus } from "./botPresentation";
 
 export function BotAvatar({
   needsYou = false,
   compact = false,
+  color,
 }: {
   needsYou?: boolean;
   compact?: boolean;
+  color?: ThreadBot["iconColor"];
 }) {
   return (
     <span
       aria-hidden
       className={cn(
-        "flex shrink-0 items-center justify-center border border-primary/20 bg-gradient-to-br from-primary/15 to-primary/5 text-primary shadow-xs",
+        "flex shrink-0 items-center justify-center border bg-gradient-to-br shadow-xs",
+        color
+          ? cn("border-current/20 from-current/15 to-current/5", projectIconColorClassName(color))
+          : "border-primary/20 from-primary/15 to-primary/5 text-primary",
         compact ? "size-6 rounded-md" : "size-9 rounded-xl",
-        needsYou && "border-warning/25 from-warning/15 to-warning/5 text-warning-foreground",
+        needsYou && "border-warning/25 from-warning/15 to-warning/5",
+        needsYou && !color && "text-warning-foreground",
       )}
     >
       <BotIcon className={compact ? "size-3.5" : "size-4.5"} />
