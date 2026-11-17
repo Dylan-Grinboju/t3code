@@ -1,7 +1,7 @@
 import { scopeThreadRef, scopedThreadKey } from "@t3tools/client-runtime/environment";
 import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/shell";
 import type { ContextMenuSource, ScopedThreadRef } from "@t3tools/contracts";
-import { BotIcon } from "lucide-react";
+import { BotAvatar } from "./BotIdentity";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { contextMenuSourceOf } from "../../contextMenuSource";
 import { cn } from "../../lib/utils";
@@ -37,7 +37,15 @@ export function BotsSidebar({
       aria-label="Bots"
       className="max-h-[30vh] shrink-0 overflow-y-auto border-b border-sidebar-border pb-2"
     >
-      <div className="px-3 py-2 text-xs font-medium text-sidebar-muted-foreground">Bots</div>
+      <div className="flex items-center justify-between px-3 py-2 text-xs font-medium text-sidebar-muted-foreground">
+        <span>Bots</span>
+        <span
+          className="rounded-md bg-sidebar-row-hover px-1.5 py-0.5 text-3xs tabular-nums"
+          aria-label={`${bots.length} bots`}
+        >
+          {bots.length}
+        </span>
+      </div>
       {bots.map((bot) => (
         <BotRow
           key={scopedThreadKey(scopeThreadRef(bot.environmentId, bot.id))}
@@ -59,23 +67,26 @@ function BotRow({ bot, ...props }: BotRowProps & { bot: EnvironmentThreadShell }
   });
   const jumpLabel = props.jumpLabelByKey?.get(key) ?? null;
   const className = cn(
-    "flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left hover:bg-sidebar-row-hover focus-visible:outline-2 focus-visible:outline-ring",
-    props.activeKey === key && "bg-sidebar-row-active",
+    "group flex w-full items-center gap-2.5 rounded-xl border border-transparent px-2.5 py-3 text-left hover:bg-sidebar-row-hover focus-visible:outline-2 focus-visible:outline-ring motion-safe:transition-colors",
+    props.activeKey === key && "border-primary/15 bg-sidebar-row-active shadow-xs",
   );
   const handleContextMenu = (event: ReactMouseEvent) => {
     event.preventDefault();
     props.onContextMenu(ref, { x: event.clientX, y: event.clientY }, contextMenuSourceOf(event));
   };
   const statusLine = (
-    <span className={cn("block text-xs", status.colorClass)}>
-      {status.needsYou ? "Needs you · " : ""}
-      {status.label}
+    <span className={cn("mt-1 flex items-center gap-1.5 text-2xs", status.colorClass)}>
+      <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-current" />
+      <span className="truncate">
+        {status.needsYou ? "Needs you · " : ""}
+        {status.label}
+      </span>
     </span>
   );
   if (props.renamingKey === key) {
     return (
       <div className={className}>
-        <BotIcon className="size-5 shrink-0 text-primary" aria-hidden />
+        <BotAvatar needsYou={status.needsYou} />
         <span className="min-w-0 flex-1">
           <span className="flex">
             <ThreadRenameInput
@@ -98,7 +109,7 @@ function BotRow({ bot, ...props }: BotRowProps & { bot: EnvironmentThreadShell }
       onContextMenu={handleContextMenu}
       className={className}
     >
-      <BotIcon className="size-5 shrink-0 text-primary" aria-hidden />
+      <BotAvatar needsYou={status.needsYou} />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-medium">{bot.title}</span>
         {statusLine}

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { expect, it, vi } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
 import { ThreadId } from "@t3tools/contracts";
@@ -53,19 +54,22 @@ it("opens work conversations from recorded creation events and keeps activity co
       ],
     },
   });
-  const onActivity = vi.fn();
-  const onHistory = vi.fn();
-  await using screen = await render(
-    <BotControls
-      threadRef={ref}
-      bot={bot}
-      canOperate
-      activity={false}
-      history={false}
-      onActivity={onActivity}
-      onHistory={onHistory}
-    />,
-  );
+  function BotView() {
+    const [activity, setActivity] = useState(false);
+    const [history, setHistory] = useState(false);
+    return (
+      <BotControls
+        threadRef={ref}
+        bot={bot}
+        canOperate
+        activity={activity}
+        history={history}
+        onActivity={() => setActivity(!activity)}
+        onHistory={() => setHistory(!history)}
+      />
+    );
+  }
+  await using screen = await render(<BotView />);
   await expect.element(screen.getByText(bot.objective)).toBeVisible();
   await expect.element(screen.getByRole("region", { name: "Bot work" })).not.toBeInTheDocument();
   await userEvent.click(screen.getByRole("button", { name: "Work", exact: true }));
@@ -74,9 +78,38 @@ it("opens work conversations from recorded creation events and keeps activity co
     .toHaveAttribute("href", `/${shell.environmentId}/${child.id}`);
   await expect.element(screen.getByText("Background worker inspector")).toBeVisible();
   await userEvent.click(screen.getByRole("button", { name: "Activity", exact: true }));
-  expect(onActivity).toHaveBeenCalledOnce();
+  await expect
+    .element(screen.getByRole("button", { name: "Activity", exact: true }))
+    .toHaveAttribute("aria-pressed", "true");
+  await expect.element(screen.getByRole("button", { name: "History", exact: true })).toBeDisabled();
+  await expect.element(screen.getByRole("region", { name: "Bot work" })).toBeVisible();
+  await userEvent.click(screen.getByRole("button", { name: "Quiet", exact: true }));
   await userEvent.click(screen.getByRole("button", { name: "History", exact: true }));
-  expect(onHistory).toHaveBeenCalledOnce();
+  await expect
+    .element(screen.getByRole("button", { name: "History", exact: true }))
+    .toHaveAttribute("aria-pressed", "true");
+  await userEvent.click(screen.getByRole("button", { name: "Activity", exact: true }));
+  await userEvent.click(screen.getByRole("button", { name: "Quiet", exact: true }));
+  await expect
+    .element(screen.getByRole("button", { name: "History", exact: true }))
+    .toHaveAttribute("aria-pressed", "true");
+  await userEvent.click(screen.getByRole("button", { name: "Bot settings", exact: true }));
+  await expect.element(screen.getByRole("region", { name: "Bot work" })).not.toBeInTheDocument();
+  await expect
+    .element(screen.getByRole("form", { name: "Bot settings", exact: true }))
+    .toBeVisible();
+  await userEvent.fill(
+    screen.getByRole("textbox", { name: "Standing objective" }),
+    "Keep this unsaved objective",
+  );
+  await userEvent.click(screen.getByRole("button", { name: "Work", exact: true }));
+  await expect
+    .element(screen.getByRole("form", { name: "Bot settings", exact: true }))
+    .not.toBeInTheDocument();
+  await expect.element(screen.getByRole("region", { name: "Bot work" })).toBeVisible();
   await userEvent.click(screen.getByRole("button", { name: "Work", exact: true }));
   await expect.element(screen.getByRole("region", { name: "Bot work" })).not.toBeInTheDocument();
+  await expect
+    .element(screen.getByRole("textbox", { name: "Standing objective" }))
+    .toHaveValue("Keep this unsaved objective");
 });

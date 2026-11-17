@@ -31,7 +31,7 @@ const FORK_FEATURES = [
   {
     title: "Persistent bots",
     description:
-      "Make a thread a bot to keep it in the Bots section above your task list, with its objective and live status; right-click it for thread actions, and thread jump shortcuts include it. Quiet view shows replies and attention cards, Activity and History show the rest, Work lists its conversations and workers, and fresh sessions reload its skill and work state without deleting history. Schedule checks through thread Automations.",
+      "Make a thread a bot to keep it in the Bots section above your task list, with its objective and live status; right-click it for thread actions, and thread jump shortcuts include it. Quiet/Activity and Recent/History controls show which view is selected: Quiet shows replies and attention cards, Activity includes tool activity, and History includes older loaded exchanges; Work lists its conversations and workers, and fresh sessions reload its skill and work state without deleting history. Schedule checks through thread Automations.",
   },
   {
     title: "CLI permissions for integrations",
