@@ -29,6 +29,11 @@ const FORK_REPOSITORY_URL = "https://github.com/Dylan-Grinboju/t3code";
 
 const FORK_FEATURES = [
   {
+    title: "Native review skills",
+    description:
+      "Review skills can run their own native reviewers from a chat or bot without creating extra T3 projects. The skill controls the review workflow under normal permissions.",
+  },
+  {
     title: "Persistent bots",
     description:
       "Right-click a chat in the sidebar or open its title menu to make it a bot, then search skills by name. Its skill governs delegation, conversation handoffs and reporting. Only persistent bots appear in the Bots list; their workers stay in Work. Worker context can become a normal conversation, even after it finishes. Compact bot rows show live status and expand when they need you; Bot settings in the chat header (including chat tabs and floating chats) holds the objective and conversation controls, Work beside it lists conversations and workers, and thread Automations schedule checks.",
