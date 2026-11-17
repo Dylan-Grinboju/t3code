@@ -1,8 +1,13 @@
 import { scopeThreadRef, scopedThreadKey } from "@t3tools/client-runtime/environment";
 import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/shell";
-import type { ContextMenuSource, ScopedThreadRef } from "@t3tools/contracts";
+import {
+  AuthOrchestrationOperateScope,
+  type ContextMenuSource,
+  type ScopedThreadRef,
+} from "@t3tools/contracts";
 import { BotAvatar } from "./BotIdentity";
 import type { MouseEvent as ReactMouseEvent } from "react";
+import { readEnvironmentScope } from "../../state/session";
 import { contextMenuSourceOf } from "../../contextMenuSource";
 import { cn } from "../../lib/utils";
 import { useUiStateStore } from "../../uiStateStore";
@@ -22,6 +27,8 @@ type BotRowProps = {
     position: { x: number; y: number },
     source: ContextMenuSource,
   ) => void;
+  revealActiveRow: (row: HTMLElement | null, key: string) => (() => void) | undefined;
+  onStartRename: (ref: ScopedThreadRef, title: string) => void;
   onRenameTitleChange: (title: string) => void;
   onCommitRename: (ref: ScopedThreadRef, title: string) => void;
   onCancelRename: () => void;
@@ -85,7 +92,7 @@ function BotRow({ bot, ...props }: BotRowProps & { bot: EnvironmentThreadShell }
   );
   if (props.renamingKey === key) {
     return (
-      <div className={className}>
+      <div className={className} data-sidebar-row={key}>
         <BotAvatar needsYou={status.needsYou} />
         <span className="min-w-0 flex-1">
           <span className="flex">
@@ -104,6 +111,14 @@ function BotRow({ bot, ...props }: BotRowProps & { bot: EnvironmentThreadShell }
   return (
     <button
       type="button"
+      data-sidebar-row={key}
+      ref={props.activeKey === key ? (row) => props.revealActiveRow(row, key) : undefined}
+      onKeyDown={(event) => {
+        if (event.target !== event.currentTarget || event.key !== "F2") return;
+        if (!readEnvironmentScope(ref.environmentId, AuthOrchestrationOperateScope)) return;
+        event.preventDefault();
+        props.onStartRename(ref, bot.title);
+      }}
       aria-current={props.activeKey === key ? "page" : undefined}
       onClick={() => props.onOpen(ref)}
       onContextMenu={handleContextMenu}

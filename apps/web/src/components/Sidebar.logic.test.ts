@@ -1517,7 +1517,7 @@ describe("resolveSidebarRouteReveal", () => {
   const hiddenKey = "environment-test:thread-test";
   const findThread = (key: string) => (key === hiddenKey ? hidden : undefined);
 
-  it("widens the scope for a newly opened thread the scope hides", () => {
+  it.each([false, true])("only widens the scope for a hidden task thread, bot=%s", (bot) => {
     expect(
       resolveSidebarRouteReveal({
         reveal: { observedKey: "environment-test:other", pendingKey: null },
@@ -1526,9 +1526,22 @@ describe("resolveSidebarRouteReveal", () => {
         isSearching: false,
         scopedProjectKeys,
         delegatedUnderParent: new Set(),
-        findThread,
+        findThread: (key) => {
+          const thread = findThread(key);
+          return thread && bot
+            ? {
+                ...thread,
+                bot: {
+                  objective: "Organize work",
+                  skillPath: "~/skill.md",
+                  statePath: "~/work.sqlite",
+                  freshAfterTurns: 12,
+                },
+              }
+            : thread;
+        },
       }),
-    ).toEqual({ pendingKey: hiddenKey, widensScope: true });
+    ).toEqual({ pendingKey: hiddenKey, widensScope: !bot });
   });
 
   it("never widens for a thread whose reveal already completed", () => {

@@ -85,6 +85,7 @@ export function ThreadTimeline({
           activity,
           history,
           findOpen,
+          citationActive: timelineProps.citationRequest != null,
         })}
       />
     </>

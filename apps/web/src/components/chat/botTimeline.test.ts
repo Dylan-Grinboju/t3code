@@ -72,6 +72,12 @@ it("keeps older attention cards and restores old messages through History withou
   expect(quietBotEntries(history, false)).toEqual([approval, ...entries.slice(-30)]);
   expect(quietBotEntries(history, true)).toEqual(history);
   expect(history).toHaveLength(41);
+  const view = { entries: history, bot: true, activity: false, history: false, findOpen: false };
+  expect(botTimelineEntries({ ...view, citationActive: true })).toBe(history);
+  expect(botTimelineEntries({ ...view, citationActive: false })).toEqual([
+    approval,
+    ...entries.slice(-30),
+  ]);
 });
 
 it("shows every entry while Find is open so its matches stay reachable", () => {
@@ -80,7 +86,7 @@ it("shows every entry while Find is open so its matches stay reachable", () => {
     visibleTurnItems: fixture.visibleTurnItems,
     optimisticMessages: [],
   });
-  const view = { entries, bot: true, activity: false, history: false };
+  const view = { entries, bot: true, activity: false, history: false, citationActive: false };
   expect(botTimelineEntries({ ...view, findOpen: true })).toBe(entries);
   expect(botTimelineEntries({ ...view, findOpen: false })).toEqual(quietBotEntries(entries, false));
   expect(botTimelineEntries({ ...view, bot: false, findOpen: false })).toBe(entries);

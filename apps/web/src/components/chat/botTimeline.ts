@@ -45,7 +45,8 @@ export function botTimelineEntries(input: {
   activity: boolean;
   history: boolean;
   findOpen: boolean;
+  citationActive: boolean;
 }): ReadonlyArray<TimelineEntry> {
-  if (!input.bot || input.activity || input.findOpen) return input.entries;
+  if (!input.bot || input.activity || input.findOpen || input.citationActive) return input.entries;
   return quietBotEntries(input.entries, input.history);
 }

@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import type { ThreadBot } from "@t3tools/contracts";
 
 import { observeResize } from "~/lib/observeResize";
 
@@ -69,7 +70,9 @@ export function useActiveRowReveal(
   return revealRow;
 }
 
-type RevealableThread = Parameters<typeof filterSidebarV2VisibleThreads>[0][number];
+type RevealableThread = Parameters<typeof filterSidebarV2VisibleThreads>[0][number] & {
+  readonly bot?: ThreadBot | null;
+};
 
 // Render records the route before deciding, so the first render of a new route
 // already widens the scope. Only a route reveal widens: the once-per-mount
@@ -90,6 +93,7 @@ export function resolveSidebarRouteReveal<T extends RevealableThread>(input: {
   const thread = pendingKey === null || isSearching ? undefined : findThread(pendingKey);
   const widensScope =
     thread !== undefined &&
+    thread.bot == null &&
     scopedProjectKeys !== null &&
     filterSidebarV2VisibleThreads([thread], scopedProjectKeys, delegatedUnderParent).length === 0 &&
     filterSidebarV2VisibleThreads([thread], null, delegatedUnderParent).length === 1;

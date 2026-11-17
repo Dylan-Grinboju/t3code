@@ -1726,15 +1726,6 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     };
   };
 
-  const attachTreeRef = (node: HTMLUListElement) => {
-    const detachMotion = attachListMotionRef(node);
-    const detachTree = attachSidebarTree(node);
-    return () => {
-      detachTree?.();
-      detachMotion();
-    };
-  };
-
   // Folder rows only drag out to the composer; folders own their order, so nothing drops in the list.
   const isContextDrag =
     projectFolders !== null ||
@@ -2626,8 +2617,12 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
           serverConfigs.get(thread.environmentId)?.environment.capabilities
             .threadAutoSettleOptOut === true;
         const isRegeneratingTitle = thread.titleRegeneration != null;
-        const isSettled = settledThreadKeysRef.current.has(threadKey);
-        const isSnoozed = snoozedThreadKeysRef.current.has(threadKey);
+        const isSettled = thread.bot
+          ? configLoaded && thread.settledOverride === "settled"
+          : settledThreadKeysRef.current.has(threadKey);
+        const isSnoozed = thread.bot
+          ? configLoaded && effectiveSnoozed(thread, { now: new Date().toISOString() })
+          : snoozedThreadKeysRef.current.has(threadKey);
         const isPinned = thread.pinnedAt != null;
         const snoozePresets = resolveSnoozePresets(
           new Date(),
@@ -2978,7 +2973,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
       : undefined);
   const newThreadInProjectShortcutLabel = shortcutLabelForCommand(keybindings, "chat.newLocal");
   return (
-    <SidebarFolderDrop>
+    <SidebarFolderDrop ref={attachSidebarTree}>
       <SidebarChromeHeader isElectron={isElectron} />
       <SidebarContent
         ref={sidebarContentRef}
@@ -3221,6 +3216,8 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                 jumpLabelByKey={showJumpHints ? jumpLabelByKey : null}
                 onOpen={navigateToThread}
                 onContextMenu={handleThreadContextMenu}
+                revealActiveRow={revealActiveRow}
+                onStartRename={startThreadRename}
                 onRenameTitleChange={setRenamingTitle}
                 onCommitRename={commitThreadRename}
                 onCancelRename={cancelThreadRename}
@@ -3373,7 +3370,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
               >
                 <SortableContext items={sortableIds} strategy={sidebarSortingStrategy}>
                   <ul
-                    ref={attachTreeRef}
+                    ref={attachListMotionRef}
                     // Presentation flattens VoiceOver's list interaction boundary while preserving descendant
                     // controls.
                     role="presentation"
