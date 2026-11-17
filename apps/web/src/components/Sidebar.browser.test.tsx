@@ -211,6 +211,61 @@ describe("sidebar render isolation", () => {
   });
 });
 
+describe("bots sidebar", () => {
+  it("keeps bots above task rows without duplicating them, and restores normal rows on conversion", async () => {
+    const activeProject = project("active");
+    const bot = {
+      ...threadShell(activeProject.id, 0),
+      title: "Chief of Staff",
+      hasPendingUserInput: true,
+      bot: {
+        objective: "Organize work",
+        skillPath: "~/skill.md",
+        statePath: "~/work.sqlite",
+        freshAfterTurns: 12,
+      },
+    };
+    const task = { ...threadShell(activeProject.id, 1), title: "Coach my PR" };
+    vi.mocked(useProjects).mockReturnValue([activeProject]);
+    vi.mocked(useQuietThreadShells).mockReturnValue([task, bot]);
+    vi.mocked(useThreadRouteTarget).mockReturnValue({
+      kind: "server",
+      threadRef: { environmentId: bot.environmentId, threadId: bot.id },
+    });
+    vi.mocked(useHandleNewThread).mockReturnValue({
+      activeDraftThread: null,
+      activeThread: null,
+      defaultProjectRef: {
+        environmentId: activeProject.environmentId,
+        projectId: activeProject.id,
+      },
+      defaultProjectFallbackReady: true,
+      handleNewThread: vi.fn().mockResolvedValue(null),
+      routeDraftId: null,
+      routeThreadRef: { environmentId: bot.environmentId, threadId: bot.id },
+    });
+    const tree = () => (
+      <SidebarProvider>
+        <Sidebar routeReveal={{ observedKey: null, pendingKey: null }} />
+      </SidebarProvider>
+    );
+    await using screen = await render(tree());
+    await expect.element(screen.getByRole("navigation", { name: "Bots" })).toBeVisible();
+    await expect
+      .element(screen.getByRole("button", { name: /Chief of Staff/ }))
+      .toHaveAttribute("aria-current", "page");
+    await expect.element(screen.getByText("Needs you · Awaiting Input")).toBeVisible();
+    expect(
+      screen.container.querySelectorAll(`li[data-thread-item="${bot.environmentId}:${bot.id}"]`),
+    ).toHaveLength(0);
+    await expect.element(screen.getByText("Coach my PR").first()).toBeVisible();
+    vi.mocked(useQuietThreadShells).mockReturnValue([task, { ...bot, bot: null }]);
+    await screen.rerender(tree());
+    await expect.element(screen.getByRole("navigation", { name: "Bots" })).not.toBeInTheDocument();
+    await expect.element(screen.getByText("Chief of Staff").first()).toBeVisible();
+  });
+});
+
 describe("sidebar thread rename", () => {
   // regression: #35151 an untouched rename wrote back the title it opened with over a newer one
   it.each(["{Enter}", "{Tab}"])(

@@ -270,6 +270,9 @@ import {
   type SidebarSweepAction,
 } from "./sidebar/SidebarThreadRow";
 import { SidebarDraftBlock } from "./sidebar/SidebarDraftBlock";
+import { BotsSidebar } from "./bots/BotsSidebar";
+import { visibleBots } from "./bots/botPresentation";
+import { useHiddenThreadKeys } from "../state/entities";
 import {
   SidebarProjectFolderHeader,
   sidebarFolderRowId,
@@ -452,6 +455,8 @@ function useSidebarThreads(input: {
     inboxReturns.getSnapshot,
   );
   const nowMinute = useNowMinute();
+  const hiddenThreadKeys = useHiddenThreadKeys();
+  const botThreads = visibleBots(threads, hiddenThreadKeys);
   // Minute-quantized clocks would delay second-precise snooze wakes by up to a minute.
   const snoozeWakeClock = useSnoozeWakeClock(threads);
   const [settledShelfExpanded, setSettledShelfExpanded] = useLocalStorage(
@@ -569,9 +574,11 @@ function useSidebarThreads(input: {
   }
   return {
     ...partition,
+    botThreads,
     threads,
     workingShelfEnabled,
     searchableThreads: [
+      ...botThreads,
       ...pinnedThreads,
       ...activeThreads,
       ...workingThreads,
@@ -628,7 +635,11 @@ function partitionSidebarThreads(input: SidebarThreadPartitionInput) {
     sortActiveBySend,
   } = input;
   const preciseNow = new Date().toISOString();
-  const visible = filterSidebarV2VisibleThreads(threads, scopedProjectKeys, delegatedUnderParent);
+  const visible = filterSidebarV2VisibleThreads(
+    threads,
+    scopedProjectKeys,
+    delegatedUnderParent,
+  ).filter((thread) => thread.bot == null);
   const inboxObservation = inboxReturns.observe(workingShelfEnabled ? threads : null);
   const pinned: EnvironmentThreadShell[] = [];
   const active: EnvironmentThreadShell[] = [];
@@ -1300,6 +1311,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
 
   const {
     workingShelfEnabled,
+    botThreads,
     pinnedThreads,
     draggableThreadKeys,
     activeReorderableThreadKeys,
@@ -3201,6 +3213,13 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
               activeSearchResultIndex={activeSearchResultIndex}
               onClearSearch={clearThreadSearch}
             />
+            {!isSearchingThreads && (
+              <BotsSidebar
+                bots={botThreads}
+                activeKey={routeRowThreadKey}
+                onOpen={navigateToThread}
+              />
+            )}
           </SidebarGroup>
         }
       >
@@ -3323,6 +3342,8 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                     Show all projects
                   </button>
                 </>
+              ) : botThreads.length > 0 ? (
+                "No task threads yet"
               ) : (
                 "No threads yet"
               )}

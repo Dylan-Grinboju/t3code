@@ -5,6 +5,10 @@ import { useOrchestrationCommand } from "../../state/use-orchestration-command";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
+import { BotIcon } from "lucide-react";
+import { useQuietThreadShell } from "../../state/entities";
+import { BotWorkPanel } from "../bots/BotWorkPanel";
+import { botStatus } from "../bots/botPresentation";
 
 export function BotControls({
   threadRef,
@@ -24,6 +28,9 @@ export function BotControls({
   onHistory: () => void;
 }) {
   const [editing, setEditing] = useState(false);
+  const [workOpen, setWorkOpen] = useState(false);
+  const shell = useQuietThreadShell(bot ? threadRef : null);
+  const status = shell ? botStatus(shell) : null;
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const update = useOrchestrationCommand(threadEnvironment.updateMetadata);
@@ -44,7 +51,22 @@ export function BotControls({
     setSaving(false);
   };
   return (
-    <div className="border-b px-4 py-2 text-sm">
+    <div className="shrink-0 border-b px-4 py-2 text-sm">
+      {bot && (
+        <div className="flex items-start gap-3 py-2">
+          <BotIcon className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-medium">{shell?.title ?? "Bot"}</span>
+              <span className={`text-xs ${status?.colorClass ?? "text-muted-foreground"}`}>
+                {status?.needsYou ? "Needs you · " : ""}
+                {status?.label ?? "Loading"}
+              </span>
+            </div>
+            <p className="line-clamp-2 text-xs text-muted-foreground">{bot.objective}</p>
+          </div>
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-2">
         <Button
           variant="ghost-muted"
@@ -56,16 +78,24 @@ export function BotControls({
         </Button>
         {bot && (
           <>
+            <Button
+              variant={workOpen ? "secondary" : "ghost"}
+              size="sm"
+              aria-expanded={workOpen}
+              onClick={() => setWorkOpen(!workOpen)}
+            >
+              Work
+            </Button>
             <Button variant="ghost" size="sm" onClick={onActivity}>
               {activity ? "Quiet view" : "Activity"}
             </Button>
             <Button variant="ghost" size="sm" onClick={onHistory}>
               {history ? "Recent" : "History"}
             </Button>
-            <span className="min-w-0 flex-1 truncate text-muted-foreground">{bot.objective}</span>
           </>
         )}
       </div>
+      {bot && workOpen && <BotWorkPanel threadRef={threadRef} />}
       {editing && (
         <form
           className="grid gap-3 py-3"

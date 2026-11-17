@@ -7,6 +7,7 @@ const attentionTypes = new Set([
   "link_request",
   "error",
   "subagent",
+  "thread_created",
 ]);
 
 export function quietBotEntries(

@@ -434,6 +434,7 @@ export function ThreadRelationshipsPanel(props: {
   readonly threadId: ThreadId;
   readonly showLineage: boolean;
   readonly showSideChats: boolean;
+  readonly presentation?: "bot";
 }) {
   const ref = scopeThreadRef(props.environmentId, props.threadId);
   const projection = useQuietThreadProjection(ref)?.projection ?? null;
@@ -601,11 +602,21 @@ export function ThreadRelationshipsPanel(props: {
     rows: ReadonlyArray<LineageRow>;
     expanded: boolean;
   }> = [
-    { id: "related", label: null, rows: related, expanded: true },
-    { id: "active", label: null, rows: [...active, ...remoteActive], expanded: true },
+    {
+      id: "related",
+      label: props.presentation === "bot" ? "Related conversations" : null,
+      rows: related,
+      expanded: true,
+    },
+    {
+      id: "active",
+      label: props.presentation === "bot" ? "Background workers" : null,
+      rows: [...active, ...remoteActive],
+      expanded: true,
+    },
     {
       id: "previous",
-      label: "Previous agents",
+      label: props.presentation === "bot" ? "Finished workers" : "Previous agents",
       rows: [...previous, ...remotePrevious],
       expanded: false,
     },
@@ -983,8 +994,18 @@ export function ThreadRelationshipsPanel(props: {
     <>
       {lineageVisible ? (
         <ThreadDetailsSection
-          headingId="thread-details-lineage-heading"
-          title={runningCount > 0 ? `Lineage · ${runningCount} running` : "Lineage"}
+          headingId={
+            props.presentation === "bot"
+              ? "bot-work-details-heading"
+              : "thread-details-lineage-heading"
+          }
+          title={
+            props.presentation === "bot"
+              ? "Work details"
+              : runningCount > 0
+                ? `Lineage · ${runningCount} running`
+                : "Lineage"
+          }
           // A lone "Previous agents" row names itself; the heading returns for status or actions.
           showHeading={
             runningCount > 0 ||
@@ -1055,7 +1076,11 @@ export function ThreadRelationshipsPanel(props: {
       ) : null}
       {sideChatsVisible ? (
         <ThreadDetailsSection
-          headingId="thread-details-side-chats-heading"
+          headingId={
+            props.presentation === "bot"
+              ? "bot-work-side-chats-heading"
+              : "thread-details-side-chats-heading"
+          }
           title={runningSideChats > 0 ? `Side chats · ${runningSideChats} running` : "Side chats"}
           data-thread-side-chats-panel
         >

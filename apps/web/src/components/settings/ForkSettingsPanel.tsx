@@ -31,7 +31,7 @@ const FORK_FEATURES = [
   {
     title: "Persistent bots",
     description:
-      "Make a thread a bot with a standing objective, portable skill and durable work state. Quiet view shows replies and attention cards; Activity and History keep the details accessible. Fresh sessions periodically reload work state without deleting history. Schedule checks through thread Automations.",
+      "Make a thread a bot to keep it in the Bots section above your task list, with its objective and live status. Work opens its created conversations and delegated workers; Quiet view shows replies and attention cards, while Activity and History reveal the details. Fresh sessions reload the portable skill and work state without deleting history. Schedule checks through thread Automations.",
   },
   {
     title: "CLI permissions for integrations",
