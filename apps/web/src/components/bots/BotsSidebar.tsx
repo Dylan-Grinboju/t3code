@@ -44,15 +44,7 @@ export function BotsSidebar({
       aria-label="Bots"
       className="max-h-[30vh] shrink-0 overflow-y-auto border-b border-sidebar-border pb-2"
     >
-      <div className="flex items-center justify-between px-3 py-2 text-xs font-medium text-sidebar-muted-foreground">
-        <span>Bots</span>
-        <span
-          className="rounded-md bg-sidebar-row-hover px-1.5 py-0.5 text-3xs tabular-nums"
-          aria-label={`${bots.length} bots`}
-        >
-          {bots.length}
-        </span>
-      </div>
+      <div className="px-3 py-2 text-xs font-medium text-sidebar-muted-foreground">Bots</div>
       {bots.map((bot) => (
         <BotRow
           key={scopedThreadKey(scopeThreadRef(bot.environmentId, bot.id))}
