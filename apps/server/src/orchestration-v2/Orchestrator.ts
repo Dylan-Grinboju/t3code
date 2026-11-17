@@ -1,3 +1,4 @@
+import { botNeedsFreshContext } from "./threadBot.ts";
 import type {
   OrchestrationV2ThreadLinkMetadata,
   GuestShareId,
@@ -4851,6 +4852,7 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
           return {
             ...thread,
             ...(command.title === undefined ? {} : { title: command.title }),
+            ...(command.bot === undefined ? {} : { bot: command.bot }),
             ...(command.limitRecovery === undefined ? {} : { limitRecovery }),
             ...(command.limitRecovery !== undefined &&
             limitRecovery?.snooze === true &&
@@ -7129,7 +7131,32 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
     ) {
       dispatchMode = { type: "start_immediately" };
     }
-    const freshContext = command.freshContext === true;
+    let botRotation =
+      projection.thread.bot != null &&
+      command.freshContext !== true &&
+      command.createdBy === "user" &&
+      !command.text.trimStart().startsWith("/") &&
+      botNeedsFreshContext(
+        projection.thread.bot,
+        projection.runs,
+        projection.turnItems,
+        contextBoundaryOrdinal(projection),
+      ) &&
+      pendingForkTransferForThread(projection) === undefined &&
+      pendingMergeBackTransfersForThread(projection).length === 0 &&
+      derivePendingBackgroundWork({
+        latestRun: projection.runs.findLast((run) => run.status !== "queued"),
+        providerThreads: projection.providerThreads,
+        turnItems: projection.turnItems,
+        activeProviderThreadId: projection.thread.activeProviderThreadId,
+        runs: projection.runs,
+      }).length === 0;
+    for (const session of botRotation
+      ? sessionsReleasedByFreshContext(projection, dispatchProviderThread(projection, {}, true))
+      : []) {
+      if (yield* sessionHasBackgroundWork(session, projection.providerThreads)) botRotation = false;
+    }
+    const freshContext = command.freshContext === true || botRotation;
     if (
       freshContext &&
       (dispatchMode.type === "steer_active" || dispatchMode.type === "restart_active")

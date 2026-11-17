@@ -3556,6 +3556,112 @@ describe("orchestration v2 provider switching", () => {
       }),
   );
 
+  it.live(
+    "rotates bot context while retaining thread history and supplying the current charter",
+    () =>
+      Effect.gen(function* () {
+        const cwd = yield* checkpointWorkspace("bot-context");
+        const capturedTurns = yield* Ref.make<ReadonlyArray<CapturedTurn>>([]);
+        const backgroundWork = yield* Ref.make(false);
+        const layerRegistry = ProviderAdapterRegistry.layerFromAdapters([
+          makeTestAdapter({
+            instanceId: CLAUDE_MODEL_SELECTION.instanceId,
+            driver: CLAUDE_DRIVER,
+            capabilities: ClaudeProviderCapabilitiesV2,
+            modelSelection: CLAUDE_MODEL_SELECTION,
+            responseByRunOrdinal: {},
+            capturedTurns,
+            backgroundWork,
+            nativeThreadGeneration: yield* Ref.make(0),
+          }),
+        ]);
+        const threadId = ThreadId.make("thread:bot-context");
+        yield* Effect.gen(function* () {
+          const orchestrator = yield* Orchestrator.OrchestratorV2;
+          const worker = yield* EffectWorker.OrchestrationEffectWorkerV2;
+          yield* orchestrator.dispatch({
+            type: "thread.create",
+            createdBy: "user",
+            creationSource: "web",
+            commandId: CommandId.make("bot:create"),
+            threadId,
+            projectId: ProjectId.make("project:bot-context"),
+            title: "Bot",
+            modelSelection: CLAUDE_MODEL_SELECTION,
+            runtimeMode: "full-access",
+            interactionMode: "default",
+            branch: null,
+            worktreePath: cwd,
+          });
+          const bot = {
+            objective: "Keep the work queue current",
+            skillPath: "/skills/cos/SKILL.md",
+            statePath: "/work/state.sqlite",
+            freshAfterTurns: 1,
+          };
+          yield* orchestrator.dispatch({
+            type: "thread.metadata.update",
+            commandId: CommandId.make("bot:configure"),
+            threadId,
+            bot,
+          });
+          const send = (name: string) =>
+            orchestrator.dispatch({
+              type: "message.dispatch",
+              createdBy: "user",
+              creationSource: "web",
+              commandId: CommandId.make(`bot:${name}`),
+              threadId,
+              messageId: MessageId.make(`bot:message:${name}`),
+              text: name,
+              attachments: [],
+              modelSelection: CLAUDE_MODEL_SELECTION,
+              dispatchMode: { type: "queue_after_active" },
+            });
+          for (const name of ["first", "second"]) {
+            yield* send(name);
+            yield* worker.drain();
+            yield* waitForIdle(threadId);
+          }
+          yield* Ref.set(backgroundWork, true);
+          yield* send("third");
+          yield* worker.drain();
+          yield* waitForIdle(threadId);
+          const turns = yield* Ref.get(capturedTurns);
+          const first = turns.find((turn) => turn.text.endsWith("first"));
+          const second = turns.find((turn) => turn.text.endsWith("second"));
+          const third = turns.find((turn) => turn.text.endsWith("third"));
+          assert.isDefined(first);
+          assert.isDefined(second);
+          assert.isDefined(third);
+          assert.notEqual(first!.nativeThreadId, second!.nativeThreadId);
+          assert.equal(third!.nativeThreadId, second!.nativeThreadId);
+          assert.include(second!.text, bot.skillPath);
+          assert.include(second!.text, bot.statePath);
+          const projection = yield* orchestrator.getThreadProjection(threadId);
+          assert.equal(projection.messages.filter((message) => message.role === "user").length, 3);
+        }).pipe(
+          Effect.provide(
+            ProviderReplayHarness.layerWithRegistry(
+              {
+                name: "bot-context",
+                runtimePolicyOverride: {
+                  cwd,
+                  approvalPolicy: "never",
+                  sandboxPolicy: {
+                    type: "readOnly",
+                    access: { type: "fullAccess" },
+                    networkAccess: false,
+                  },
+                },
+              },
+              layerRegistry,
+            ),
+          ),
+        );
+      }),
+  );
+
   it.live("keeps the user's conversation after a scheduled fresh run in the same thread", () =>
     Effect.gen(function* () {
       const cwd = yield* checkpointWorkspace("scheduled-fresh-user-chat");

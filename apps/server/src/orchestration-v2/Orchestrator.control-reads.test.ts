@@ -3016,3 +3016,49 @@ it.effect(
       assert.equal(yield* captureReads, quietParent);
     }).pipe(Effect.provide(layerTest)),
 );
+
+it.effect(
+  "persists bot settings in both projections and shell reads and removes them without history loss",
+  () =>
+    Effect.gen(function* () {
+      const orchestrator = yield* Orchestrator.OrchestratorV2;
+      const projections = yield* ProjectionStore.ProjectionStoreV2;
+      const threadId = ThreadId.make("thread:bot-settings");
+      yield* orchestrator.dispatch({
+        type: "thread.create",
+        commandId: CommandId.make("create-bot"),
+        threadId,
+        projectId: ProjectId.make("project:bot"),
+        title: "CoS",
+        modelSelection,
+        runtimeMode: "full-access",
+        interactionMode: "default",
+        branch: null,
+        worktreePath: null,
+        createdBy: "user",
+        creationSource: "web",
+      });
+      const bot = {
+        objective: "Organize work",
+        skillPath: "/skills/cos/SKILL.md",
+        statePath: "/work/cos",
+        freshAfterTurns: 12,
+      };
+      yield* orchestrator.dispatch({
+        type: "thread.metadata.update",
+        commandId: CommandId.make("enable-bot"),
+        threadId,
+        bot,
+      });
+      assert.deepEqual((yield* projections.getThreadProjection(threadId)).thread.bot, bot);
+      assert.deepEqual((yield* projections.getThreadShell(threadId))?.bot, bot);
+      yield* orchestrator.dispatch({
+        type: "thread.metadata.update",
+        commandId: CommandId.make("disable-bot"),
+        threadId,
+        bot: null,
+      });
+      assert.equal((yield* projections.getThreadShell(threadId))?.bot, null);
+      assert.equal((yield* projections.getThreadProjection(threadId)).thread.title, "CoS");
+    }).pipe(Effect.provide(layerTest)),
+);

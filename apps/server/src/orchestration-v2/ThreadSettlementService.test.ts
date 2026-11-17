@@ -160,6 +160,23 @@ describe("isAutoSettlementCandidate", () => {
     ).toBe(false);
   });
 
+  it("keeps a persistent bot available after its turn finishes", () => {
+    expect(
+      ThreadSettlementService.isAutoSettlementCandidate(
+        {
+          ...shell(),
+          bot: {
+            objective: "Organize work",
+            skillPath: "/skills/cos/SKILL.md",
+            statePath: "/work/state.sqlite",
+            freshAfterTurns: 12,
+          },
+        },
+        NOW_MS,
+      ),
+    ).toBe(false);
+  });
+
   it("never settles, or keeps snoozed, a thread whose guest is waiting on the owner", () => {
     expect(
       ThreadSettlementService.isAutoSettlementCandidate(

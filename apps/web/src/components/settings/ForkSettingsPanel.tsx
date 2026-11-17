@@ -29,6 +29,11 @@ const FORK_REPOSITORY_URL = "https://github.com/Dylan-Grinboju/t3code";
 
 const FORK_FEATURES = [
   {
+    title: "Persistent bots",
+    description:
+      "Make a thread a bot to keep it in the Bots section above your task list, with its objective and live status; right-click it for thread actions, and thread jump shortcuts include it. Quiet/Activity and Recent/History controls show which view is selected: Quiet shows replies and attention cards, Activity includes tool activity, and History includes older loaded exchanges; Work lists its conversations and workers, and fresh sessions reload its skill and work state without deleting history. Schedule checks through thread Automations.",
+  },
+  {
     title: "CLI permissions for integrations",
     description:
       "Local integrations can use t3 auth session issue --runtime-mode-ceiling auto to open Auto threads. Without that option, MCP connections keep requiring approval.",

@@ -187,7 +187,11 @@ export function newSubagentParentId(shell: EnvironmentThreadShell, nowMs: number
 function openTabIfNewSubagent(shell: EnvironmentThreadShell, ref: ScopedThreadRef): void {
   if (!readSubagentTabs()) return;
   const parentId = newSubagentParentId(shell, Date.now());
-  if (parentId !== null) openSubagentTab(scopeThreadRef(ref.environmentId, parentId), shell.id);
+  if (parentId !== null) {
+    const parentRef = scopeThreadRef(ref.environmentId, parentId);
+    if (readThreadShell(parentRef)?.bot) return;
+    openSubagentTab(parentRef, shell.id);
+  }
 }
 
 function closeGoneThreadTabs(gone: ReadonlySet<string>): void {

@@ -609,7 +609,7 @@ type SidebarThreadRowProps = {
 };
 
 // Mounted only while renaming, so each rename starts uncommitted.
-function ThreadRenameInput(props: {
+export function ThreadRenameInput(props: {
   title: string;
   onTitleChange: (title: string) => void;
   onCommit: () => void;
@@ -1075,6 +1075,7 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
       )}
       dir={textDirection(thread.title)}
     >
+      {thread.bot ? "Bot · " : ""}
       {thread.title}
     </span>
   );

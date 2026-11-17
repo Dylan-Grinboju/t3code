@@ -89,6 +89,7 @@ import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { toastManager } from "../ui/toast";
 import { Spinner } from "../ui/spinner";
 import { cn } from "~/lib/utils";
+import type { ThreadRelationshipLabels } from "../bots/botPresentation";
 import {
   THREAD_DETAILS_PANEL_CHEVRON_CLASS,
   THREAD_DETAILS_PANEL_ICON_CLASS,
@@ -434,6 +435,7 @@ export function ThreadRelationshipsPanel(props: {
   readonly threadId: ThreadId;
   readonly showLineage: boolean;
   readonly showSideChats: boolean;
+  readonly labels?: ThreadRelationshipLabels;
 }) {
   const ref = scopeThreadRef(props.environmentId, props.threadId);
   const projection = useQuietThreadProjection(ref)?.projection ?? null;
@@ -601,11 +603,16 @@ export function ThreadRelationshipsPanel(props: {
     rows: ReadonlyArray<LineageRow>;
     expanded: boolean;
   }> = [
-    { id: "related", label: null, rows: related, expanded: true },
-    { id: "active", label: null, rows: [...active, ...remoteActive], expanded: true },
+    { id: "related", label: props.labels?.related ?? null, rows: related, expanded: true },
+    {
+      id: "active",
+      label: props.labels?.active ?? null,
+      rows: [...active, ...remoteActive],
+      expanded: true,
+    },
     {
       id: "previous",
-      label: "Previous agents",
+      label: props.labels?.previous ?? "Previous agents",
       rows: [...previous, ...remotePrevious],
       expanded: false,
     },
@@ -983,8 +990,11 @@ export function ThreadRelationshipsPanel(props: {
     <>
       {lineageVisible ? (
         <ThreadDetailsSection
-          headingId="thread-details-lineage-heading"
-          title={runningCount > 0 ? `Lineage · ${runningCount} running` : "Lineage"}
+          headingId={props.labels?.lineageHeadingId ?? "thread-details-lineage-heading"}
+          title={
+            props.labels?.lineageTitle ??
+            (runningCount > 0 ? `Lineage · ${runningCount} running` : "Lineage")
+          }
           // A lone "Previous agents" row names itself; the heading returns for status or actions.
           showHeading={
             runningCount > 0 ||
@@ -1055,7 +1065,7 @@ export function ThreadRelationshipsPanel(props: {
       ) : null}
       {sideChatsVisible ? (
         <ThreadDetailsSection
-          headingId="thread-details-side-chats-heading"
+          headingId={props.labels?.sideChatsHeadingId ?? "thread-details-side-chats-heading"}
           title={runningSideChats > 0 ? `Side chats · ${runningSideChats} running` : "Side chats"}
           data-thread-side-chats-panel
         >

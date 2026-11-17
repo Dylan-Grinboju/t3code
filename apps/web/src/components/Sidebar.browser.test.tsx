@@ -211,6 +211,128 @@ describe("sidebar render isolation", () => {
   });
 });
 
+describe("bots sidebar", () => {
+  it("keeps bots above task rows without duplicating them, and restores normal rows on conversion", async () => {
+    const activeProject = project("active");
+    const bot = {
+      ...threadShell(activeProject.id, 0),
+      title: "Chief of Staff",
+      hasPendingUserInput: true,
+      bot: {
+        objective: "Organize work",
+        skillPath: "~/skill.md",
+        statePath: "~/work.sqlite",
+        freshAfterTurns: 12,
+      },
+    };
+    const task = { ...threadShell(activeProject.id, 1), title: "Coach my PR" };
+    vi.mocked(useProjects).mockReturnValue([activeProject]);
+    vi.mocked(useQuietThreadShells).mockReturnValue([task, bot]);
+    vi.mocked(useThreadRouteTarget).mockReturnValue({
+      kind: "server",
+      threadRef: { environmentId: bot.environmentId, threadId: bot.id },
+    });
+    vi.mocked(useHandleNewThread).mockReturnValue({
+      activeDraftThread: null,
+      activeThread: null,
+      defaultProjectRef: {
+        environmentId: activeProject.environmentId,
+        projectId: activeProject.id,
+      },
+      defaultProjectFallbackReady: true,
+      handleNewThread: vi.fn().mockResolvedValue(null),
+      routeDraftId: null,
+      routeThreadRef: { environmentId: bot.environmentId, threadId: bot.id },
+    });
+    const reveal = { observedKey: null, pendingKey: null };
+    vi.mocked(readEnvironmentScope).mockReturnValue(true);
+    vi.mocked(useEnvironmentScope).mockReturnValue(true);
+    const tree = () => (
+      <SidebarProvider>
+        <Sidebar routeReveal={reveal} />
+      </SidebarProvider>
+    );
+    await using screen = await render(tree());
+    await expect.element(screen.getByRole("navigation", { name: "Bots" })).toBeVisible();
+    await expect
+      .element(screen.getByRole("button", { name: /Chief of Staff/ }))
+      .toHaveAttribute("aria-current", "page");
+    await expect.element(screen.getByText("Needs you · Awaiting Input")).toBeVisible();
+    expect(
+      screen.container.querySelectorAll(`li[data-thread-item="${bot.environmentId}:${bot.id}"]`),
+    ).toHaveLength(0);
+    await expect.element(screen.getByText("Coach my PR").first()).toBeVisible();
+    await act(() =>
+      screen
+        .getByRole("button", { name: /Chief of Staff/ })
+        .element()
+        .focus(),
+    );
+    await userEvent.keyboard("{ArrowDown}");
+    await expect.element(screen.getByRole("button", { name: /Coach my PR/ })).toHaveFocus();
+    await userEvent.keyboard("{Home}");
+    await expect.element(screen.getByRole("button", { name: /Chief of Staff/ })).toHaveFocus();
+    await userEvent.keyboard("{F2}");
+    await expect
+      .element(screen.getByRole("textbox", { name: "Thread title" }))
+      .toHaveValue("Chief of Staff");
+    await userEvent.keyboard("{Escape}");
+    expect(reveal.pendingKey).toBeNull();
+    vi.mocked(useQuietThreadShells).mockReturnValue([task, { ...bot, bot: null }]);
+    await screen.rerender(tree());
+    await expect.element(screen.getByRole("navigation", { name: "Bots" })).not.toBeInTheDocument();
+    await expect.element(screen.getByText("Chief of Staff").first()).toBeVisible();
+  });
+});
+
+it("reveals an off-screen bot when navigation changes the active thread", async () => {
+  using stack = new DisposableStack();
+  const style = document.createElement("style");
+  style.textContent = appCss;
+  document.head.append(style);
+  stack.defer(() => style.remove());
+  const activeProject = project("active");
+  const bots = Array.from({ length: 20 }, (_, index) => ({
+    ...threadShell(activeProject.id, index),
+    title: `Bot ${String(index).padStart(2, "0")}`,
+    bot: {
+      objective: "Organize work",
+      skillPath: "~/skill.md",
+      statePath: "~/work.sqlite",
+      freshAfterTurns: 12,
+    },
+  }));
+  const ref = (index: number) => ({
+    environmentId: activeProject.environmentId,
+    threadId: bots[index]!.id,
+  });
+  vi.mocked(useProjects).mockReturnValue([activeProject]);
+  vi.mocked(useQuietThreadShells).mockReturnValue(bots);
+  vi.mocked(useThreadRouteTarget).mockReturnValue({ kind: "server", threadRef: ref(0) });
+  vi.mocked(useHandleNewThread).mockReturnValue({
+    activeDraftThread: null,
+    activeThread: null,
+    defaultProjectRef: { environmentId: activeProject.environmentId, projectId: activeProject.id },
+    defaultProjectFallbackReady: true,
+    handleNewThread: vi.fn().mockResolvedValue(null),
+    routeDraftId: null,
+    routeThreadRef: ref(0),
+  });
+  const reveal = { observedKey: null, pendingKey: null };
+  const tree = () => (
+    <SidebarProvider>
+      <Sidebar routeReveal={reveal} />
+    </SidebarProvider>
+  );
+  await using screen = await render(tree());
+  const target = screen.getByRole("button", { name: /Bot 19/ });
+  await expect.element(target).not.toBeInViewport();
+  vi.mocked(useThreadRouteTarget).mockReturnValue({ kind: "server", threadRef: ref(19) });
+  await screen.rerender(tree());
+  await expect.element(target).toBeInViewport();
+  expect(reveal.pendingKey).toBeNull();
+});
+
 describe("sidebar thread rename", () => {
   // regression: #35151 an untouched rename wrote back the title it opened with over a newer one
   it.each(["{Enter}", "{Tab}"])(
@@ -265,42 +387,81 @@ describe("sidebar thread rename", () => {
 });
 
 describe("sidebar thread menu", () => {
-  it("tells the menu whether the keyboard opened it", async () => {
-    const activeProject = project("active");
-    const thread = threadShell(activeProject.id, 0);
-    const threadRef = { environmentId: activeProject.environmentId, threadId: thread.id };
-    const show = vi.fn().mockResolvedValue(null);
-    vi.mocked(readLocalApi).mockReturnValue({ contextMenu: { show } } as unknown as LocalApi);
-    vi.mocked(useProjects).mockReturnValue([activeProject]);
-    vi.mocked(useQuietThreadShells).mockReturnValue([thread]);
-    vi.mocked(useThreadRouteTarget).mockReturnValue({ kind: "server", threadRef });
-    vi.mocked(useHandleNewThread).mockReturnValue({
-      activeDraftThread: null,
-      activeThread: null,
-      defaultProjectRef: {
-        environmentId: activeProject.environmentId,
-        projectId: activeProject.id,
-      },
-      defaultProjectFallbackReady: true,
-      handleNewThread: vi.fn().mockResolvedValue(null),
-      routeDraftId: null,
-      routeThreadRef: threadRef,
-    });
-    await using screen = await render(
-      <SidebarProvider>
-        <Sidebar routeReveal={{ observedKey: null, pendingKey: null }} />
-      </SidebarProvider>,
-    );
-    const row = screen.getByText("Thread 0").first();
-    await expect.element(row).toBeInTheDocument();
-    row.element().closest<HTMLElement>("[data-sidebar-row]")!.focus();
-    await userEvent.keyboard("{Shift>}{F10}{/Shift}");
-    await vi.waitFor(() => expect(show).toHaveBeenCalledTimes(1));
-    expect(show.mock.lastCall?.[2]).toBe("keyboard");
-    await userEvent.click(row, { button: "right" });
-    await vi.waitFor(() => expect(show).toHaveBeenCalledTimes(2));
-    expect(show.mock.lastCall?.[2]).toBe("mouse");
-  });
+  it.each(["normal", "snoozed bot", "settled bot"])(
+    "opens the %s menu with its current state and input source",
+    async (state) => {
+      const activeProject = project("active");
+      const thread = makeThreadFixture({
+        ...threadShell(activeProject.id, 0),
+        bot:
+          state === "normal"
+            ? null
+            : {
+                objective: "Organize work",
+                skillPath: "~/skill.md",
+                statePath: "~/work.sqlite",
+                freshAfterTurns: 12,
+              },
+        settledOverride: state === "settled bot" ? "settled" : null,
+        snoozedAt: state === "snoozed bot" ? "2026-01-01T00:00:00.000Z" : null,
+        snoozedUntil: state === "snoozed bot" ? "2099-01-01T00:00:00.000Z" : null,
+      });
+      vi.mocked(useServerConfigs).mockReturnValue(
+        new Map([
+          [
+            activeProject.environmentId,
+            {
+              environment: { capabilities: { threadAutoSettleOptOut: true } },
+              scratchWorkspaceRoot: null,
+              shellThreadFamilies: false,
+            } as unknown as EnvironmentServerConfig,
+          ],
+        ]),
+      );
+      vi.mocked(readEnvironmentScope).mockReturnValue(true);
+      const threadRef = { environmentId: activeProject.environmentId, threadId: thread.id };
+      const show = vi.fn().mockResolvedValue(null);
+      vi.mocked(readLocalApi).mockReturnValue({ contextMenu: { show } } as unknown as LocalApi);
+      vi.mocked(useProjects).mockReturnValue([activeProject]);
+      vi.mocked(useQuietThreadShells).mockReturnValue([thread]);
+      vi.mocked(useThreadRouteTarget).mockReturnValue({ kind: "server", threadRef });
+      vi.mocked(useHandleNewThread).mockReturnValue({
+        activeDraftThread: null,
+        activeThread: null,
+        defaultProjectRef: {
+          environmentId: activeProject.environmentId,
+          projectId: activeProject.id,
+        },
+        defaultProjectFallbackReady: true,
+        handleNewThread: vi.fn().mockResolvedValue(null),
+        routeDraftId: null,
+        routeThreadRef: threadRef,
+      });
+      await using screen = await render(
+        <SidebarProvider>
+          <Sidebar routeReveal={{ observedKey: null, pendingKey: null }} />
+        </SidebarProvider>,
+      );
+      const row = screen.getByText("Thread 0").first();
+      await expect.element(row).toBeInTheDocument();
+      await userEvent.click(row, { button: "right" });
+      await vi.waitFor(() => expect(show).toHaveBeenCalledTimes(1));
+      expect(show.mock.lastCall?.[0]).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: state === "settled bot" ? "unsettle" : "settle" }),
+          expect.objectContaining({ id: state === "snoozed bot" ? "unsnooze" : "snooze" }),
+        ]),
+      );
+      show.mockClear();
+      row.element().closest<HTMLElement>("[data-sidebar-row]")!.focus();
+      await userEvent.keyboard("{Shift>}{F10}{/Shift}");
+      await vi.waitFor(() => expect(show).toHaveBeenCalledTimes(1));
+      expect(show.mock.lastCall?.[2]).toBe("keyboard");
+      await userEvent.click(row, { button: "right" });
+      await vi.waitFor(() => expect(show).toHaveBeenCalledTimes(2));
+      expect(show.mock.lastCall?.[2]).toBe("mouse");
+    },
+  );
 });
 
 describe("sidebar settled pagination", () => {

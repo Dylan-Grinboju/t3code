@@ -1,3 +1,4 @@
+import { botTurnContext } from "./threadBot.ts";
 import { modelSelectionsEqual } from "@t3tools/shared/model";
 import { projectComposerContextForProvider } from "@t3tools/shared/composerContextReferences";
 import {
@@ -1745,7 +1746,14 @@ export const layer: Layer.Layer<
             sideChatHandoff === undefined || compact || goalCommand
               ? ""
               : sideChatHandoff.summaryText;
-          const context = [delivery.context, sideChatContext, restartNote]
+          const context = [
+            delivery.context,
+            sideChatContext,
+            restartNote,
+            compact || goalCommand || (turnInput.resume && session.resumeTurn !== undefined)
+              ? ""
+              : botTurnContext(projection.thread.bot),
+          ]
             .filter((part) => part !== "")
             .join("\n\n");
           const { restartContinuationOfRunId: _resumedRunId, ...promptedInput } = turnInput;
@@ -1824,6 +1832,7 @@ export const layer: Layer.Layer<
         retryHandoff.length === 0 &&
         sideChatHandoff === undefined &&
         restartNote === "" &&
+        projection.thread.bot == null &&
         !noteContinuation
           ? session
           : makeDeliverySession(session, startWithHandoffs);

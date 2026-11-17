@@ -270,6 +270,8 @@ import {
   type SidebarSweepAction,
 } from "./sidebar/SidebarThreadRow";
 import { SidebarDraftBlock } from "./sidebar/SidebarDraftBlock";
+import { BotsSidebar } from "./bots/BotsSidebar";
+import { visibleBots } from "./bots/botPresentation";
 import {
   SidebarProjectFolderHeader,
   sidebarFolderRowId,
@@ -452,6 +454,7 @@ function useSidebarThreads(input: {
     inboxReturns.getSnapshot,
   );
   const nowMinute = useNowMinute();
+  const botThreads = visibleBots(threads);
   // Minute-quantized clocks would delay second-precise snooze wakes by up to a minute.
   const snoozeWakeClock = useSnoozeWakeClock(threads);
   const [settledShelfExpanded, setSettledShelfExpanded] = useLocalStorage(
@@ -549,6 +552,7 @@ function useSidebarThreads(input: {
           };
         });
   const orderedThreads = [
+    ...botThreads,
     ...pinnedThreads,
     ...(projectFolders === null
       ? activeThreads
@@ -569,9 +573,11 @@ function useSidebarThreads(input: {
   }
   return {
     ...partition,
+    botThreads,
     threads,
     workingShelfEnabled,
     searchableThreads: [
+      ...botThreads,
       ...pinnedThreads,
       ...activeThreads,
       ...workingThreads,
@@ -628,7 +634,11 @@ function partitionSidebarThreads(input: SidebarThreadPartitionInput) {
     sortActiveBySend,
   } = input;
   const preciseNow = new Date().toISOString();
-  const visible = filterSidebarV2VisibleThreads(threads, scopedProjectKeys, delegatedUnderParent);
+  const visible = filterSidebarV2VisibleThreads(
+    threads,
+    scopedProjectKeys,
+    delegatedUnderParent,
+  ).filter((thread) => thread.bot == null);
   const inboxObservation = inboxReturns.observe(workingShelfEnabled ? threads : null);
   const pinned: EnvironmentThreadShell[] = [];
   const active: EnvironmentThreadShell[] = [];
@@ -1300,6 +1310,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
 
   const {
     workingShelfEnabled,
+    botThreads,
     pinnedThreads,
     draggableThreadKeys,
     activeReorderableThreadKeys,
@@ -1712,15 +1723,6 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
       if (listMotionRef.current === motion) listMotionRef.current = null;
       if (shiftGuardRef.current === shiftGuard) shiftGuardRef.current = null;
       if (threadListRef.current === node) threadListRef.current = null;
-    };
-  };
-
-  const attachTreeRef = (node: HTMLUListElement) => {
-    const detachMotion = attachListMotionRef(node);
-    const detachTree = attachSidebarTree(node);
-    return () => {
-      detachTree?.();
-      detachMotion();
     };
   };
 
@@ -2615,8 +2617,12 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
           serverConfigs.get(thread.environmentId)?.environment.capabilities
             .threadAutoSettleOptOut === true;
         const isRegeneratingTitle = thread.titleRegeneration != null;
-        const isSettled = settledThreadKeysRef.current.has(threadKey);
-        const isSnoozed = snoozedThreadKeysRef.current.has(threadKey);
+        const isSettled = thread.bot
+          ? configLoaded && thread.settledOverride === "settled"
+          : settledThreadKeysRef.current.has(threadKey);
+        const isSnoozed = thread.bot
+          ? configLoaded && effectiveSnoozed(thread, { now: new Date().toISOString() })
+          : snoozedThreadKeysRef.current.has(threadKey);
         const isPinned = thread.pinnedAt != null;
         const snoozePresets = resolveSnoozePresets(
           new Date(),
@@ -2967,7 +2973,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
       : undefined);
   const newThreadInProjectShortcutLabel = shortcutLabelForCommand(keybindings, "chat.newLocal");
   return (
-    <SidebarFolderDrop>
+    <SidebarFolderDrop ref={attachSidebarTree}>
       <SidebarChromeHeader isElectron={isElectron} />
       <SidebarContent
         ref={sidebarContentRef}
@@ -3201,6 +3207,22 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
               activeSearchResultIndex={activeSearchResultIndex}
               onClearSearch={clearThreadSearch}
             />
+            {!isSearchingThreads && (
+              <BotsSidebar
+                bots={botThreads}
+                activeKey={routeRowThreadKey}
+                renamingKey={renamingThreadKey}
+                renamingTitle={renamingTitle}
+                jumpLabelByKey={showJumpHints ? jumpLabelByKey : null}
+                onOpen={navigateToThread}
+                onContextMenu={handleThreadContextMenu}
+                revealActiveRow={revealActiveRow}
+                onStartRename={startThreadRename}
+                onRenameTitleChange={setRenamingTitle}
+                onCommitRename={commitThreadRename}
+                onCancelRename={cancelThreadRename}
+              />
+            )}
           </SidebarGroup>
         }
       >
@@ -3323,6 +3345,8 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                     Show all projects
                   </button>
                 </>
+              ) : botThreads.length > 0 ? (
+                "No task threads yet"
               ) : (
                 "No threads yet"
               )}
@@ -3346,7 +3370,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
               >
                 <SortableContext items={sortableIds} strategy={sidebarSortingStrategy}>
                   <ul
-                    ref={attachTreeRef}
+                    ref={attachListMotionRef}
                     // Presentation flattens VoiceOver's list interaction boundary while preserving descendant
                     // controls.
                     role="presentation"

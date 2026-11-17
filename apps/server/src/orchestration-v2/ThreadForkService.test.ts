@@ -149,6 +149,12 @@ it.effect("resets a fork's pin, snooze, settle and delegation state but keeps it
         threadId: ThreadId.make("linked-parent"),
         title: "Linked parent",
       },
+      bot: {
+        objective: "Organize work",
+        skillPath: "/skills/cos/SKILL.md",
+        statePath: "/work/state.sqlite",
+        freshAfterTurns: 12,
+      },
       historyOrigin: "v1_import",
       linkOrigin,
       tags: ["private"],
@@ -167,6 +173,7 @@ it.effect("resets a fork's pin, snooze, settle and delegation state but keeps it
     assert.isNull(result.targetThread.activeOrderKey);
     assert.isNull(result.targetThread.autoSettleDisabledAt);
     assert.isUndefined(result.targetThread.delegatedFrom);
+    assert.isNull(result.targetThread.bot);
     assert.equal(result.targetThread.historyOrigin, "v1_import");
     assert.deepEqual(result.targetThread.linkOrigin, linkOrigin);
     assert.deepEqual(result.targetThread.tags, ["private"]);
