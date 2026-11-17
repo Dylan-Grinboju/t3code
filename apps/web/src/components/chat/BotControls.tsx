@@ -123,7 +123,7 @@ export function BotControls({
             />
           </label>
           <label className="grid gap-1">
-            Skill path on this machine
+            Skill path on the environment's machine
             <Input
               name="skillPath"
               required

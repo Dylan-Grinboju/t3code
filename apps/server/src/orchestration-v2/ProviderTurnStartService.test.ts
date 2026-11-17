@@ -2112,6 +2112,33 @@ effectIt.effect("sends new steering text when restarting a manual continuation",
   }),
 );
 
+effectIt.effect("resumes a bot natively instead of prompting with its charter", () =>
+  Effect.gen(function* () {
+    const harness = makeLocalCommandHarness({
+      text: "",
+      manualContinuation: true,
+      sideChat: { contextRun: "delivered" },
+    });
+    const projection = harness.projection();
+    harness.setProjection({
+      ...projection,
+      thread: {
+        ...projection.thread,
+        bot: {
+          objective: "Organize work",
+          skillPath: "/skills/cos/SKILL.md",
+          statePath: "/work/cos",
+          freshAfterTurns: 12,
+        },
+      },
+    });
+    yield* harness.start;
+    expect(harness.startTurn.mock.calls.map(([turn]) => [turn.message.text, turn.resume])).toEqual([
+      ["", true],
+    ]);
+  }),
+);
+
 effectIt.effect("refuses unsupported resume instead of manufacturing a user prompt", () =>
   Effect.gen(function* () {
     const harness = makeLocalCommandHarness({

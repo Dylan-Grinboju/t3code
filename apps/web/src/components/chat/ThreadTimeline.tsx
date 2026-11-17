@@ -10,7 +10,8 @@ import {
   timelineHasEphemeralPreviewUrls,
 } from "../ChatView.logic";
 import { BotControls } from "./BotControls";
-import { quietBotEntries } from "./botTimeline";
+import { botTimelineEntries } from "./botTimeline";
+import { useThreadFindOpen } from "./threadFindStore";
 import { MessagesTimeline } from "./MessagesTimeline";
 
 /**
@@ -42,6 +43,7 @@ export function ThreadTimeline({
   const [view, setView] = useState({ key: activeThreadKey, activity: false, history: false });
   const activity = view.key === activeThreadKey && view.activity;
   const history = view.key === activeThreadKey && view.history;
+  const findOpen = useThreadFindOpen(threadDetailRef, bot != null);
   const visibleTurnItems = useTimelineVisibleTurnItems(threadDetailRef);
   const serverEntries = useIncrementalTimelineEntries(activeThreadKey, {
     ...entriesInput,
@@ -77,9 +79,13 @@ export function ThreadTimeline({
       )}
       <MessagesTimeline
         {...timelineProps}
-        timelineEntries={
-          bot && !activity ? quietBotEntries(displayedEntries, history) : displayedEntries
-        }
+        timelineEntries={botTimelineEntries({
+          entries: displayedEntries,
+          bot: bot != null,
+          activity,
+          history,
+          findOpen,
+        })}
       />
     </>
   );

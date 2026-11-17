@@ -1,26 +1,39 @@
-import type { OrchestrationV2Run, ThreadBot } from "@t3tools/contracts";
+import {
+  isCompactionCommandMessage,
+  type OrchestrationV2Run,
+  type OrchestrationV2TurnItem,
+  type ThreadBot,
+} from "@t3tools/contracts";
+
+const TERMINAL_RUN_STATUSES = ["completed", "failed", "cancelled", "interrupted", "rolled_back"];
 
 export function botNeedsFreshContext(
-  bot: ThreadBot | null | undefined,
-  runs: ReadonlyArray<Pick<OrchestrationV2Run, "ordinal" | "status" | "freshContext">>,
+  bot: ThreadBot,
+  runs: ReadonlyArray<
+    Pick<OrchestrationV2Run, "ordinal" | "status" | "userMessageId" | "delegatedCompletion">
+  >,
+  turnItems: ReadonlyArray<OrchestrationV2TurnItem>,
+  contextBoundary: number,
 ): boolean {
-  if (
-    !bot ||
-    runs.some(
-      (run) =>
-        !["completed", "failed", "cancelled", "interrupted", "rolled_back"].includes(run.status),
-    )
-  )
-    return false;
-  const boundary = Math.max(
-    0,
-    ...runs
-      .filter((run) => run.freshContext && run.status === "completed")
-      .map((run) => run.ordinal),
+  if (runs.some((run) => !TERMINAL_RUN_STATUSES.includes(run.status))) return false;
+  const interactiveMessageIds = new Set(
+    turnItems.flatMap((item) =>
+      item.type === "user_message" &&
+      item.createdBy === "user" &&
+      item.scheduledTaskId === undefined &&
+      !isCompactionCommandMessage({ ...item, role: "user" })
+        ? [item.messageId]
+        : [],
+    ),
   );
   return (
-    runs.filter((run) => run.ordinal >= boundary && run.status === "completed").length >=
-    bot.freshAfterTurns
+    runs.filter(
+      (run) =>
+        run.ordinal >= contextBoundary &&
+        run.status === "completed" &&
+        run.delegatedCompletion === undefined &&
+        interactiveMessageIds.has(run.userMessageId),
+    ).length >= bot.freshAfterTurns
   );
 }
 

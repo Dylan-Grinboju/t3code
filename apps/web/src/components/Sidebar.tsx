@@ -272,7 +272,6 @@ import {
 import { SidebarDraftBlock } from "./sidebar/SidebarDraftBlock";
 import { BotsSidebar } from "./bots/BotsSidebar";
 import { visibleBots } from "./bots/botPresentation";
-import { useHiddenThreadKeys } from "../state/entities";
 import {
   SidebarProjectFolderHeader,
   sidebarFolderRowId,
@@ -455,8 +454,7 @@ function useSidebarThreads(input: {
     inboxReturns.getSnapshot,
   );
   const nowMinute = useNowMinute();
-  const hiddenThreadKeys = useHiddenThreadKeys();
-  const botThreads = visibleBots(threads, hiddenThreadKeys);
+  const botThreads = visibleBots(threads);
   // Minute-quantized clocks would delay second-precise snooze wakes by up to a minute.
   const snoozeWakeClock = useSnoozeWakeClock(threads);
   const [settledShelfExpanded, setSettledShelfExpanded] = useLocalStorage(
@@ -554,6 +552,7 @@ function useSidebarThreads(input: {
           };
         });
   const orderedThreads = [
+    ...botThreads,
     ...pinnedThreads,
     ...(projectFolders === null
       ? activeThreads
@@ -3217,7 +3216,14 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
               <BotsSidebar
                 bots={botThreads}
                 activeKey={routeRowThreadKey}
+                renamingKey={renamingThreadKey}
+                renamingTitle={renamingTitle}
+                jumpLabelByKey={showJumpHints ? jumpLabelByKey : null}
                 onOpen={navigateToThread}
+                onContextMenu={handleThreadContextMenu}
+                onRenameTitleChange={setRenamingTitle}
+                onCommitRename={commitThreadRename}
+                onCancelRename={cancelThreadRename}
               />
             )}
           </SidebarGroup>

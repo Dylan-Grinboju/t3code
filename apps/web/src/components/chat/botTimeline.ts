@@ -20,7 +20,7 @@ export function quietBotEntries(
         return !entry.message.scheduledTaskId && !entry.message.idleCompaction;
       const item = entry.projectedItem?.item;
       return item?.type === "assistant_message"
-        ? item.phase === "final_answer" || (item.phase == null && !item.streaming)
+        ? item.phase === "final_answer" || item.phase == null
         : entry.message.role === "assistant";
     }
     if (entry.kind === "event") return attentionTypes.has(entry.projectedItem.item.type);
@@ -37,4 +37,15 @@ export function quietBotEntries(
       entry.kind === "work" ||
       entry.kind === "proposed-plan",
   );
+}
+
+export function botTimelineEntries(input: {
+  entries: ReadonlyArray<TimelineEntry>;
+  bot: boolean;
+  activity: boolean;
+  history: boolean;
+  findOpen: boolean;
+}): ReadonlyArray<TimelineEntry> {
+  if (!input.bot || input.activity || input.findOpen) return input.entries;
+  return quietBotEntries(input.entries, input.history);
 }

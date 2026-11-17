@@ -1,21 +1,11 @@
-import { scopedThreadKey } from "@t3tools/client-runtime/environment";
 import type { EnvironmentThreadShell, ThreadStructure } from "@t3tools/client-runtime/state/shell";
 import type { ThreadId } from "@t3tools/contracts";
 import { resolveThreadStatusPill } from "../Sidebar.logic";
 
-export function visibleBots(
-  threads: ReadonlyArray<EnvironmentThreadShell>,
-  hiddenKeys: ReadonlySet<string>,
-) {
+export function visibleBots(threads: ReadonlyArray<EnvironmentThreadShell>) {
   return threads
     .filter(
-      (thread) =>
-        thread.bot != null &&
-        thread.archivedAt === null &&
-        thread.deletedAt === null &&
-        !hiddenKeys.has(
-          scopedThreadKey({ environmentId: thread.environmentId, threadId: thread.id }),
-        ),
+      (thread) => thread.bot != null && thread.archivedAt === null && thread.deletedAt === null,
     )
     .toSorted(
       (left, right) => left.title.localeCompare(right.title) || left.id.localeCompare(right.id),
@@ -43,3 +33,14 @@ export function botCreatedConversations(projection: Pick<ThreadStructure, "turnI
   }
   return [...conversations].map(([threadId, title]) => ({ threadId, title }));
 }
+
+export const BOT_RELATIONSHIP_LABELS = {
+  related: "Related conversations",
+  active: "Background workers",
+  previous: "Finished workers",
+  lineageTitle: "Work details",
+  lineageHeadingId: "bot-work-details-heading",
+  sideChatsHeadingId: "bot-work-side-chats-heading",
+};
+
+export type ThreadRelationshipLabels = typeof BOT_RELATIONSHIP_LABELS;

@@ -1,5 +1,4 @@
 import { expect, it } from "vite-plus/test";
-import { scopeThreadRef, scopedThreadKey } from "@t3tools/client-runtime/environment";
 import { ThreadId } from "@t3tools/contracts";
 import { makeThreadFixture } from "../../test-fixtures";
 import { botStatus, visibleBots } from "./botPresentation";
@@ -11,7 +10,7 @@ const bot = {
   freshAfterTurns: 12,
 };
 
-it("keeps bots visible across task states, excludes hidden and archived bots, and orders by identity", () => {
+it("keeps bots visible across task states, excludes archived bots, and orders by identity", () => {
   const chief = makeThreadFixture({
     id: ThreadId.make("chief"),
     title: "Chief of Staff",
@@ -24,20 +23,14 @@ it("keeps bots visible across task states, excludes hidden and archived bots, an
     bot,
     snoozedUntil: "2099-01-01T00:00:00Z",
   });
-  const hidden = makeThreadFixture({ id: ThreadId.make("hidden"), bot });
   const archived = makeThreadFixture({
     id: ThreadId.make("archived"),
     bot,
     archivedAt: "2026-01-01T00:00:00Z",
   });
-  const threads = [reviews, hidden, archived, makeThreadFixture(), chief];
-  expect(
-    visibleBots(
-      threads,
-      new Set([scopedThreadKey(scopeThreadRef(hidden.environmentId, hidden.id))]),
-    ),
-  ).toEqual([chief, reviews]);
-  expect(visibleBots([{ ...chief, bot: null }], new Set())).toEqual([]);
+  const threads = [reviews, archived, makeThreadFixture(), chief];
+  expect(visibleBots(threads)).toEqual([chief, reviews]);
+  expect(visibleBots([{ ...chief, bot: null }])).toEqual([]);
 });
 
 it("surfaces required user actions before working status", () => {

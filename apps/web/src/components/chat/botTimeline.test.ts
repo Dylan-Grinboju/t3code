@@ -2,9 +2,9 @@ import { expect, it } from "vite-plus/test";
 import { MessageId, ScheduledTaskId } from "@t3tools/contracts";
 import { makeStreamingTimelineFixture } from "../../test-fixtures";
 import { deriveTimelineEntriesFromVisibleTurnItems, type TimelineEntry } from "../../session-logic";
-import { quietBotEntries } from "./botTimeline";
+import { botTimelineEntries, quietBotEntries } from "./botTimeline";
 
-it("hides tool narration and scheduled prompts while preserving final response objects for citations", () => {
+it("hides tool narration and scheduled prompts while showing phase-less replies as they stream", () => {
   const fixture = makeStreamingTimelineFixture("Working...");
   const entries = deriveTimelineEntriesFromVisibleTurnItems({
     visibleTurnItems: fixture.visibleTurnItems,
@@ -15,8 +15,21 @@ it("hides tool narration and scheduled prompts while preserving final response o
     "history-user",
     "history-assistant",
     "live-user",
+    "live-assistant",
   ]);
   expect(visible[1]).toBe(entries.find((entry) => entry.id === "history-assistant"));
+  const commentary = deriveTimelineEntriesFromVisibleTurnItems({
+    visibleTurnItems: fixture.visibleTurnItems.map((row) =>
+      row.item.type === "assistant_message"
+        ? { ...row, item: { ...row.item, phase: "commentary" as const } }
+        : row,
+    ),
+    optimisticMessages: [],
+  });
+  expect(quietBotEntries(commentary, false).map((entry) => entry.id)).toEqual([
+    "history-user",
+    "live-user",
+  ]);
   const user = visible[0];
   if (user?.kind !== "message") throw new Error("Missing user message");
   expect(
@@ -59,4 +72,16 @@ it("keeps older attention cards and restores old messages through History withou
   expect(quietBotEntries(history, false)).toEqual([approval, ...entries.slice(-30)]);
   expect(quietBotEntries(history, true)).toEqual(history);
   expect(history).toHaveLength(41);
+});
+
+it("shows every entry while Find is open so its matches stay reachable", () => {
+  const fixture = makeStreamingTimelineFixture("Working...");
+  const entries = deriveTimelineEntriesFromVisibleTurnItems({
+    visibleTurnItems: fixture.visibleTurnItems,
+    optimisticMessages: [],
+  });
+  const view = { entries, bot: true, activity: false, history: false };
+  expect(botTimelineEntries({ ...view, findOpen: true })).toBe(entries);
+  expect(botTimelineEntries({ ...view, findOpen: false })).toEqual(quietBotEntries(entries, false));
+  expect(botTimelineEntries({ ...view, bot: false, findOpen: false })).toBe(entries);
 });

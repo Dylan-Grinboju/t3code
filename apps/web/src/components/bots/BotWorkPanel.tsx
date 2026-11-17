@@ -8,7 +8,7 @@ import {
 } from "../../state/entities";
 import { buildThreadRouteParams } from "../../threadRoutes";
 import { ThreadRelationshipsPanel } from "../chat/ThreadRelationshipsControl";
-import { botCreatedConversations, botStatus } from "./botPresentation";
+import { BOT_RELATIONSHIP_LABELS, botCreatedConversations, botStatus } from "./botPresentation";
 
 function WorkConversation({
   threadRef,
@@ -71,7 +71,7 @@ export function BotWorkPanel({ threadRef }: { threadRef: ScopedThreadRef }) {
         threadId={threadRef.threadId}
         showLineage
         showSideChats
-        presentation="bot"
+        labels={BOT_RELATIONSHIP_LABELS}
       />
       {(projection?.subagents.length ?? 0) === 0 && (
         <p className="py-2 text-xs text-muted-foreground">

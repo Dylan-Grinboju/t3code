@@ -1750,7 +1750,9 @@ export const layer: Layer.Layer<
             delivery.context,
             sideChatContext,
             restartNote,
-            compact || goalCommand ? "" : botTurnContext(projection.thread.bot),
+            compact || goalCommand || (turnInput.resume && session.resumeTurn !== undefined)
+              ? ""
+              : botTurnContext(projection.thread.bot),
           ]
             .filter((part) => part !== "")
             .join("\n\n");

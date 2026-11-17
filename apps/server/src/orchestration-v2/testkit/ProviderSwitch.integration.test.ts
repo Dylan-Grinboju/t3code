@@ -3562,6 +3562,7 @@ describe("orchestration v2 provider switching", () => {
       Effect.gen(function* () {
         const cwd = yield* checkpointWorkspace("bot-context");
         const capturedTurns = yield* Ref.make<ReadonlyArray<CapturedTurn>>([]);
+        const backgroundWork = yield* Ref.make(false);
         const layerRegistry = ProviderAdapterRegistry.layerFromAdapters([
           makeTestAdapter({
             instanceId: CLAUDE_MODEL_SELECTION.instanceId,
@@ -3570,6 +3571,7 @@ describe("orchestration v2 provider switching", () => {
             modelSelection: CLAUDE_MODEL_SELECTION,
             responseByRunOrdinal: {},
             capturedTurns,
+            backgroundWork,
             nativeThreadGeneration: yield* Ref.make(0),
           }),
         ]);
@@ -3603,8 +3605,8 @@ describe("orchestration v2 provider switching", () => {
             threadId,
             bot,
           });
-          for (const name of ["first", "second"]) {
-            yield* orchestrator.dispatch({
+          const send = (name: string) =>
+            orchestrator.dispatch({
               type: "message.dispatch",
               createdBy: "user",
               creationSource: "web",
@@ -3616,19 +3618,28 @@ describe("orchestration v2 provider switching", () => {
               modelSelection: CLAUDE_MODEL_SELECTION,
               dispatchMode: { type: "queue_after_active" },
             });
+          for (const name of ["first", "second"]) {
+            yield* send(name);
             yield* worker.drain();
             yield* waitForIdle(threadId);
           }
+          yield* Ref.set(backgroundWork, true);
+          yield* send("third");
+          yield* worker.drain();
+          yield* waitForIdle(threadId);
           const turns = yield* Ref.get(capturedTurns);
           const first = turns.find((turn) => turn.text.endsWith("first"));
           const second = turns.find((turn) => turn.text.endsWith("second"));
+          const third = turns.find((turn) => turn.text.endsWith("third"));
           assert.isDefined(first);
           assert.isDefined(second);
+          assert.isDefined(third);
           assert.notEqual(first!.nativeThreadId, second!.nativeThreadId);
+          assert.equal(third!.nativeThreadId, second!.nativeThreadId);
           assert.include(second!.text, bot.skillPath);
           assert.include(second!.text, bot.statePath);
           const projection = yield* orchestrator.getThreadProjection(threadId);
-          assert.equal(projection.messages.filter((message) => message.role === "user").length, 2);
+          assert.equal(projection.messages.filter((message) => message.role === "user").length, 3);
         }).pipe(
           Effect.provide(
             ProviderReplayHarness.layerWithRegistry(
