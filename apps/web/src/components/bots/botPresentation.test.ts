@@ -1,5 +1,5 @@
 import { expect, it } from "vite-plus/test";
-import { ThreadId } from "@t3tools/contracts";
+import { EnvironmentId, ThreadId } from "@t3tools/contracts";
 import { makeThreadFixture } from "../../test-fixtures";
 import { botStatus, visibleBots } from "./botPresentation";
 
@@ -28,7 +28,26 @@ it("keeps bots visible across task states, excludes archived bots, and orders by
     bot,
     archivedAt: "2026-01-01T00:00:00Z",
   });
-  const threads = [reviews, archived, makeThreadFixture(), chief];
+  const worker = makeThreadFixture({
+    id: ThreadId.make("worker"),
+    bot,
+    lineage: { parentThreadId: chief.id, rootThreadId: chief.id, relationshipToParent: "subagent" },
+  });
+  const remoteWorker = makeThreadFixture({
+    id: ThreadId.make("remote-worker"),
+    bot,
+    delegatedFrom: {
+      environmentId: EnvironmentId.make("remote"),
+      threadId: chief.id,
+      title: chief.title,
+    },
+  });
+  const sideChat = {
+    ...worker,
+    id: ThreadId.make("side-chat"),
+    lineage: { ...worker.lineage, relationshipToParent: "fork" as const, sideChat: true },
+  };
+  const threads = [reviews, archived, makeThreadFixture(), chief, worker, remoteWorker, sideChat];
   expect(visibleBots(threads)).toEqual([chief, reviews]);
   expect(visibleBots([{ ...chief, bot: null }])).toEqual([]);
 });

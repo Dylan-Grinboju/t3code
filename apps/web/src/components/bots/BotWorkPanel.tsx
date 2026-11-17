@@ -2,7 +2,7 @@ import { ArrowUpRightIcon, MessagesSquareIcon, WorkflowIcon } from "lucide-react
 import { cn } from "../../lib/utils";
 import { Link } from "@tanstack/react-router";
 import { scopeThreadRef, scopedThreadKey } from "@t3tools/client-runtime/environment";
-import type { ScopedThreadRef } from "@t3tools/contracts";
+import { isListedThreadLineage, type ScopedThreadRef } from "@t3tools/contracts";
 import {
   useHiddenThreadKeys,
   useQuietThreadProjection,
@@ -20,7 +20,12 @@ function WorkConversation({
   fallbackTitle: string;
 }) {
   const shell = useQuietThreadShell(threadRef);
-  if (shell?.deletedAt != null || shell?.archivedAt != null) return null;
+  if (
+    shell?.deletedAt != null ||
+    shell?.archivedAt != null ||
+    (shell && (shell.delegatedFrom != null || !isListedThreadLineage(shell.lineage)))
+  )
+    return null;
   return (
     <Link
       to="/$environmentId/$threadId"
@@ -58,35 +63,31 @@ export function BotWorkPanel({ threadRef }: { threadRef: ScopedThreadRef }) {
   );
   return (
     <section aria-label="Bot work" className="max-h-[60dvh] overflow-y-auto overscroll-contain p-4">
-      <div className="flex items-center gap-2">
-        <MessagesSquareIcon aria-hidden className="size-4 text-primary" />
-        <h3 className="text-sm font-medium">Work conversations</h3>
-      </div>
-      <p className="mb-3 mt-1 text-xs leading-relaxed text-muted-foreground">
-        Normal T3 threads you can continue. Showing links from loaded history.
-      </p>
-      {conversations.length === 0 && (
-        <div className="rounded-lg border border-dashed bg-muted/20 px-4 py-5">
-          <p className="text-xs font-medium">Room for your next move</p>
-          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            When your bot creates a conversation, pick it up here. No conversations in loaded
-            history yet.
+      {conversations.length > 0 && (
+        <div className="mb-4 border-b pb-4">
+          <div className="flex items-center gap-2">
+            <MessagesSquareIcon aria-hidden className="size-4 text-primary" />
+            <h3 className="text-sm font-medium">Conversations to continue</h3>
+          </div>
+          <p className="mb-2 mt-1 text-xs leading-relaxed text-muted-foreground">
+            Separate threads opened by this bot for work that needs your involvement.
           </p>
+          {conversations.map(({ threadId, title }) => (
+            <WorkConversation
+              key={threadId}
+              threadRef={scopeThreadRef(threadRef.environmentId, threadId)}
+              fallbackTitle={title}
+            />
+          ))}
         </div>
       )}
-      {conversations.map(({ threadId, title }) => (
-        <WorkConversation
-          key={threadId}
-          threadRef={scopeThreadRef(threadRef.environmentId, threadId)}
-          fallbackTitle={title}
-        />
-      ))}
-      <div className="mt-4 flex items-center gap-2 border-t pt-4">
+      <div className="flex items-center gap-2">
         <WorkflowIcon aria-hidden className="size-4 text-primary" />
-        <h3 className="text-sm font-medium">Workers and related conversations</h3>
+        <h3 className="text-sm font-medium">Workers</h3>
       </div>
       <p className="mb-3 mt-1 text-xs leading-relaxed text-muted-foreground">
-        Inspect delegated work here. Background workers stay out of your task list.
+        Background work stays here. Ask the bot to continue important work in a normal conversation,
+        including after a worker finishes.
       </p>
       <ThreadRelationshipsPanel
         environmentId={threadRef.environmentId}

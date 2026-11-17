@@ -5725,7 +5725,10 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
     // A side chat may open during the parent's first turn; it starts from a digest instead.
     if (
       sourceRun === null &&
-      !(command.sideChat === true && command.sourcePoint.type === "latest_stable")
+      !(
+        (command.sideChat === true || isProviderNativeSubagentThread(sourceProjection.thread)) &&
+        command.sourcePoint.type === "latest_stable"
+      )
     ) {
       return yield* new OrchestratorDispatchError({
         commandId: command.commandId,
@@ -8412,8 +8415,17 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
     // Opened during the parent's first turn: the digest is the whole context.
     const sideChatWithoutSource =
       sideChatFork && pendingForkTransfer.sourcePoint.runId === undefined;
+    const nativeWorkerWithoutSource =
+      pendingForkTransfer !== undefined &&
+      pendingForkTransfer.sourcePoint.runId === undefined &&
+      sourceProjection !== null &&
+      isProviderNativeSubagentThread(sourceProjection.thread);
     if (pendingForkTransfer !== undefined) {
-      if (!sideChatWithoutSource && (sourceRun === null || sourceProviderThread === undefined)) {
+      if (
+        !sideChatWithoutSource &&
+        !nativeWorkerWithoutSource &&
+        (sourceRun === null || sourceProviderThread === undefined)
+      ) {
         return yield* new OrchestratorDispatchError({
           commandId: command.commandId,
           commandType: command.type,
@@ -8501,8 +8513,19 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
               sourceBusy: sourceRunsAfterFork.some(isActiveRun),
             }),
           );
+    if (nativeWorkerWithoutSource) {
+      yield* mapDispatchError(command)(
+        commandPolicy.ensureContextHandoff({
+          commandId: command.commandId,
+          threadId: command.threadId,
+          providerInstanceId: modelSelection.instanceId,
+          capabilities,
+          strategy: "full_thread_summary",
+        }),
+      );
+    }
     const canResolveForkNatively = forkExecution === "native_fork";
-    const requiresPortableFork = forkExecution === "portable_context";
+    const requiresPortableFork = forkExecution === "portable_context" || nativeWorkerWithoutSource;
 
     if (canResolveForkNatively) {
       yield* mapDispatchError(command)(
@@ -8553,19 +8576,18 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
             updatedAt: now,
           };
     const portableForkItems =
-      !requiresPortableFork || sourceProjection === null || sourceRun === null
+      !requiresPortableFork || sourceProjection === null
         ? []
-        : yield* readForkHistoryItems(projectionStore, sourceProjection, sourceRun).pipe(
-            Effect.mapError(
-              (cause) =>
-                new OrchestratorProjectionError({ threadId: sourceProjection.thread.id, cause }),
-            ),
-          );
+        : sourceRun === null
+          ? yield* readHandoffItems(sourceProjection.thread.id, [null])
+          : yield* readForkHistoryItems(projectionStore, sourceProjection, sourceRun).pipe(
+              Effect.mapError(
+                (cause) =>
+                  new OrchestratorProjectionError({ threadId: sourceProjection.thread.id, cause }),
+              ),
+            );
     const portableForkHandoff =
-      !requiresPortableFork ||
-      pendingForkTransfer === undefined ||
-      sourceProjection === null ||
-      sourceRun === null
+      !requiresPortableFork || pendingForkTransfer === undefined || sourceProjection === null
         ? null
         : yield* contextHandoffService
             .prepareProviderHandoff({
@@ -8576,7 +8598,8 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
               fromProviderThreadIds:
                 sourceProviderThread === undefined ? [] : [sourceProviderThread.id],
               toProviderThreadId: ensuredProviderThread.id,
-              fromProviderInstanceId: sourceRun.providerInstanceId,
+              fromProviderInstanceId:
+                sourceRun?.providerInstanceId ?? sourceProjection.thread.providerInstanceId,
               toProviderInstanceId: modelSelection.instanceId,
               coveredRunOrdinals: visibleDeltaRunOrdinals(sourceProjection, portableForkItems),
               strategy: "full_thread_summary",

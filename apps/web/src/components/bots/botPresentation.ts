@@ -1,11 +1,16 @@
 import type { EnvironmentThreadShell, ThreadStructure } from "@t3tools/client-runtime/state/shell";
-import type { ThreadId } from "@t3tools/contracts";
+import { isListedThreadLineage, type ThreadId } from "@t3tools/contracts";
 import { resolveThreadStatusPill } from "../Sidebar.logic";
 
 export function visibleBots(threads: ReadonlyArray<EnvironmentThreadShell>) {
   return threads
     .filter(
-      (thread) => thread.bot != null && thread.archivedAt === null && thread.deletedAt === null,
+      (thread) =>
+        thread.bot != null &&
+        thread.delegatedFrom == null &&
+        isListedThreadLineage(thread.lineage) &&
+        thread.archivedAt === null &&
+        thread.deletedAt === null,
     )
     .toSorted(
       (left, right) => left.title.localeCompare(right.title) || left.id.localeCompare(right.id),

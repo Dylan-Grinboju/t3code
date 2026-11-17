@@ -1648,3 +1648,69 @@ it.effect("a native fork that fails before its last attempt still forks natively
     assert.equal(projection.contextTransfers[0]?.resolution?.strategy, "native_fork");
   }),
 );
+
+it.effect("hands a finished native worker off to a normal thread with its history", () =>
+  Effect.gen(function* () {
+    const orchestrator = yield* Orchestrator.OrchestratorV2;
+    const eventSink = yield* EventSink.EventSinkV2;
+    const workerId = ThreadId.make("handoff-worker");
+    const targetId = ThreadId.make("handoff-conversation");
+    yield* createParent(workerId);
+    yield* writeImportedHistory(workerId, "WORKER_FINDINGS");
+    const { thread } = yield* orchestrator.getThreadProjection(workerId);
+    const now = yield* DateTime.now;
+    yield* eventSink.write({
+      events: [
+        {
+          id: EventId.make("handoff-worker-lineage"),
+          type: "thread.metadata-updated",
+          threadId: workerId,
+          occurredAt: now,
+          payload: {
+            ...thread,
+            historyOrigin: undefined,
+            creationSource: "provider",
+            lineage: {
+              parentThreadId: ThreadId.make("bot-parent"),
+              rootThreadId: ThreadId.make("bot-parent"),
+              relationshipToParent: "subagent",
+            },
+          },
+        },
+      ],
+    });
+    yield* orchestrator.dispatch({
+      type: "thread.fork",
+      commandId: CommandId.make("handoff-worker-fork"),
+      sourceThreadId: workerId,
+      targetThreadId: targetId,
+      sourcePoint: { type: "latest_stable" },
+      createdBy: "agent",
+      creationSource: "mcp",
+    });
+    const created = yield* orchestrator.getThreadProjection(targetId);
+    assert.equal(created.thread.lineage.relationshipToParent, "fork");
+    assert.isUndefined(created.thread.lineage.sideChat);
+    assert.isNull(created.thread.bot);
+    assert.isEmpty(created.runs);
+    yield* orchestrator.dispatch({
+      type: "message.dispatch",
+      commandId: CommandId.make("handoff-worker-message"),
+      threadId: targetId,
+      messageId: MessageId.make("handoff-worker-message"),
+      text: "Continue these findings",
+      attachments: [],
+      dispatchMode: { type: "start_immediately" },
+      createdBy: "user",
+      creationSource: "web",
+    });
+    const started = yield* orchestrator.getThreadProjection(targetId);
+    assert.lengthOf(started.contextHandoffs, 1);
+    assert.include(started.contextHandoffs[0]!.summaryText, "WORKER_FINDINGS");
+    assert.equal(started.contextTransfers[0]?.resolution?.strategy, "portable_context");
+    assert.equal(
+      (yield* orchestrator.getThreadProjection(workerId)).thread.lineage.relationshipToParent,
+      "subagent",
+    );
+  }).pipe(Effect.provide(forkCases[0]!.layer)),
+);
