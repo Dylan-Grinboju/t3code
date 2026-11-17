@@ -15,7 +15,6 @@ import { toastManager } from "../ui/toast";
 import {
   ANCHORED_COPY_TOAST_TIMEOUT_MS,
   showAnchoredCopyErrorToast,
-  showAnchoredCopySuccessToast,
 } from "../ui/anchoredCopyToast";
 import { collectThreadLinks, type ThreadLink, type ThreadLinkKind } from "./threadLinks";
 import {
@@ -143,7 +142,6 @@ function ThreadLinkCopyButton(props: { readonly url: string }) {
   const ref = useRef<HTMLButtonElement>(null);
   const { copyToClipboard, isCopied } = useCopyToClipboard<void>({
     target: "link",
-    onCopy: () => showAnchoredCopySuccessToast(ref),
     onError: (error) => showAnchoredCopyErrorToast(ref, error),
     timeout: ANCHORED_COPY_TOAST_TIMEOUT_MS,
   });

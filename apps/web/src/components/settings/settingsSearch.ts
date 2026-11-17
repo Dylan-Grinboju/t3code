@@ -164,7 +164,13 @@ export const SETTINGS_NAV_GROUPS: ReadonlyArray<{
   {
     heading: msg("More"),
     headingHidden: true,
-    paths: ["/settings/maintenance", "/settings/labs", "/settings/fork", "/settings/about", "/settings/archived"],
+    paths: [
+      "/settings/maintenance",
+      "/settings/labs",
+      "/settings/fork",
+      "/settings/about",
+      "/settings/archived",
+    ],
   },
 ];
 
