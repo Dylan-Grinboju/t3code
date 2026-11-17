@@ -78,10 +78,12 @@ Upstream moves fast, and every line changed in an upstream file can conflict on 
 - Subagents are temporary workers. They never inherit bot configuration or appear in the Bots list,
   whether running, waiting or finished. Their status, approvals and results remain reachable through
   the parent bot and its Work view. Opening a worker does not promote it.
-- Important work becomes a normal conversation only through an explicit handoff by the bot or at the
-  user's request. Fork the worker's context into a normal thread, preserving the original worker and
-  its completion reporting. This handoff must work after the worker finishes too. A handoff is not a
-  new bot and does not authorize starting another agent turn.
+- The governing skill decides delegation, follow-ups, conversation handoffs and reporting within the
+  user's authorization. Keep workflow policy out of the generic bot prompt; inject the objective,
+  skill, durable-state location and context-reset requirements. Tool descriptions explain operations.
+- Forking worker context creates a normal thread while preserving the original worker and its
+  completion reporting, including after the worker finishes. A fork is not a new bot and does not
+  start another agent turn. The skill or user decides when to use it.
 - Work prioritizes workers and actionable conversations. Do not show empty promotional sections,
   total-bot counters, or persistent configuration rows above the chat.
 - Verify bot behavior with both native and delegated children, an already-finished worker, and

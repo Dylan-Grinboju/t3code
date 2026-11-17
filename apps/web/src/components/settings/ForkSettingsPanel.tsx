@@ -31,7 +31,7 @@ const FORK_FEATURES = [
   {
     title: "Persistent bots",
     description:
-      "Right-click a chat in the sidebar or open its title menu to make it a bot, then search skills by name. Only persistent bots appear in the Bots list; their workers stay in Work. Ask the bot to hand off important work into a normal conversation, even after it finishes. Compact bot rows show live status and expand when they need you; Bot settings in the chat header (including chat tabs and floating chats) holds the objective and conversation controls, Work beside it lists conversations and workers, and thread Automations schedule checks.",
+      "Right-click a chat in the sidebar or open its title menu to make it a bot, then search skills by name. Its skill governs delegation, conversation handoffs and reporting. Only persistent bots appear in the Bots list; their workers stay in Work. Worker context can become a normal conversation, even after it finishes. Compact bot rows show live status and expand when they need you; Bot settings in the chat header (including chat tabs and floating chats) holds the objective and conversation controls, Work beside it lists conversations and workers, and thread Automations schedule checks.",
   },
   {
     title: "CLI permissions for integrations",
