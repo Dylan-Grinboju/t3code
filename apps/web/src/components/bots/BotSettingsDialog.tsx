@@ -1,20 +1,24 @@
 import { Toggle, ToggleGroup } from "../ui/toggle-group";
 import { useBotView } from "./botViewState";
 import { useAtomValue } from "@effect/atom-react";
+import { scopedThreadKey } from "@t3tools/client-runtime/environment";
 import {
   AuthOrchestrationOperateScope,
+  DEFAULT_BOT_FRESH_AFTER_TURNS,
   type ScopedThreadRef,
   type ThreadBot,
 } from "@t3tools/contracts";
 import { useState } from "react";
 import { appAtomRegistry } from "../../rpc/atomRegistry";
 import { useQuietThreadShell } from "../../state/entities";
+import { useEnvironment } from "../../state/environments";
 import { useEnvironmentScope } from "../../state/session";
 import { threadEnvironment } from "../../state/threads";
 import { useOrchestrationCommand } from "../../state/use-orchestration-command";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
+import { armFreshSession } from "../chat/freshSessionArms";
 import {
   Dialog,
   DialogHeader,
@@ -52,6 +56,9 @@ export function BotSettingsDialog({
   const [draftIconColor, setIconColor] = useState<ThreadBot["iconColor"] | null>(null);
   const iconColor = draftIconColor === null ? bot?.iconColor : draftIconColor;
   const canOperate = useEnvironmentScope(threadRef.environmentId, AuthOrchestrationOperateScope);
+  const freshSessions =
+    useEnvironment(threadRef.environmentId)?.serverConfig?.environment.capabilities.freshContext ===
+    true;
   const [confirmingDisable, setConfirmingDisable] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -171,13 +178,14 @@ export function BotSettingsDialog({
                   min={1}
                   max={100}
                   required
-                  defaultValue={bot?.freshAfterTurns ?? 12}
+                  defaultValue={bot?.freshAfterTurns ?? DEFAULT_BOT_FRESH_AFTER_TURNS}
                 />
               </label>
               <p className="text-xs text-muted-foreground">
-                Fresh sessions reload the skill and work state. History stays searchable. Use this
-                thread’s Automations to schedule checks in fresh sessions; bot settings do not start
-                a schedule.
+                Fresh sessions reload the skill and work state. After editing the skill, Reload
+                skill starts one with your next message. History stays searchable. Use this thread’s
+                Automations to schedule checks in fresh sessions; bot settings do not start a
+                schedule.
               </p>
               {error && (
                 <p role="alert" className="text-xs text-destructive-foreground">
@@ -191,6 +199,18 @@ export function BotSettingsDialog({
                 <Button variant="ghost" onClick={onClose}>
                   Cancel
                 </Button>
+                {bot && freshSessions && shell.latestRun != null && (
+                  <Button
+                    variant="outline"
+                    disabled={saving}
+                    onClick={() => {
+                      armFreshSession(scopedThreadKey(threadRef));
+                      onClose();
+                    }}
+                  >
+                    Reload skill
+                  </Button>
+                )}
                 {bot && (
                   <Button
                     variant="destructive-outline"
