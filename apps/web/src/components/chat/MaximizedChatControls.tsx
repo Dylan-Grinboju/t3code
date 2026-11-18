@@ -1,8 +1,7 @@
 import type { ScopedThreadRef } from "@t3tools/contracts";
 import { BotHeaderActions } from "../bots/BotHeaderActions";
-import { BotIcon, ChevronDownIcon, MinusIcon } from "lucide-react";
+import { BotIcon, MinusIcon } from "lucide-react";
 
-import { cn } from "~/lib/utils";
 import { Button } from "../ui/button";
 import { FloatingChatDragHandle } from "./FloatingChatDock";
 
@@ -47,13 +46,9 @@ export function FloatingChatHeader(props: {
     >
       <MinimizeFloatingChatButton onMinimize={props.onMinimize} />
       <BotIcon className="size-3.5 shrink-0 text-muted-foreground" />
-      <span className="min-w-0 flex-1 truncate font-medium text-foreground text-xs">
-        {props.title}
-      </span>
-      {props.threadRef ? <BotHeaderActions threadRef={props.threadRef} /> : null}
-      <Button
-        size="icon-xs"
-        variant="ghost"
+      <button
+        type="button"
+        className="min-w-0 flex-1 cursor-pointer truncate rounded-sm text-left font-medium text-foreground text-xs focus-visible:outline-2 focus-visible:outline-ring"
         aria-label={props.expanded ? "Collapse conversation" : "Expand conversation"}
         aria-expanded={props.expanded}
         onClick={(event) => {
@@ -61,8 +56,9 @@ export function FloatingChatHeader(props: {
           props.onToggle();
         }}
       >
-        <ChevronDownIcon className={cn(!props.expanded && "rotate-180")} />
-      </Button>
+        {props.title}
+      </button>
+      {props.threadRef ? <BotHeaderActions threadRef={props.threadRef} /> : null}
       <FloatingChatDragHandle />
     </div>
   );

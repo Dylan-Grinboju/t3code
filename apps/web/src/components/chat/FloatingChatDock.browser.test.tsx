@@ -92,11 +92,18 @@ it("moves and resizes without opening the conversation, cancels interrupted gest
   await expect.element(draft).toHaveValue("Keep this draft");
   expect(getComputedStyle(column.element()).width).toBe("580px");
 
-  await screen.getByRole("button", { name: "Expand conversation" }).click();
+  const title = screen.getByRole("button", { name: "Expand conversation" });
+  await expect.element(title).toHaveTextContent("Draft thread");
+  await expect.element(title).toHaveAttribute("aria-expanded", "false");
+  await title.click();
   await expect.element(column).toHaveAttribute("data-mode", "expanded");
-  await screen.getByRole("button", { name: "Collapse conversation" }).click();
+  await expect
+    .element(screen.getByRole("button", { name: "Collapse conversation" }))
+    .toHaveAttribute("aria-expanded", "true");
+  await userEvent.keyboard("{Enter}");
   await expect.element(column).toHaveAttribute("data-mode", "collapsed");
-  await screen.getByRole("button", { name: "Expand conversation" }).click();
+  await userEvent.keyboard(" ");
+  await expect.element(column).toHaveAttribute("data-mode", "expanded");
   await screen.getByRole("button", { name: "Minimize chat" }).click();
   await screen.getByRole("button", { name: "Show chat: Draft thread" }).click();
   await expect.element(draft).toHaveValue("Keep this draft");
