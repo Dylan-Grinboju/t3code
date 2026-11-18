@@ -10,3 +10,5 @@ export const ThreadBot = Schema.Struct({
   iconColor: Schema.optional(ProjectIconColor),
 });
 export type ThreadBot = typeof ThreadBot.Type;
+
+export const DEFAULT_BOT_FRESH_AFTER_TURNS = 12;

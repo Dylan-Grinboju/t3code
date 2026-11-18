@@ -1,8 +1,11 @@
 import {
   CommandId,
+  DEFAULT_BOT_FRESH_AFTER_TURNS,
+  isListedThreadLineage,
   OrchestratorMcpFailure,
   type OrchestrationV2AppThread,
   type OrchestrationV2Command,
+  type ThreadBot,
   type ThreadMetadataMcpAction,
   type ThreadMetadataMcpUpdateInput,
   type ThreadMetadataMcpUpdateResult,
@@ -63,6 +66,7 @@ function metadataCommand(input: {
   readonly commandId: CommandId;
   readonly threadId: ThreadId;
   readonly update: ThreadMetadataMcpUpdateInput;
+  readonly currentBot: ThreadBot | null;
 }): Extract<OrchestrationV2Command, { readonly type: "thread.metadata.update" }> {
   switch (input.update.action) {
     case "rename":
@@ -79,6 +83,26 @@ function metadataCommand(input: {
         threadId: input.threadId,
         regenerateTitle: true,
       };
+    case "set_bot": {
+      const iconColor = input.currentBot?.iconColor;
+      return {
+        type: "thread.metadata.update",
+        commandId: input.commandId,
+        threadId: input.threadId,
+        bot: {
+          ...input.update.bot!,
+          freshAfterTurns: input.update.bot!.freshAfterTurns ?? DEFAULT_BOT_FRESH_AFTER_TURNS,
+          ...(iconColor === undefined ? {} : { iconColor }),
+        },
+      };
+    }
+    case "clear_bot":
+      return {
+        type: "thread.metadata.update",
+        commandId: input.commandId,
+        threadId: input.threadId,
+        bot: null,
+      };
   }
 }
 
@@ -88,7 +112,7 @@ function resultFromThread(input: {
   readonly sequence: number;
   readonly thread: Pick<
     OrchestrationV2AppThread,
-    "id" | "title" | "titleRegeneration" | "linkedPullRequest" | "updatedAt"
+    "id" | "title" | "titleRegeneration" | "linkedPullRequest" | "bot" | "updatedAt"
   >;
 }): ThreadMetadataMcpUpdateResult {
   return {
@@ -105,6 +129,7 @@ function resultFromThread(input: {
             startedAt: DateTime.formatIso(input.thread.titleRegeneration.startedAt),
           },
     linkedPullRequest: input.thread.linkedPullRequest ?? null,
+    bot: input.thread.bot ?? null,
     updatedAt: DateTime.formatIso(input.thread.updatedAt),
   };
 }
@@ -149,6 +174,12 @@ const make = Effect.gen(function* () {
         `Thread ${threadId} was not found.`,
       );
     }
+    if (input.action === "set_bot" && !isListedThreadLineage(shell.lineage)) {
+      return yield* failure(
+        "invalid_request",
+        "Only a top-level thread can be a bot. Fork this worker into a normal thread with t3_thread_transfer first.",
+      );
+    }
     const requestKey =
       input.clientRequestId === undefined ? yield* random.uuidV4() : input.clientRequestId;
     const updateCommandId = commandId({
@@ -163,6 +194,7 @@ const make = Effect.gen(function* () {
           commandId: updateCommandId,
           threadId,
           update: input,
+          currentBot: shell.bot ?? null,
         }),
       )
       .pipe(

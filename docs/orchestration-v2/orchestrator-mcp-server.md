@@ -415,13 +415,18 @@ often leave a dev server running.
 ### `t3_thread_update`
 
 Updates metadata for the calling thread or any other thread in the environment.
-The typed actions are `rename`, which requires `title`, and `regenerate_title`,
-which rejects one. Pull request links go through the separate
-`link_pull_request` and `unlink_pull_request` tools. Branch and workspace
-changes are outside this tool.
+The typed actions are `rename`, which requires `title`, `regenerate_title`,
+`set_bot`, which requires `bot`, and `clear_bot`. No other action accepts
+`title` or `bot`. `set_bot` gives a top-level thread a standing objective, a
+skill path and a durable state path, the same settings as **Make this a bot** in
+the client; it refuses subagents and side chats, which never become bots.
+`clear_bot` returns the thread to the normal list. Pull request links go through
+the separate `link_pull_request` and `unlink_pull_request` tools. Branch and
+workspace changes are outside this tool.
 
 The result includes the command ID and durable event sequence together with the
-resultant title, title-regeneration marker, and linked pull request. Reusing a
+resultant title, title-regeneration marker, linked pull request, and bot
+settings. Reusing a
 `clientRequestId` for the same action and thread replays the same command
 receipt. Thread list and read results expose the linked pull request, and thread
 detail also exposes an in-flight title regeneration.

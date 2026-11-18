@@ -37,7 +37,7 @@ const FORK_FEATURES = [
   {
     title: "Persistent bots",
     description:
-      "Right-click a chat in the sidebar or open its title menu to make it a bot, then search skills by name. Its skill governs delegation, conversation handoffs and reporting, and is read once per session, so skill edits apply from the next fresh session. Only persistent bots appear in the Bots list. In Quiet, open Work to see background workers or conversations that need your input. You can keep chatting while background workers run, and open a worker as a normal conversation even after it finishes. Compact bot rows show live status and expand when they need you. Use Bot settings to change the objective, choose an icon color or switch to Activity for tool details and integration cards. Use thread Automations to schedule checks.",
+      "Right-click a chat in the sidebar or open its title menu to make it a bot, then search skills by name. Its skill governs delegation, conversation handoffs and reporting, and is read once per session, so skill edits apply from the next fresh session. You can also ask an agent to make a chat a bot for you. Only persistent bots appear in the Bots list. In Quiet, open Work to see background workers or conversations that need your input. You can keep chatting while background workers run, and open a worker as a normal conversation even after it finishes. Compact bot rows show live status and expand when they need you. Use Bot settings to change the objective, choose an icon color or switch to Activity for tool details and integration cards. Use thread Automations to schedule checks.",
   },
   {
     title: "CLI permissions for integrations",

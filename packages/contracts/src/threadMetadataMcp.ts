@@ -7,6 +7,7 @@ import {
   ThreadId,
   TrimmedNonEmptyString,
 } from "./baseSchemas.ts";
+import { ThreadBot } from "./threadBot.ts";
 import { ThreadLinkedPullRequest } from "./threadPullRequest.ts";
 import { ThreadTitleRegeneration } from "./threadTitle.ts";
 
@@ -40,19 +41,37 @@ const ThreadMetadataClientRequestId = TrimmedNonEmptyString.check(Schema.isMaxLe
   )
   .annotate({ description: "Stable idempotency key to reuse when retrying this mutation." });
 
-export const ThreadMetadataMcpAction = Schema.Literals(["rename", "regenerate_title"]);
+const ThreadMetadataBot = Schema.Struct({
+  objective: ThreadBot.fields.objective,
+  skillPath: ThreadBot.fields.skillPath,
+  statePath: ThreadBot.fields.statePath,
+  freshAfterTurns: Schema.optional(ThreadBot.fields.freshAfterTurns),
+}).annotate({
+  description:
+    "For set_bot only: its standing `objective`, `skillPath` to its SKILL.md, `statePath` for durable work state, and `freshAfterTurns` before a fresh session (default 12).",
+});
+
+export const ThreadMetadataMcpAction = Schema.Literals([
+  "rename",
+  "regenerate_title",
+  "set_bot",
+  "clear_bot",
+]);
 export type ThreadMetadataMcpAction = typeof ThreadMetadataMcpAction.Type;
 
 export const ThreadMetadataMcpUpdateInput = Schema.Struct({
   threadId: Schema.optional(ThreadId),
   action: ThreadMetadataMcpAction,
   title: Schema.optional(ThreadMetadataTitle),
+  bot: Schema.optional(ThreadMetadataBot),
   clientRequestId: Schema.optional(ThreadMetadataClientRequestId),
 }).check(
   Schema.makeFilter((input) =>
-    (input.action === "rename") === (input.title !== undefined)
-      ? true
-      : "rename requires title; regenerate_title does not accept one.",
+    (input.action === "rename") !== (input.title !== undefined)
+      ? "rename requires title; no other action accepts one."
+      : (input.action === "set_bot") !== (input.bot !== undefined)
+        ? "set_bot requires bot; no other action accepts one."
+        : true,
   ),
 );
 export type ThreadMetadataMcpUpdateInput = typeof ThreadMetadataMcpUpdateInput.Type;
@@ -65,6 +84,7 @@ export const ThreadMetadataMcpUpdateResult = Schema.Struct({
   title: Schema.String,
   titleRegeneration: Schema.NullOr(ThreadTitleRegeneration),
   linkedPullRequest: Schema.NullOr(ThreadLinkedPullRequest),
+  bot: Schema.NullOr(ThreadBot),
   updatedAt: IsoDateTime,
 });
 export type ThreadMetadataMcpUpdateResult = typeof ThreadMetadataMcpUpdateResult.Type;

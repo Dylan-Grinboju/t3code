@@ -1,6 +1,6 @@
 # Persistent bots
 
-Create a thread with the provider and project you want, then choose **Make this a bot**. Set its standing objective, the path to its skill, and the path to its durable work state on the machine that runs it. Rename the thread to name the bot. Both Claude and Codex continue using the authentication already configured in T3.
+Create a thread with the provider and project you want, then choose **Make this a bot**, or ask an agent to make a thread a bot for you. Set its standing objective, the path to its skill, and the path to its durable work state on the machine that runs it. Rename the thread to name the bot. Both Claude and Codex continue using the authentication already configured in T3.
 
 Bots appear in a dedicated section above task threads, with their live status. The section stays available across project filters; archived and hidden bots stay hidden. The bot header shows its objective and whether it needs your input.
 

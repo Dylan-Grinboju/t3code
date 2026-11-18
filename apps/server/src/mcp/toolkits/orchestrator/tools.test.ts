@@ -26,4 +26,10 @@ it("refuses a t3_thread_update whose fields do not fit its action", () => {
   expect(Exit.isSuccess(decode({ action: "rename", title: "New", environmentId: undefined }))).toBe(
     true,
   );
+  const bot = { objective: "Report status", skillPath: "~/SKILL.md", statePath: "~/work.sqlite" };
+  expect(Exit.isFailure(decode({ action: "set_bot" }))).toBe(true);
+  expect(Exit.isFailure(decode({ action: "clear_bot", bot }))).toBe(true);
+  expect(Exit.isFailure(decode({ action: "rename", title: "New", bot }))).toBe(true);
+  expect(Exit.isSuccess(decode({ action: "set_bot", bot }))).toBe(true);
+  expect(Exit.isSuccess(decode({ action: "clear_bot" }))).toBe(true);
 });
