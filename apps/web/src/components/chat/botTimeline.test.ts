@@ -68,11 +68,17 @@ it("keeps older attention cards and restores old messages through History withou
       itemType: "approval_request",
     },
   };
-  const history = [approval, ...entries];
+  const worker: TimelineEntry = {
+    ...approval,
+    id: "worker",
+    entry: { ...approval.entry, id: "worker", label: "Background worker", itemType: "subagent" },
+  };
+  const history = [approval, ...entries, worker];
   expect(quietBotEntries(history, false)).toEqual([approval, ...entries.slice(-30)]);
-  expect(quietBotEntries(history, true)).toEqual(history);
-  expect(history).toHaveLength(41);
+  expect(quietBotEntries(history, true)).toEqual([approval, ...entries]);
+  expect(history).toHaveLength(42);
   const view = { entries: history, bot: true, activity: false, history: false, findOpen: false };
+  expect(botTimelineEntries({ ...view, activity: true, citationActive: false })).toBe(history);
   expect(botTimelineEntries({ ...view, citationActive: true })).toBe(history);
   expect(botTimelineEntries({ ...view, citationActive: false })).toEqual([
     approval,

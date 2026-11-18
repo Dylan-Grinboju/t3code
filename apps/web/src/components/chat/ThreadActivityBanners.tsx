@@ -183,6 +183,7 @@ export function backgroundWorkNowItem(input: {
   readonly turnItems: ThreadStructure["turnItems"];
   readonly stopDisabled: boolean;
   readonly stopping: boolean;
+  readonly stopAll?: boolean;
   readonly onStop: () => Promise<void>;
   readonly onOpenThread: (threadId: ThreadId) => void;
 }): ThreadNowItem | null {
@@ -264,7 +265,7 @@ export function backgroundWorkNowItem(input: {
           onOpenThread={onOpenThread}
         />
         <InlineButton disabled={input.stopDisabled} onClick={() => void input.onStop()}>
-          {input.stopping ? "Stopping..." : "Stop"}
+          {input.stopping ? "Stopping..." : input.stopAll ? "Stop all background work" : "Stop"}
         </InlineButton>
       </>
     ),

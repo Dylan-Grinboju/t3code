@@ -6,7 +6,6 @@ const attentionTypes = new Set([
   "secret_request",
   "link_request",
   "error",
-  "subagent",
   "thread_created",
 ]);
 
@@ -24,8 +23,10 @@ export function quietBotEntries(
         : entry.message.role === "assistant";
     }
     if (entry.kind === "event") return attentionTypes.has(entry.projectedItem.item.type);
-    if (entry.kind === "work")
-      return entry.entry.tone === "error" || attentionTypes.has(entry.entry.itemType ?? "");
+    if (entry.kind === "work") {
+      const { itemType, tone } = entry.entry;
+      return itemType !== "subagent" && (tone === "error" || attentionTypes.has(itemType ?? ""));
+    }
     return entry.kind !== "mcp-app";
   });
   if (showHistory || visible.length <= 30) return visible;

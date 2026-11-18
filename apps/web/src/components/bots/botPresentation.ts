@@ -1,5 +1,9 @@
 import type { EnvironmentThreadShell, ThreadStructure } from "@t3tools/client-runtime/state/shell";
-import { isListedThreadLineage, type ThreadId } from "@t3tools/contracts";
+import {
+  isListedThreadLineage,
+  type OrchestrationV2PendingBackgroundTask,
+  type ThreadId,
+} from "@t3tools/contracts";
 import { resolveThreadStatusPill } from "../Sidebar.logic";
 
 export function visibleBots(threads: ReadonlyArray<EnvironmentThreadShell>) {
@@ -17,8 +21,22 @@ export function visibleBots(threads: ReadonlyArray<EnvironmentThreadShell>) {
     );
 }
 
+export function backgroundTasksOutsideBotWork(
+  tasks: ReadonlyArray<OrchestrationV2PendingBackgroundTask>,
+) {
+  return tasks.filter((task) => task.kind !== "subagent");
+}
+
 export function botStatus(thread: EnvironmentThreadShell) {
-  const status = resolveThreadStatusPill({ thread });
+  const status = resolveThreadStatusPill({
+    thread:
+      thread.bot != null && thread.pendingBackgroundTasks
+        ? {
+            ...thread,
+            pendingBackgroundTasks: backgroundTasksOutsideBotWork(thread.pendingBackgroundTasks),
+          }
+        : thread,
+  });
   return {
     label: status?.label === "Completed" ? "New update" : (status?.label ?? "Ready"),
     colorClass: status?.colorClass ?? "text-muted-foreground",

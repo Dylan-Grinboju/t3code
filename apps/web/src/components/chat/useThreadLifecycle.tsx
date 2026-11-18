@@ -78,6 +78,8 @@ import { Atom } from "effect/reactivity";
 import { environmentThreadDetails } from "../../state/threads";
 import { resolveThreadOpenRoute } from "../../lib/sideChatPane";
 import type { useLocalDispatchState } from "./useLocalDispatchState";
+import { backgroundTasksOutsideBotWork } from "../bots/botPresentation";
+import { useBotView } from "../bots/botViewState";
 const RELATED_THREAD_SHELL_WAIT_MS = 1_000;
 const NO_RUN_STOP_ATOM = Atom.make<RunStopPresentation | null>(null).pipe(
   Atom.withLabel("web-thread-run-stop:empty"),
@@ -600,15 +602,21 @@ export function useThreadLifecycle(input: ThreadLifecycleInput) {
           onForceStop: () => void forceStop.forceStopThread(activeThread.id, runStop.runId),
         })
       : null;
+  const [{ activity }] = useBotView(activeThread?.bot ? activeThreadRef : null);
+  const chatBackgroundTasks =
+    activeThread?.bot && !activity
+      ? backgroundTasksOutsideBotWork(activeBackgroundTasks)
+      : activeBackgroundTasks;
   const backgroundWorkNow = activeThread
     ? backgroundWorkNowItem({
         environmentId,
         threadId: activeThread.id,
-        tasks: activeBackgroundTasks,
+        tasks: chatBackgroundTasks,
         turnItems,
         // Interrupt stops the active run first, not this work; the composer owns that Stop.
         stopDisabled: runIsLive || !canOperateThread || isStoppingBackgroundWork,
         stopping: isStoppingBackgroundWork,
+        stopAll: chatBackgroundTasks.length < activeBackgroundTasks.length,
         onStop: handleStopBackgroundWorkStable,
         onOpenThread: onOpenRelatedThreadStable,
       })

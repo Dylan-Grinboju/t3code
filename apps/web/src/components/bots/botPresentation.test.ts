@@ -53,7 +53,11 @@ it("keeps bots visible across task states, excludes archived bots, and orders by
 });
 
 it("surfaces required user actions before working status", () => {
-  const thread = makeThreadFixture({ bot, hasPendingApprovals: true });
+  const thread = makeThreadFixture({
+    bot,
+    hasPendingApprovals: true,
+    pendingBackgroundTasks: [{ taskId: "worker", kind: "subagent" }],
+  });
   expect(botStatus(thread)).toMatchObject({ needsYou: true, label: "Pending Approval" });
   expect(
     botStatus({ ...thread, hasPendingApprovals: false, hasPendingUserInput: true }),
@@ -62,4 +66,19 @@ it("surfaces required user actions before working status", () => {
     needsYou: false,
     label: "Ready",
   });
+  expect(
+    botStatus({
+      ...thread,
+      hasPendingApprovals: false,
+      pendingBackgroundTasks: [{ taskId: "watch", kind: "monitor", awaited: true }],
+    }),
+  ).toMatchObject({ needsYou: false, label: "Waiting" });
+  expect(
+    botStatus({
+      ...thread,
+      hasPendingApprovals: false,
+      blockedOnThreadWait: true,
+      runtime: { ...thread.runtime!, status: "running" },
+    }),
+  ).toMatchObject({ needsYou: false, label: "Waiting" });
 });
