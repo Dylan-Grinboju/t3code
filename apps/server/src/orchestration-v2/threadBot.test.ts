@@ -57,7 +57,7 @@ describe("bot context", () => {
       true,
     );
   });
-  it("reloads the portable skill and work state without extending action authority", () => {
+  it("points at the portable skill and work state without extending action authority", () => {
     expect(botTurnContext(bot)).toContain(bot.skillPath);
     expect(botTurnContext(bot)).toContain(bot.statePath);
     expect(botTurnContext(bot)).toContain("does not authorize external writes");
