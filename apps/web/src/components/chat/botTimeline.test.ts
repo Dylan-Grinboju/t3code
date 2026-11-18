@@ -1,5 +1,5 @@
 import { expect, it } from "vite-plus/test";
-import { MessageId, ScheduledTaskId } from "@t3tools/contracts";
+import { MessageId, ScheduledTaskId, ThreadId, TurnItemId } from "@t3tools/contracts";
 import { makeStreamingTimelineFixture } from "../../test-fixtures";
 import { deriveTimelineEntriesFromVisibleTurnItems, type TimelineEntry } from "../../session-logic";
 import { botTimelineEntries, quietBotEntries } from "./botTimeline";
@@ -90,4 +90,43 @@ it("shows every entry while Find is open so its matches stay reachable", () => {
   expect(botTimelineEntries({ ...view, findOpen: true })).toBe(entries);
   expect(botTimelineEntries({ ...view, findOpen: false })).toEqual(quietBotEntries(entries, false));
   expect(botTimelineEntries({ ...view, bot: false, findOpen: false })).toBe(entries);
+});
+
+it("hides integration cards in Quiet and keeps them accessible in Activity and normal threads", () => {
+  const createdAt = "2026-01-01T00:00:00Z";
+  const card: TimelineEntry = {
+    kind: "mcp-app",
+    id: "mcp-app:search",
+    createdAt,
+    runId: null,
+    sourceThreadId: ThreadId.make("bot"),
+    itemId: TurnItemId.make("search"),
+    revision: "1",
+    mcpApp: {
+      attachmentId: "jira-results.html",
+      server: "atlassian",
+      tool: "search",
+      resourceUri: "ui://atlassian/results",
+    },
+  };
+  const reply: TimelineEntry = {
+    kind: "sent-message",
+    id: "sent-message:recommendation",
+    createdAt,
+    runId: null,
+    text: "I recommend unblocking the release first.",
+  };
+  const entries = [card, reply];
+  const view = {
+    entries,
+    bot: true,
+    activity: false,
+    history: false,
+    findOpen: false,
+    citationActive: false,
+  };
+  expect(botTimelineEntries(view)).toEqual([reply]);
+  expect(botTimelineEntries({ ...view, history: true })).toEqual([reply]);
+  expect(botTimelineEntries({ ...view, activity: true })).toBe(entries);
+  expect(botTimelineEntries({ ...view, bot: false })).toBe(entries);
 });

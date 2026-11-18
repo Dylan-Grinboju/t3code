@@ -26,7 +26,7 @@ export function quietBotEntries(
     if (entry.kind === "event") return attentionTypes.has(entry.projectedItem.item.type);
     if (entry.kind === "work")
       return entry.entry.tone === "error" || attentionTypes.has(entry.entry.itemType ?? "");
-    return true;
+    return entry.kind !== "mcp-app";
   });
   if (showHistory || visible.length <= 30) return visible;
   const recent = new Set(visible.slice(-30).map((entry) => entry.id));
