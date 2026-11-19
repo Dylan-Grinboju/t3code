@@ -982,7 +982,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
   const environmentScope = useSidebarEnvironmentScope(environmentLabelById);
   const delegatedUnderParent = useDelegatedUnderParent();
   const router = useRouter();
-  const { isMobile, setOpenMobile } = useSidebar();
+  const { isMobile, open, setOpenMobile } = useSidebar();
   const keybindings = useAtomValue(primaryServerKeybindingsAtom);
   const confirmThreadDelete = useClientSettings((s) => s.confirmThreadDelete);
   const confirmThreadArchive = useClientSettings((s) => s.confirmThreadArchive);
@@ -1071,6 +1071,9 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     reduceSidebarProjectScopeMenuState,
     { open: false, query: "" },
   );
+  if (!isMobile && !open && projectScopeMenuState.open) {
+    dispatchProjectScopeMenu({ type: "open-changed", open: false });
+  }
   const projectScopeFilter = useComboboxFilter();
   const allProjectSnapshotsReady = useAllEnvironmentProjectSnapshotsReady();
   const allProjectConfigsReady = useAtomValue(environmentProjects.projectConfigsReadyAtom);
@@ -3226,6 +3229,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                     align="start"
                     collisionAvoidance={{ side: "flip", align: "shift" }}
                     className="w-[min(18rem,var(--available-width))] overflow-hidden"
+                    positionerRender={<div data-sidebar-hover-surface="" />}
                     finalFocus={(closeType) => closeType === "keyboard"}
                   >
                     <ComboboxSearchInput

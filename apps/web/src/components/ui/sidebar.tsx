@@ -318,8 +318,13 @@ function SidebarProvider({
         onPointerMove={(event) => {
           if (!hoverOpen || event.pointerType === "touch") return;
           const panel = event.currentTarget.querySelector('[data-slot="sidebar-container"]');
-          if (panel && event.clientX > panel.getBoundingClientRect().width)
-            store.setHoverOpen(false);
+          if (!panel || event.clientX <= panel.getBoundingClientRect().width) return;
+          if (
+            event.target instanceof Element &&
+            event.target.closest("[data-sidebar-hover-surface]")
+          )
+            return;
+          store.setHoverOpen(false);
         }}
         onKeyDown={(event) => {
           if (event.key === "Escape" && !event.defaultPrevented && hoverOpen) {

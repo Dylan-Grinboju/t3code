@@ -32,7 +32,7 @@ import type { Project } from "../types";
 import Sidebar from "./Sidebar";
 import { THREAD_JUMP_HINT_SHOW_DELAY_MS } from "./Sidebar.logic";
 import { SortableThreadRow } from "./sidebar/SidebarThreadRow";
-import { SidebarProvider } from "./ui/sidebar";
+import { Sidebar as SidebarPanel, SidebarProvider } from "./ui/sidebar";
 
 vi.mock(import("../state/olderSettledShelf"), async (original) => {
   const actual = await original();
@@ -139,6 +139,38 @@ function threadShell(projectId: ProjectId, index: number): EnvironmentThreadShel
     title: `Thread ${index}`,
   });
 }
+
+it("keeps the hover sidebar open over the part of the project filter outside it", async () => {
+  await page.viewport(1280, 800);
+  using cleanup = new DisposableStack();
+  localStorage.setItem("t3code:sidebar-hover", "true");
+  cleanup.defer(() => localStorage.removeItem("t3code:sidebar-hover"));
+  vi.mocked(useProjects).mockReturnValue([project("Example")]);
+  await using screen = await render(
+    <SidebarProvider displayModes defaultOpen={false}>
+      <style>{appCss}</style>
+      <SidebarPanel>
+        <Sidebar routeReveal={{ observedKey: null, pendingKey: null }} />
+      </SidebarPanel>
+    </SidebarProvider>,
+  );
+
+  const edge = screen.container.querySelector<HTMLElement>("[data-sidebar-hover-edge]")!;
+  const panel = screen.container.querySelector<HTMLElement>('[data-slot="sidebar-container"]')!;
+  await userEvent.hover(edge);
+  await userEvent.click(screen.getByRole("combobox", { name: /Filter threads by/ }));
+  const option = page.getByRole("option", { name: /^Example/ });
+  const { width, height, right } = option.element().getBoundingClientRect();
+  expect(right - 4).toBeGreaterThan(panel.getBoundingClientRect().right);
+  await userEvent.hover(option, { position: { x: width - 4, y: height / 2 } });
+  expect(panel.dataset.hoverOpen).toBe("true");
+  await expect.element(option).toBeVisible();
+
+  const wrapper = screen.container.querySelector<HTMLElement>('[data-slot="sidebar-wrapper"]')!;
+  await userEvent.hover(wrapper, { position: { x: 900, y: 400 } });
+  await vi.waitFor(() => expect(panel.dataset.hoverOpen).toBeUndefined());
+  await expect.element(option).not.toBeInTheDocument();
+});
 
 it("filters sidebar threads and search by the selected environment", async () => {
   using cleanup = new DisposableStack();

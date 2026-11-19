@@ -67,7 +67,7 @@ const FORK_FEATURES = [
   {
     title: "Hover to reveal the sidebar",
     description:
-      "Move the pointer to the left edge of the window and the sidebar slides in over the chat. It hides again when the pointer leaves it.",
+      "Move the pointer to the left edge of the window and the sidebar slides in over the chat. It stays open over the project filter and hides when the pointer leaves both.",
   },
   {
     title: "Usage bars",
