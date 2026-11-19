@@ -82,7 +82,7 @@ const FORK_FEATURES = [
   {
     title: "Thread links",
     description:
-      "Thread details list the GitHub pull requests and Jira issues mentioned in the thread, newest first. Hide them from the card's right-click menu.",
+      "Thread details list the GitHub pull requests and Jira issues mentioned in the thread, newest first. Hide them from the card's right-click menu. Hover a Jira link in chat or thread details to see its status, summary, assignee and last update using the environment’s signed-in Atlassian CLI.",
   },
   {
     title: "Shelf and Peek",

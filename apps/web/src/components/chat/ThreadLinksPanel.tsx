@@ -16,6 +16,7 @@ import {
   ANCHORED_COPY_TOAST_TIMEOUT_MS,
   showAnchoredCopyErrorToast,
 } from "../ui/anchoredCopyToast";
+import { JiraLinkPreview } from "./JiraLinkPreview";
 import { collectThreadLinks, type ThreadLink, type ThreadLinkKind } from "./threadLinks";
 import {
   THREAD_DETAILS_PANEL_ICON_CLASS,
@@ -93,24 +94,38 @@ function ThreadLinkGroup(props: {
       <ul className="m-0 list-none p-0">
         {props.links.slice(0, visibleCount).map((link) => {
           const Icon = LINK_ICONS[link.kind];
+          const hasPreview = link.kind === "jira" && link.url.startsWith("https://");
+          const control = (
+            <ThreadDetailsControl
+              size="sm"
+              variant="ghost"
+              part="row"
+              type="button"
+              className="flex-1"
+              title={hasPreview ? undefined : link.url}
+              onClick={(event) => open(link, event)}
+              onAuxClick={(event) => open(link, event)}
+            >
+              <Icon aria-hidden className={THREAD_DETAILS_PANEL_ICON_CLASS} />
+              <span className={`min-w-0 truncate ${THREAD_DETAILS_PANEL_LABEL_CLASS}`}>
+                {link.label}
+              </span>
+            </ThreadDetailsControl>
+          );
           return (
             <li key={link.url} className="flex items-center gap-0.5">
               <ThreadLinkCopyButton url={link.url} />
-              <ThreadDetailsControl
-                size="sm"
-                variant="ghost"
-                part="row"
-                type="button"
-                className="flex-1"
-                title={link.url}
-                onClick={(event) => open(link, event)}
-                onAuxClick={(event) => open(link, event)}
-              >
-                <Icon aria-hidden className={THREAD_DETAILS_PANEL_ICON_CLASS} />
-                <span className={`min-w-0 truncate ${THREAD_DETAILS_PANEL_LABEL_CLASS}`}>
-                  {link.label}
-                </span>
-              </ThreadDetailsControl>
+              {hasPreview ? (
+                <JiraLinkPreview
+                  environmentId={props.threadRef.environmentId}
+                  issue={link}
+                  href={link.url}
+                >
+                  {control}
+                </JiraLinkPreview>
+              ) : (
+                control
+              )}
             </li>
           );
         })}

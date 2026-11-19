@@ -198,6 +198,8 @@ import {
 } from "../browser/openFileInPreview";
 import { resolveLinkTarget } from "../browser/browserLinkTarget";
 import { useReferencePeek } from "./peek/referencePeek";
+import { JiraLinkPreview } from "./chat/JiraLinkPreview";
+import { classifyThreadLink } from "./chat/threadLinks";
 import { PullRequestLinkPreview } from "./pullRequest/PullRequestLinkPreview";
 import { MarkdownCodeBlock, SuspenseShikiCodeBlock } from "./chat/MarkdownCodeBlock";
 import { createMarkdownRenderer } from "./chat/markdownRenderer";
@@ -1424,6 +1426,14 @@ const CHAT_MARKDOWN_COMPONENTS = {
             }
             onOpenFallback={openDeferredMarkdownLink}
           />
+        );
+      }
+      const jira = environmentId && href.startsWith("https://") ? classifyThreadLink(href) : null;
+      if (environmentId && jira?.kind === "jira") {
+        return (
+          <JiraLinkPreview environmentId={environmentId} issue={jira} href={href}>
+            {link}
+          </JiraLinkPreview>
         );
       }
       return (

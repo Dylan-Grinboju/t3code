@@ -184,6 +184,7 @@ import * as ProviderMaintenanceRunner from "./provider/providerMaintenanceRunner
 import * as ProviderAuthService from "./provider/ProviderAuthService.ts";
 import * as ProviderInstallation from "./provider/providerInstallation.ts";
 import * as ServerSelfUpdate from "./cloud/selfUpdate.ts";
+import * as JiraIssues from "./jira/JiraIssues.ts";
 import * as NpmRelease from "./cloud/npmRelease.ts";
 import * as ServerLifecycleEvents from "./serverLifecycleEvents.ts";
 import * as ServerRuntimeStartup from "./serverRuntimeStartup.ts";
@@ -1536,6 +1537,7 @@ export const layerWsRpc = (
       const providerAuth = yield* ProviderAuthService.ProviderAuthService;
       const providerInstallation = yield* ProviderInstallation.ProviderInstallation;
       const serverSelfUpdate = yield* ServerSelfUpdate.ServerSelfUpdate;
+      const jiraIssues = yield* JiraIssues.JiraIssues;
       const npmRelease = yield* NpmRelease.NpmRelease;
       const config = yield* ServerConfig.ServerConfig;
       const lifecycleEvents = yield* ServerLifecycleEvents.ServerLifecycleEvents;
@@ -2642,6 +2644,7 @@ export const layerWsRpc = (
         [WS_METHODS.providerInstallSubscribe]: (input) => providerInstallation.subscribe(input),
         [WS_METHODS.providerInstallRemove]: (input) => providerInstallation.remove(input),
         [WS_METHODS.serverUpdateServer]: (input) => serverSelfUpdate.update(input),
+        [WS_METHODS.jiraPreview]: (input) => jiraIssues.preview(input),
         [WS_METHODS.serverGetNpmRelease]: (input) => npmRelease.get(input),
         [WS_METHODS.serverUpdateServerWithProgress]: (input) =>
           ServerSelfUpdate.updateProgressStream(serverSelfUpdate, input),
@@ -3661,6 +3664,7 @@ export const layer = Layer.unwrap(
               Layer.provide(Layer.succeed(ServerSelfUpdate.ServerSelfUpdate, serverSelfUpdate)),
               // Share server-lifetime PR caches so WS mutations invalidate every client's HTTP diffs.
               Layer.provide(Layer.succeed(PullRequestService.PullRequestService, pullRequests)),
+              Layer.provide(JiraIssues.layer),
               Layer.provide(OtlpEndpointCheck.layer),
               Layer.provide(
                 Layer.succeed(

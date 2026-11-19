@@ -1,3 +1,4 @@
+import { JiraPreview, JiraPreviewInput } from "./jira.ts";
 import {
   OrchestrationV2SearchThreadError,
   OrchestrationV2SearchThreadInput,
@@ -508,6 +509,7 @@ export const WS_METHODS = {
 
   serverProbe: "server.probe",
   serverGetConfig: "server.getConfig",
+  jiraPreview: "jira.preview",
   serverGetNpmRelease: "server.getNpmRelease",
   serverRefreshProviders: "server.refreshProviders",
   serverUpdateProvider: "server.updateProvider",
@@ -793,6 +795,12 @@ const WsProviderInstallRemoveRpc = Rpc.make(WS_METHODS.providerInstallRemove, {
   payload: ProviderSetupInput,
   success: ProviderInstallState,
   error: ProviderSetupRpcError,
+});
+
+const WsJiraPreviewRpc = Rpc.make(WS_METHODS.jiraPreview, {
+  payload: JiraPreviewInput,
+  success: Schema.NullOr(JiraPreview),
+  error: EnvironmentAuthorizationError,
 });
 
 const WsServerGetNpmReleaseRpc = Rpc.make(WS_METHODS.serverGetNpmRelease, {
@@ -2141,6 +2149,7 @@ export const WsRpcGroup = RpcGroup.make(
   WsProviderInstallRemoveRpc,
   WsServerUpdateServerRpc,
   WsServerGetNpmReleaseRpc,
+  WsJiraPreviewRpc,
   WsServerUpdateServerWithProgressRpc,
   WsServerCommitDesktopUpdateRpc,
   WsServerUpsertKeybindingRpc,
