@@ -53,7 +53,7 @@ export function BotSyncButton({
   };
 
   return (
-    <Button variant="outline" size="compact" disabled={starting} onClick={() => void sync()}>
+    <Button variant="ghost-muted" size="micro" disabled={starting} onClick={() => void sync()}>
       <RefreshCwIcon aria-hidden />
       {starting ? "Starting…" : "Sync now"}
     </Button>
