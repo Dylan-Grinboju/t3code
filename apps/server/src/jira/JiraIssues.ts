@@ -62,13 +62,17 @@ export const make = Effect.fn("JiraIssues.make")(function* () {
       if (!issue) return null;
       const self = URL.parse(issue.self);
       if (!self) return null;
-      if (self.origin === "https://api.atlassian.com") {
-        const cloudId = /^\/ex\/jira\/([^/]+)\//.exec(self.pathname)?.[1];
-        if (!cloudId) return null;
+      const gateway = self.origin === "https://api.atlassian.com";
+      const routed = self.protocol === "https:" && self.hostname.endsWith(".prod.atl-paas.net");
+      if (gateway || routed) {
         const account = yield* read(["auth", "status"]);
         const site = /\bSite:\s*(?:https:\/\/)?([^/\s]+)\/?\s*$/im.exec(account)?.[1];
-        const activeCloud = /\bCloud ID:\s*(\S+)\s*$/im.exec(account)?.[1];
-        if (`https://${site?.toLowerCase()}` !== origin || activeCloud !== cloudId) return null;
+        if (!site || `https://${site.toLowerCase()}` !== origin) return null;
+        if (gateway) {
+          const cloudId = /^\/ex\/jira\/([^/]+)\//.exec(self.pathname)?.[1];
+          const activeCloud = /\bCloud ID:\s*(\S+)\s*$/im.exec(account)?.[1];
+          if (!cloudId || activeCloud !== cloudId) return null;
+        }
       } else if (self.origin !== origin) {
         return null;
       }
