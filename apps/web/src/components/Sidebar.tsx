@@ -71,6 +71,7 @@ import {
   ChevronDownIcon,
   FolderIcon,
   ListFilterIcon,
+  MonitorIcon,
   PlusIcon,
   SettingsIcon,
 } from "lucide-react";
@@ -271,6 +272,8 @@ import {
   type SidebarSweepAction,
 } from "./sidebar/SidebarThreadRow";
 import { SidebarDraftBlock } from "./sidebar/SidebarDraftBlock";
+import { useSidebarEnvironmentScope } from "./sidebar/useSidebarEnvironmentScope";
+import { EnvironmentMachineIcon } from "./EnvironmentMachineIcon";
 import { BotsSidebar } from "./bots/BotsSidebar";
 import { visibleBots } from "./bots/botPresentation";
 import {
@@ -440,7 +443,8 @@ function routeThreadOnly(
 
 // Separate hooks cache maps independently of later Sidebar hooks and preserve dnd-kit inputs.
 function useSidebarThreads(input: {
-  readonly projectScopeKey: string | null;
+  readonly scopeKey: string;
+  readonly environmentId: EnvironmentId | null;
   readonly scopedProjectKeys: ReadonlySet<string> | null;
   readonly serverConfigs: ReadonlyMap<EnvironmentId, EnvironmentServerConfig>;
   readonly connectedEnvironmentIds: readonly EnvironmentId[];
@@ -454,7 +458,8 @@ function useSidebarThreads(input: {
   readonly keepEmptyFolders: (group: SidebarProjectSnapshot) => boolean;
 }) {
   const {
-    projectScopeKey,
+    scopeKey,
+    environmentId,
     scopedProjectKeys,
     serverConfigs,
     connectedEnvironmentIds,
@@ -498,14 +503,14 @@ function useSidebarThreads(input: {
   const projectExpandedById = useUiStateStore((store) => store.projectExpandedById);
   const setProjectExpanded = useUiStateStore((store) => store.setProjectExpanded);
   const [settledTail, setSettledTail] = useState({
-    scopeKey: projectScopeKey,
+    scopeKey,
     count: SETTLED_TAIL_INITIAL_COUNT,
   });
-  if (settledTail.scopeKey !== projectScopeKey) {
-    setSettledTail({ scopeKey: projectScopeKey, count: SETTLED_TAIL_INITIAL_COUNT });
+  if (settledTail.scopeKey !== scopeKey) {
+    setSettledTail({ scopeKey, count: SETTLED_TAIL_INITIAL_COUNT });
   }
   const settledVisibleCount =
-    settledTail.scopeKey === projectScopeKey ? settledTail.count : SETTLED_TAIL_INITIAL_COUNT;
+    settledTail.scopeKey === scopeKey ? settledTail.count : SETTLED_TAIL_INITIAL_COUNT;
 
   const partition = partitionSidebarThreads({
     threads,
@@ -537,7 +542,10 @@ function useSidebarThreads(input: {
   const workingThreads = yosi === null ? partition.workingThreads : yosi.ungroupedWorkingThreads;
   // Older settled threads load in pages; the shelf lists them only as far as they are loaded.
   const olderSettledShelf = useOlderSettledShelf({
-    scopes: olderSettledScopes([...serverConfigs.keys()], scopedProjectKeys),
+    scopes: olderSettledScopes(
+      [...serverConfigs.keys()].filter((id) => environmentId === null || id === environmentId),
+      scopedProjectKeys,
+    ),
     expanded: settledShelfExpanded,
     visibleCount: settledVisibleCount,
   });
@@ -886,8 +894,9 @@ function useSidebarLookups() {
     projectGroups.map((project) => [project.projectKey, project] as const),
   );
   const projectScopeItems = [
-    { value: "all", label: "All projects" },
+    { kind: "project" as const, value: "all", label: "All projects" },
     ...pickableProjectGroups(projectGroups).map((project) => ({
+      kind: "project" as const,
       value: project.projectKey,
       label: project.displayName,
     })),
@@ -970,6 +979,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     projectGroupByScopeKey,
     projectScopeItems: lookupProjectScopeItems,
   } = useSidebarLookups();
+  const environmentScope = useSidebarEnvironmentScope(environmentLabelById);
   const delegatedUnderParent = useDelegatedUnderParent();
   const router = useRouter();
   const { isMobile, setOpenMobile } = useSidebar();
@@ -1128,6 +1138,11 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     setPersistedProjectScopeKeys(keys);
     scrollSidebarToTop(sidebarContentRef.current);
   };
+  const setEnvironmentScopeId = (id: EnvironmentId | null) => {
+    clearSelection();
+    environmentScope.setId(id);
+    scrollSidebarToTop(sidebarContentRef.current);
+  };
   // A scope whose project is gone reads as all projects once every snapshot has
   // loaded. The stored keys are left alone, so the scope returns with its project.
   // An archived project's scope reads as all projects, matching the menu.
@@ -1155,11 +1170,15 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
           ),
         );
   const threads = useQuietThreadShells();
+  const scopedThreads =
+    environmentScope.id === null
+      ? threads
+      : threads.filter((thread) => thread.environmentId === environmentScope.id);
   const promotingDraftThreadKeys = usePromotingDraftThreadKeys();
   const listedThreads =
     promotingDraftThreadKeys.length === 0
-      ? threads
-      : threads.map((thread) =>
+      ? scopedThreads
+      : scopedThreads.map((thread) =>
           promotingDraftThreadKeys.includes(threadShellKey(thread))
             ? asLaunchingThread(thread)
             : thread,
@@ -1184,10 +1203,10 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     isSearching: isSearchingThreads,
     scopedProjectKeys: chosenScopeProjectKeys,
     delegatedUnderParent,
-    findThread: (key) => threads.find((candidate) => threadShellKey(candidate) === key),
+    findThread: (key) => scopedThreads.find((candidate) => threadShellKey(candidate) === key),
   });
   const projectScopeKeys = revealWidensScope ? [] : chosenProjectScopeKeys;
-  const projectScopeKey = projectScopeKeys.length === 0 ? null : projectScopeKeys.join("\n");
+  const scopeKey = JSON.stringify([environmentScope.id, projectScopeKeys]);
   const toggleProjectScopeKey = (key: string) =>
     setProjectScopeKeys(
       projectScopeKeys.includes(key)
@@ -1236,11 +1255,37 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     matches: (item, query) =>
       projectScopeFilter.contains(item, query, (candidate) => candidate.label),
   });
+  const environmentScopeItems = environmentScope.items;
+  const scopeItems = [...environmentScopeItems, ...projectScopeItems];
+  const scopeQuery = projectScopeMenuState.query.trim();
+  const filteredScopeItems = [
+    ...environmentScopeItems.filter(
+      (item) =>
+        !scopeQuery ||
+        (item.environmentId !== null &&
+          projectScopeFilter.contains(item, scopeQuery, (candidate) => candidate.label)),
+    ),
+    ...filteredProjectScopeItems,
+  ];
   const scopedProjectGroups = revealWidensScope ? [] : chosenProjectGroups;
-  const scopedProjectRefs = scopedProjectGroups.flatMap((project) => project.memberProjectRefs);
+  const filterLabel =
+    environmentScopeItems.length > 0
+      ? "Filter threads by environment or project"
+      : "Filter threads by project";
+  const selectedFilters = [
+    environmentScope.label,
+    ...scopedProjectGroups.map((project) => project.displayName),
+  ].filter(Boolean);
+  const scopedProjectRefs = scopedProjectGroups
+    .flatMap((project) => project.memberProjectRefs)
+    .filter((ref) => environmentScope.id === null || ref.environmentId === environmentScope.id);
   const scopedProjectKeys = revealWidensScope ? null : chosenScopeProjectKeys;
+  const searchEnvironmentIds =
+    environmentScope.id === null
+      ? connectedEnvironmentIds
+      : connectedEnvironmentIds.filter((id) => id === environmentScope.id);
   const threadSearch = useThreadSearch(
-    connectedEnvironmentIds,
+    scopedProjectGroups.length > 0 && scopedProjectRefs.length === 0 ? [] : searchEnvironmentIds,
     threadSearchQuery,
     scopedProjectGroups.length === 0
       ? {}
@@ -1254,6 +1299,9 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
         continue;
       }
       if (!composerDraftHasUserContent(store.draftsByThreadKey[draftKey])) {
+        continue;
+      }
+      if (environmentScope.id !== null && session.environmentId !== environmentScope.id) {
         continue;
       }
       if (
@@ -1304,7 +1352,9 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
   );
   const startThreadInProjectFolder = useStableCallback((group: SidebarProjectSnapshot) => {
     if (isMobile) setOpenMobile(false);
-    void handleNewThread(scopeProjectRef(group.environmentId, group.id));
+    const project =
+      group.memberProjects.find((member) => member.environmentId === environmentScope.id) ?? group;
+    void handleNewThread(scopeProjectRef(project.environmentId, project.id));
   });
   const handleProjectFolderContextMenu = useStableCallback(
     (
@@ -1314,6 +1364,9 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     ) => {
       const api = readLocalApi();
       if (!api) return;
+      const project =
+        group.memberProjects.find((member) => member.environmentId === environmentScope.id) ??
+        group;
       void (async () => {
         const clicked = await settlePromise(() =>
           api.contextMenu.show(
@@ -1339,14 +1392,14 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
             startThreadInProjectFolder(group);
             return;
           case "copy-path":
-            copyPathToClipboard(group.workspaceRoot, { path: group.workspaceRoot });
+            copyPathToClipboard(project.workspaceRoot, { path: project.workspaceRoot });
             return;
           case "pin":
           case "unpin":
             setProjectGroupPinned(group, clicked.value === "pin");
             return;
           case "project-settings":
-            openProjectSettings(group);
+            openProjectSettings(group, scopeProjectRef(project.environmentId, project.id));
             return;
         }
       })();
@@ -1393,7 +1446,8 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     pinnedKeysById,
     activeKeysById,
   } = useSidebarThreads({
-    projectScopeKey,
+    scopeKey,
+    environmentId: environmentScope.id,
     scopedProjectKeys,
     serverConfigs,
     connectedEnvironmentIds,
@@ -1402,10 +1456,15 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     delegatedUnderParent,
     routeRowThreadKey,
     folderGroups: boringSidebarEnabled
-      ? scopedProjectGroups.length === 0
-        ? // An archived project keeps a folder for its active threads, below the rest.
-          [...scopeGroups, ...projectGroups.filter((project) => project.archived)]
-        : scopedProjectGroups
+      ? (scopedProjectGroups.length === 0
+          ? // An archived project keeps a folder for its active threads, below the rest.
+            [...scopeGroups, ...projectGroups.filter((project) => project.archived)]
+          : scopedProjectGroups
+        ).filter(
+          (group) =>
+            environmentScope.id === null ||
+            group.memberProjectRefs.some((ref) => ref.environmentId === environmentScope.id),
+        )
       : null,
     keepEmptyFolders: (group) =>
       scopedProjectGroups.length > 0 || (group.pinned && !group.archived),
@@ -3083,10 +3142,11 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
           <SidebarGroup className="z-[1]">
             <SidebarThreadHeader
               hasProjects={projectGroups.length > 0}
-              projectScope={
-                <Combobox
-                  items={projectScopeItems}
-                  filteredItems={filteredProjectScopeItems}
+              hasEnvironmentFilters={environmentScopeItems.length > 0}
+              threadFilters={
+                <Combobox<(typeof scopeItems)[number]>
+                  items={scopeItems}
+                  filteredItems={filteredScopeItems}
                   autoHighlight
                   itemToStringLabel={(item) => item.label}
                   isItemEqualToValue={(a, b) => a.value === b.value}
@@ -3106,7 +3166,9 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                       return;
                     }
                     if (!item) return;
-                    if (item.value === "all") {
+                    if (item.kind === "environment") {
+                      setEnvironmentScopeId(item.environmentId);
+                    } else if (item.value === "all") {
                       setProjectScopeKeys([]);
                     } else if (
                       eventDetails.event instanceof MouseEvent &&
@@ -3124,14 +3186,19 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                     render={
                       <SidebarHeaderIconButton
                         label={
-                          scopedProjectGroups.length > 0
-                            ? `Filter threads by project: ${scopedProjectGroups.map((project) => project.displayName).join(", ")}`
-                            : "Filter threads by project"
+                          selectedFilters.length > 0
+                            ? `${filterLabel} (${selectedFilters.join(", ")})`
+                            : filterLabel
                         }
                       />
                     }
                   >
-                    {scopedProjectGroups.length > 1 ? (
+                    {environmentScope.id !== null ? (
+                      <EnvironmentMachineIcon
+                        kind={environmentMachineById.get(environmentScope.id) ?? "server"}
+                        className="size-4"
+                      />
+                    ) : scopedProjectGroups.length > 1 ? (
                       <span className="flex shrink-0">
                         {scopedProjectGroups.slice(0, 2).map((project, index) => (
                           <span
@@ -3162,8 +3229,16 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                     finalFocus={(closeType) => closeType === "keyboard"}
                   >
                     <ComboboxSearchInput
-                      aria-label="Search projects"
-                      placeholder="Search projects..."
+                      aria-label={
+                        environmentScopeItems.length > 0
+                          ? "Search environments and projects"
+                          : "Search projects"
+                      }
+                      placeholder={
+                        environmentScopeItems.length > 0
+                          ? "Search environments and projects…"
+                          : "Search projects..."
+                      }
                       value={projectScopeMenuState.query}
                       onKeyDown={(event) => {
                         if (
@@ -3208,13 +3283,22 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                         })
                       }
                     />
-                    <ComboboxEmpty>No matching projects.</ComboboxEmpty>
+                    <ComboboxEmpty>
+                      {environmentScopeItems.length > 0
+                        ? "No matching environments or projects."
+                        : "No matching projects."}
+                    </ComboboxEmpty>
                     <ComboboxList aria-multiselectable>
-                      {(item: (typeof projectScopeItems)[number]) => {
-                        const project = projectGroupByScopeKey.get(item.value) ?? null;
-                        const isSelected = project
-                          ? projectScopeKeys.includes(item.value)
-                          : projectScopeKeys.length === 0;
+                      {(item: (typeof scopeItems)[number]) => {
+                        const isEnvironment = item.kind === "environment";
+                        const project = isEnvironment
+                          ? null
+                          : (projectGroupByScopeKey.get(item.value) ?? null);
+                        const isSelected = isEnvironment
+                          ? environmentScope.id === item.environmentId
+                          : project
+                            ? projectScopeKeys.includes(item.value)
+                            : projectScopeKeys.length === 0;
                         return (
                           <ComboboxItem
                             key={item.value}
@@ -3230,6 +3314,17 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                             <ProjectScopeRowIcon isSelected={isSelected}>
                               {project ? (
                                 <ProjectFavicon project={project} className="size-4 shrink-0" />
+                              ) : isEnvironment ? (
+                                item.environmentId === null ? (
+                                  <MonitorIcon className="size-4" />
+                                ) : (
+                                  <EnvironmentMachineIcon
+                                    kind={
+                                      environmentMachineById.get(item.environmentId) ?? "server"
+                                    }
+                                    className="size-4"
+                                  />
+                                )
                               ) : (
                                 <FolderIcon className="size-4 shrink-0" />
                               )}
@@ -3418,7 +3513,18 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
             0 &&
           (settledCount === 0 || scopedProjectGroups.length > 0) ? (
             <div className="flex flex-col items-center gap-2 px-2 py-6 text-center text-xs text-muted-foreground/60">
-              {projects.length === 0 ? (
+              {environmentScope.label !== undefined ? (
+                <>
+                  <span>{`No ${settledCount > 0 ? "active threads" : "threads"} in ${environmentScope.label}${scopedProjectGroups.length > 0 ? " for the selected projects" : ""}`}</span>
+                  <button
+                    type="button"
+                    onClick={() => setEnvironmentScopeId(null)}
+                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-sidebar-border px-2.5 py-1 text-2xs font-medium text-sidebar-muted-foreground transition-colors hover:bg-sidebar-row-hover hover:text-sidebar-foreground"
+                  >
+                    Show all environments
+                  </button>
+                </>
+              ) : projects.length === 0 ? (
                 <>
                   <span>No projects yet</span>
                   <button
@@ -3615,6 +3721,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                           projectByKey={projectByKey}
                           projectDisplayNameByKey={projectDisplayNameByKey}
                           scopedProjectKeys={scopedProjectKeys}
+                          scopedEnvironmentId={environmentScope.id}
                           routeDraftId={routeDraftIdForRows}
                           onNavigateToDraft={navigateToDraft}
                           onDraftContextMenu={handleDraftContextMenu}

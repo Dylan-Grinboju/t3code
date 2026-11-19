@@ -60,6 +60,11 @@ const FORK_FEATURES = [
       "With the sidebar closed, a thin strip of thread status icons can stay along the left edge. Set it under Sidebar above.",
   },
   {
+    title: "Filter threads by environment",
+    description:
+      "Open the filter beside Search and select a computer by name. You can combine it with a project filter, or choose All environments to see threads across computers again.",
+  },
+  {
     title: "Hover to reveal the sidebar",
     description:
       "Move the pointer to the left edge of the window and the sidebar slides in over the chat. It hides again when the pointer leaves it.",

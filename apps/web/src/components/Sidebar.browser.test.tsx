@@ -13,7 +13,7 @@ import {
 } from "@t3tools/contracts";
 import { isMacPlatform } from "@t3tools/shared/keybindings";
 import { describe, expect, it, vi } from "vite-plus/test";
-import { userEvent } from "vite-plus/test/browser";
+import { page, userEvent } from "vite-plus/test/browser";
 
 import { act, fakeTimers, render } from "../../test/render";
 import { openCommandPalette } from "../commandPaletteBus";
@@ -22,6 +22,7 @@ import { useHandleNewThread } from "../hooks/useHandleNewThread";
 import { useNowMinute } from "../hooks/useNowMinute";
 import { __setClientSettingsForTests, getClientSettings } from "../hooks/useSettings";
 import { useThreadRouteTarget } from "../hooks/useThreadRouteTarget";
+import { useEnvironmentIdentities } from "../state/environments";
 import { useProjects, useServerConfigs, useQuietThreadShells } from "../state/entities";
 import { readEnvironmentScope, useEnvironmentScope } from "../state/session";
 import { useOrchestrationCommand } from "../state/use-orchestration-command";
@@ -38,6 +39,7 @@ vi.mock(import("../state/olderSettledShelf"), async (original) => {
   return { ...actual, useOlderSettledShelf: vi.fn(actual.useOlderSettledShelf) };
 });
 vi.mock("../state/entities", { spy: true });
+vi.mock("../state/environments", { spy: true });
 vi.mock("../hooks/useHandleNewThread", { spy: true });
 vi.mock("../hooks/useNowMinute", { spy: true });
 vi.mock("../hooks/useThreadRouteTarget", { spy: true });
@@ -137,6 +139,65 @@ function threadShell(projectId: ProjectId, index: number): EnvironmentThreadShel
     title: `Thread ${index}`,
   });
 }
+
+it("filters sidebar threads and search by the selected environment", async () => {
+  using cleanup = new DisposableStack();
+  cleanup.defer(() => localStorage.removeItem("fork.sidebarEnvironmentId"));
+  const localProject = project("Local project");
+  const remoteProject = {
+    ...project("Remote project"),
+    environmentId: EnvironmentId.make("remote"),
+  };
+  const projects = [localProject, remoteProject];
+  const threads = projects.map((project, index) => ({
+    ...threadShell(project.id, index),
+    environmentId: project.environmentId,
+  }));
+  const identities = vi.mocked(useEnvironmentIdentities).mockReturnValue([
+    { environmentId: localProject.environmentId, label: "Laptop" },
+    { environmentId: remoteProject.environmentId, label: "Workstation" },
+  ]);
+  cleanup.defer(() => identities.mockReset());
+  vi.mocked(useProjects).mockReturnValue(projects);
+  vi.mocked(useQuietThreadShells).mockReturnValue(threads);
+  await using screen = await render(
+    <SidebarProvider>
+      <Sidebar routeReveal={{ observedKey: null, pendingKey: null }} />
+    </SidebarProvider>,
+  );
+
+  const filter = screen.getByRole("combobox", { name: /Filter threads by environment/ });
+  await expect.element(screen.getByText("Thread 0", { exact: true })).toBeVisible();
+  await userEvent.click(filter);
+  await userEvent.fill(
+    page.getByRole("combobox", { name: "Search environments and projects" }),
+    "workstation",
+  );
+  await userEvent.click(page.getByRole("option", { name: "Workstation" }));
+  await expect.element(screen.getByText("Thread 0", { exact: true })).not.toBeInTheDocument();
+  await expect.element(screen.getByText("Thread 1", { exact: true })).toBeVisible();
+
+  await userEvent.fill(screen.getByRole("combobox", { name: "Search threads" }), "Thread");
+  const results = screen.getByRole("listbox", { name: "Thread search results" });
+  await expect.element(results.getByRole("option", { name: /Thread 1/ })).toBeVisible();
+  await expect.element(results.getByRole("option", { name: /Thread 0/ })).not.toBeInTheDocument();
+
+  await userEvent.click(filter);
+  await userEvent.click(page.getByRole("option", { name: "All environments" }));
+  await expect.element(results.getByRole("option", { name: /Thread 0/ })).toBeVisible();
+  await expect.element(results.getByRole("option", { name: /Thread 1/ })).toBeVisible();
+
+  await userEvent.click(filter);
+  await userEvent.click(page.getByRole("option", { name: /^Remote project/ }));
+  await userEvent.click(filter);
+  await userEvent.click(page.getByRole("option", { name: "Laptop" }));
+  await expect.element(screen.getByText("No threads found", { exact: true })).toBeVisible();
+
+  await userEvent.click(filter);
+  await userEvent.click(page.getByRole("option", { name: "All projects" }));
+  await expect.element(results.getByRole("option", { name: /Thread 0/ })).toBeVisible();
+  await expect.element(results.getByRole("option", { name: /Thread 1/ })).not.toBeInTheDocument();
+});
 
 describe("sidebar render isolation", () => {
   // regression: #33100 Cmd+J re-rendered every sidebar row, which took hundreds of ms with many threads
