@@ -61,7 +61,7 @@ export function TaskCardStart({
   if (target || lookup.data?.[targetId]) {
     return (
       <Button
-        size="xs"
+        size="micro"
         variant="outline"
         render={<Link to="/$environmentId/$threadId" params={targetRef} />}
       >
@@ -71,7 +71,12 @@ export function TaskCardStart({
   }
   return (
     <div className="flex flex-col items-end gap-1">
-      <Button size="xs" disabled={!source || !permitted || starting} onClick={() => void start()}>
+      <Button
+        variant="outline"
+        size="micro"
+        disabled={!source || !permitted || starting}
+        onClick={() => void start()}
+      >
         <PlayIcon aria-hidden />
         {starting ? "Starting…" : "Start"}
       </Button>

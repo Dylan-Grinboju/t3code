@@ -37,7 +37,7 @@ const FORK_FEATURES = [
   {
     title: "Task cards in chat",
     description:
-      "The front desk can show a task with its next step. Click Start to open a work thread, or select text and choose Cite to change the instructions. A card can also ask you for a decision.",
+      "Each front-desk card shows one task or decision on a single line. Expand it for context, click Start to open a work thread, or select text and choose Cite to give different instructions.",
   },
   {
     title: "Native review skills",

@@ -1235,7 +1235,7 @@ describe("MessagesTimeline citations", () => {
           action: { instruction: "Investigate the timeout.", projectId: "scans" },
         },
       },
-      "Investigate the timeout.",
+      "The scan timed out.",
     ],
   ] as const)("cites text shown by %s in the current thread", async (tool, output, text) => {
     const onCite = vi.fn(() => true);
@@ -1254,6 +1254,19 @@ describe("MessagesTimeline citations", () => {
       routeThreadKey: "environment-local:fork",
       onCiteAssistantText: onCite,
     });
+    if ("taskCard" in output) {
+      const toggle = screen.getByRole("button", {
+        name: `Show details for ${output.taskCard.title}`,
+      });
+      await expect.element(toggle).toHaveAttribute("aria-expanded", "false");
+      await expect.element(screen.getByText(output.taskCard.summary)).not.toBeVisible();
+      await toggle.click();
+      if ("action" in output.taskCard) {
+        await expect
+          .element(screen.getByText(output.taskCard.action.instruction))
+          .not.toBeInTheDocument();
+      }
+    }
     await expect.element(screen.getByText(text)).toHaveStyle({ pointerEvents: "auto" });
     await userEvent.tripleClick(screen.getByText(text));
     await page.getByRole("button", { name: "Cite selection in composer" }).click();
