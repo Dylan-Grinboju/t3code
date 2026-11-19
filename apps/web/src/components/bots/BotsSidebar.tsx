@@ -44,7 +44,6 @@ export function BotsSidebar({
       aria-label="Bots"
       className="max-h-[30vh] shrink-0 overflow-y-auto border-b border-sidebar-border pb-2"
     >
-      <div className="px-3 py-2 text-xs font-medium text-sidebar-muted-foreground">Bots</div>
       {bots.map((bot) => (
         <BotRow
           key={scopedThreadKey(scopeThreadRef(bot.environmentId, bot.id))}
