@@ -1209,25 +1209,58 @@ const CITATION_REQUEST = {
 } satisfies NonNullable<TimelineProps["citationRequest"]>;
 
 describe("MessagesTimeline citations", () => {
-  it("offers Cite for text an agent sent with send_to_user", async () => {
-    const text = "The draft the next question refers to";
-    await using screen = await renderTimeline(
-      [
-        {
-          id: "sent",
-          kind: "sent-message",
-          createdAt: CREATED_AT,
-          runId: RunId.make("run-sent"),
-          text,
+  it.each([
+    [
+      "send_to_user",
+      { sentMessage: "The draft the next question refers to" },
+      "The draft the next question refers to",
+    ],
+    [
+      "present_task_card",
+      {
+        taskCard: {
+          title: "Scan window",
+          summary: "Two windows are available.",
+          question: "Which window should we use?",
         },
+      },
+      "Which window should we use?",
+    ],
+    [
+      "present_task_card",
+      {
+        taskCard: {
+          title: "Retry scan",
+          summary: "The scan timed out.",
+          action: { instruction: "Investigate the timeout.", projectId: "scans" },
+        },
+      },
+      "Investigate the timeout.",
+    ],
+  ] as const)("cites text shown by %s in the current thread", async (tool, output, text) => {
+    const onCite = vi.fn(() => true);
+    const entries = deriveTimelineEntriesFromVisibleTurnItems({
+      visibleTurnItems: [
+        v2Item("dynamic_tool", {
+          id: "source",
+          toolName: `mcp__t3-code__${tool}`,
+          output,
+          updatedAt: DateTime.makeUnsafe(CREATED_AT),
+        }),
       ],
-      { onCiteAssistantText: () => true },
-    );
+      optimisticMessages: [],
+    });
+    await using screen = await renderTimeline(entries, {
+      routeThreadKey: "environment-local:fork",
+      onCiteAssistantText: onCite,
+    });
     await expect.element(screen.getByText(text)).toHaveStyle({ pointerEvents: "auto" });
     await userEvent.tripleClick(screen.getByText(text));
-    await expect
-      .element(page.getByRole("button", { name: "Cite selection in composer" }))
-      .toBeVisible();
+    await page.getByRole("button", { name: "Cite selection in composer" }).click();
+    expect(onCite).toHaveBeenCalledWith(
+      expect.objectContaining({ messageId: "source", threadId: "fork", text }),
+      expect.anything(),
+    );
   });
 
   it("lands a citation present at mount under StrictMode", async () => {

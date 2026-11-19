@@ -5,6 +5,8 @@ import {
   type ThreadId,
 } from "@t3tools/contracts";
 import { resolveThreadStatusPill } from "../Sidebar.logic";
+import { taskCardFromToolItem } from "@t3tools/shared/toolOutput";
+import { taskCardThreadId } from "../chat/taskCardLaunch.logic";
 
 export function visibleBots(threads: ReadonlyArray<EnvironmentThreadShell>) {
   return threads
@@ -48,11 +50,21 @@ export function botStatus(thread: EnvironmentThreadShell) {
   };
 }
 
-export function botCreatedConversations(projection: Pick<ThreadStructure, "turnItems"> | null) {
+export function botCreatedConversations(
+  projection: Pick<ThreadStructure, "turnItems"> | null,
+  listedThreads: ReadonlySet<ThreadId>,
+) {
   const conversations = new Map<ThreadId, string>();
   for (const item of projection?.turnItems ?? []) {
     if (item.type === "thread_created")
       conversations.set(item.targetThreadId, item.title ?? "Work conversation");
+    if (item.type === "dynamic_tool") {
+      const card = taskCardFromToolItem(item);
+      if (card?.action) {
+        const threadId = taskCardThreadId(item.threadId, item.id);
+        if (listedThreads.has(threadId)) conversations.set(threadId, card.title);
+      }
+    }
   }
   return [...conversations].map(([threadId, title]) => ({ threadId, title }));
 }

@@ -1,6 +1,6 @@
 import { useAtomValue } from "@effect/atom-react";
 import { type AtomCommandSuccess, runAtomCommand } from "@t3tools/client-runtime/state/runtime";
-import { sentMessageFromToolItem } from "@t3tools/shared/toolOutput";
+import { sentMessageFromToolItem, taskCardFromToolItem } from "@t3tools/shared/toolOutput";
 import { Atom, type AtomRegistry } from "effect/reactivity";
 import type { TimelineEntry } from "../../session-logic";
 import { environmentThreadDetails, threadEnvironment } from "../../state/threads";
@@ -84,6 +84,13 @@ export async function loadCitedHistory(input: {
   }
 }
 
+export function matchesCitedMessage(entry: TimelineEntry | MessagesTimelineRow, messageId: string) {
+  return (
+    (entry.kind === "message" && entry.message.id === messageId) ||
+    ((entry.kind === "sent-message" || entry.kind === "task-card") && entry.id === messageId)
+  );
+}
+
 /** Where the citation stands for the rows the timeline currently shows. */
 export function resolveCitationPhase(input: {
   readonly history: CitedHistory;
@@ -92,19 +99,11 @@ export function resolveCitationPhase(input: {
   readonly rows: ReadonlyArray<MessagesTimelineRow>;
 }): CitationPhase {
   if (input.history._tag === "failed") return { _tag: "failed" };
-  const source = input.entries.find(
-    (entry) =>
-      (entry.kind === "message" && entry.message.id === input.messageId) ||
-      (entry.kind === "sent-message" && entry.id === input.messageId),
-  );
+  const source = input.entries.find((entry) => matchesCitedMessage(entry, input.messageId));
   // The history store can hold the message a render before the entries do.
   if (!source) return { _tag: "loading" };
   if (source.kind === "message" && source.message.role !== "assistant") return { _tag: "failed" };
-  const row = input.rows.find(
-    (candidate) =>
-      (candidate.kind === "message" && candidate.message.id === input.messageId) ||
-      (candidate.kind === "sent-message" && candidate.id === input.messageId),
-  );
+  const row = input.rows.find((entry) => matchesCitedMessage(entry, input.messageId));
   if (row) return { _tag: "ready", rowId: row.id };
   return { _tag: "expanding" };
 }
@@ -138,7 +137,7 @@ export function citedThreadSnapshot(input: {
       (item.type === "dynamic_tool" &&
         item.id === input.messageId &&
         item.status === "completed" &&
-        sentMessageFromToolItem(item) !== undefined),
+        (sentMessageFromToolItem(item) !== undefined || taskCardFromToolItem(item) !== undefined)),
   )?.item;
   return {
     message: item === undefined ? null : item.type === "user_message" ? "other" : "assistant",

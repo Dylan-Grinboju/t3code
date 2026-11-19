@@ -13,3 +13,8 @@ export const threadTitlesRead = createEnvironmentRpcCommand(connectionAtomRuntim
   label: "environment-data:orchestration:thread-titles-read",
   tag: ORCHESTRATION_V2_WS_METHODS.getThreadTitles,
 });
+
+export const launchThread = createEnvironmentRpcCommand(connectionAtomRuntime, {
+  label: "environment-data:orchestration:launch-thread",
+  tag: ORCHESTRATION_V2_WS_METHODS.launchThread,
+});

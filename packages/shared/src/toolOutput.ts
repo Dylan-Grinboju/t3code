@@ -2,7 +2,10 @@ import {
   isProviderSendTurnSupportedImageMimeType,
   PROVIDER_SEND_TURN_MAX_IMAGE_BYTES,
 } from "@t3tools/contracts";
+import * as Option from "effect/Option";
 import * as Predicate from "effect/Predicate";
+import * as Schema from "effect/Schema";
+import { TASK_CARD_TOOL_NAME, TaskCard } from "./taskCard.ts";
 
 import {
   HTML_RENDER_TOOL_NAME,
@@ -55,6 +58,7 @@ interface CompactToolOutput {
   linkedCount?: number;
   unlinkedCount?: number;
   sentMessage?: string;
+  taskCard?: TaskCard;
 }
 
 function readResult(value: unknown, budget: ResultReadBudget, depth = 0): ResultEnvelope {
@@ -120,6 +124,8 @@ function boundedId(value: unknown): string | undefined {
   return Array.from(value).join("");
 }
 
+const decodeTaskCard = Schema.decodeUnknownOption(TaskCard);
+
 export function compactDynamicToolOutput(value: unknown): CompactToolOutput | undefined {
   const budget: ResultReadBudget = {
     remainingBytes: MAX_PARSED_BYTES,
@@ -145,6 +151,10 @@ export function compactDynamicToolOutput(value: unknown): CompactToolOutput | un
       data.sentMessage.length <= SEND_TO_USER_MAX_LENGTH
     ) {
       output.sentMessage = data.sentMessage;
+    }
+    if (data.taskCard !== undefined && !result.failed) {
+      const card = decodeTaskCard(data.taskCard);
+      if (Option.isSome(card)) output.taskCard = card.value;
     }
     const htmlRender = readHtmlRenderReference(data.htmlRender);
     if (htmlRender !== undefined) output.htmlRender = htmlRender;
@@ -196,6 +206,7 @@ export function compactDynamicToolOutput(value: unknown): CompactToolOutput | un
     output[MCP_APP_OUTPUT_KEY] = rest;
   }
   if (oversized()) delete output[MCP_APP_OUTPUT_KEY];
+  if (output.taskCard !== undefined && oversized()) delete output.taskCard;
   return Object.keys(output).length === 0 ? undefined : output;
 }
 
@@ -214,6 +225,16 @@ export function htmlRenderFromToolItem(item: {
   }
   const output = compactDynamicToolOutput(item.output);
   return output?.isError ? undefined : output?.htmlRender;
+}
+
+export function taskCardFromToolItem(item: {
+  readonly status: string;
+  readonly toolName: string | null | undefined;
+  readonly output?: unknown;
+}): TaskCard | undefined {
+  if (item.status !== "completed" || resolveT3McpToolId(item.toolName) !== TASK_CARD_TOOL_NAME)
+    return undefined;
+  return compactDynamicToolOutput(item.output)?.taskCard;
 }
 
 /** The text `send_to_user` showed the user, which clients render as the agent's own words. */

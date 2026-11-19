@@ -478,6 +478,9 @@ export function summarizeT3ToolCalls(
     case "html-render":
       label = phrase("Rendered", "render", quantity(selected.length, "HTML page"));
       break;
+    case "task-card":
+      label = phrase("Presented", "present", quantity(selected.length, "task card"));
+      break;
     case "send-to-user":
       label = phrase("Sent", "send", quantity(selected.length, "message"));
       break;

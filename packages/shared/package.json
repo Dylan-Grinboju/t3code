@@ -547,6 +547,10 @@
       "types": "./src/inlineSkills.ts",
       "import": "./src/inlineSkills.ts"
     },
+    "./taskCard": {
+      "types": "./src/taskCard.ts",
+      "import": "./src/taskCard.ts"
+    },
     "./mcpApp": {
       "types": "./src/mcpApp.ts",
       "import": "./src/mcpApp.ts"

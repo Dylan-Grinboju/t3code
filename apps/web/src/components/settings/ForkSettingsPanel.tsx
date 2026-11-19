@@ -30,6 +30,11 @@ const FORK_REPOSITORY_URL = "https://github.com/Dylan-Grinboju/t3code";
 
 const FORK_FEATURES = [
   {
+    title: "Task cards in chat",
+    description:
+      "The front desk can show a task with its next step. Click Start to open a work thread, or select text and choose Cite to change the instructions. A card can also ask you for a decision.",
+  },
+  {
     title: "Native review skills",
     description:
       "Review skills can run their own native reviewers from a chat or bot without creating extra T3 projects. The skill controls the review workflow under normal permissions.",

@@ -76,7 +76,7 @@ import type { AssistantCitationSourceAnchor } from "~/lib/assistantTextSelection
 import { type AssistantCitationRequest } from "./AssistantCitationSource";
 import { useAssistantCitationTarget } from "./useAssistantCitationTarget";
 import { worktreeSetupAgentStarted } from "@t3tools/client-runtime/worktree-setup";
-import { resolveCitationPhase, type CitedHistory } from "./citationProcedure";
+import { matchesCitedMessage, resolveCitationPhase, type CitedHistory } from "./citationProcedure";
 import {
   resolveTimelineIsAtEnd,
   resolveTimelineMinimapHasPersistentGutter,
@@ -120,6 +120,7 @@ import {
   WorkGroupToggleTimelineRow,
 } from "./TimelineWorkGroupRows";
 import { ViewedImagesTimelineRow } from "./TimelineWorkEntryRow";
+import { TaskCardTimelineRow } from "./TaskCardTimelineRow";
 import { UserMessageRow } from "./TimelineUserMessageRow";
 import {
   AssistantTimelineRow,
@@ -676,10 +677,8 @@ const ConversationTimeline = memo(function ConversationTimeline({
     citationHistory._tag !== "failed"
       ? timelineEntries.find(
           (entry) =>
-            (entry.kind === "message" &&
-              entry.message.role === "assistant" &&
-              entry.message.id === citationRequest.citation.messageId) ||
-            (entry.kind === "sent-message" && entry.id === citationRequest.citation.messageId),
+            (entry.kind !== "message" || entry.message.role === "assistant") &&
+            matchesCitedMessage(entry, citationRequest.citation.messageId),
         )
       : undefined;
   if (citationRequest && citedEntry) {
@@ -1630,6 +1629,7 @@ const TimelineRowContent = memo(function TimelineRowContent({ row }: { row: Time
                   row.kind === "attempt-fold" ||
                   row.kind === "html-render" ||
                   row.kind === "sent-message" ||
+                  row.kind === "task-card" ||
                   row.kind === "mcp-app" ||
                   row.kind === "viewed-images"
                 ? "pb-2"
@@ -1680,6 +1680,7 @@ const TimelineRowContent = memo(function TimelineRowContent({ row }: { row: Time
       {row.kind === "assistant-meta" ? <AssistantMetaTimelineRow row={row} /> : null}
       {row.kind === "proposed-plan" ? <ProposedPlanTimelineRow row={row} /> : null}
       {row.kind === "html-render" ? <HtmlRenderTimelineRow row={row} /> : null}
+      {row.kind === "task-card" ? <TaskCardTimelineRow row={row} /> : null}
       {row.kind === "sent-message" ? <SentMessageTimelineRow row={row} /> : null}
       {row.kind === "viewed-images" ? <ViewedImagesTimelineRow row={row} /> : null}
       {row.kind === "mcp-app" ? <McpAppTimelineRow row={row} /> : null}

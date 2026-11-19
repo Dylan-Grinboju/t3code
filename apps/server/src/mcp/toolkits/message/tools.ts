@@ -1,4 +1,5 @@
 import { OrchestratorMcpFailure } from "@t3tools/contracts";
+import { TASK_CARD_TOOL_NAME, TaskCard } from "@t3tools/shared/taskCard";
 import { SEND_TO_USER_MAX_LENGTH, SEND_TO_USER_TOOL_NAME } from "@t3tools/shared/toolOutput";
 import * as Schema from "effect/Schema";
 import { McpSchema, Tool, Toolkit } from "effect/ai";
@@ -37,4 +38,22 @@ const SendToUserTool = Tool.make(SEND_TO_USER_TOOL_NAME, {
   // Claude Code defers MCP tools behind ToolSearch; Anthropic says to declare this from the first request.
   .annotate(Tool.Meta, { "anthropic/alwaysLoad": true });
 
-export const MessageToolkit = Toolkit.make(SendToUserTool);
+const PresentTaskCardTool = Tool.make(TASK_CARD_TOOL_NAME, {
+  description:
+    "Show one selectable task card in this thread. For a predictable next step, offer action: Start launches its exact instruction in a new thread in projectId, using baseRef for a fresh worktree or the project root if omitted. For a decision, give the question instead. Showing a card never starts work.",
+  parameters: TaskCard,
+  success: Schema.Struct({ taskCard: TaskCard }),
+  failure: OrchestratorMcpFailure,
+  failureMode: "return",
+  dependencies: [
+    McpInvocationContext.McpInvocationContext,
+    ThreadManagementService.ThreadManagementService,
+  ],
+})
+  .annotate(Tool.Title, "Present a task card")
+  .annotate(Tool.Readonly, true)
+  .annotate(Tool.Destructive, false)
+  .annotate(Tool.OpenWorld, false)
+  .annotate(McpSchema.EnabledWhen, McpInvocationContext.hiddenFromOutsideClients);
+
+export const MessageToolkit = Toolkit.make(SendToUserTool, PresentTaskCardTool);

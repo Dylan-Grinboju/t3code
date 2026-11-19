@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { scopeThreadRef, scopedThreadKey } from "@t3tools/client-runtime/environment";
 import { isListedThreadLineage, type ScopedThreadRef } from "@t3tools/contracts";
 import {
+  useEnvironmentThreadRefs,
   useHiddenThreadKeys,
   useQuietThreadProjection,
   useQuietThreadShell,
@@ -57,7 +58,11 @@ function WorkConversation({
 export function BotWorkPanel({ threadRef }: { threadRef: ScopedThreadRef }) {
   const projection = useQuietThreadProjection(threadRef)?.projection ?? null;
   const hidden = useHiddenThreadKeys();
-  const conversations = botCreatedConversations(projection).filter(
+  const refs = useEnvironmentThreadRefs(threadRef.environmentId);
+  const conversations = botCreatedConversations(
+    projection,
+    new Set(refs.map((ref) => ref.threadId)),
+  ).filter(
     ({ threadId }) =>
       !hidden.has(scopedThreadKey(scopeThreadRef(threadRef.environmentId, threadId))),
   );

@@ -85,7 +85,12 @@ export function timelineEntryRunId(entry: TimelineEntry): RunId | null {
   if (entry.kind === "proposed-plan") {
     return entry.proposedPlan.runId;
   }
-  if (entry.kind === "html-render" || entry.kind === "mcp-app" || entry.kind === "sent-message") {
+  if (
+    entry.kind === "html-render" ||
+    entry.kind === "mcp-app" ||
+    entry.kind === "sent-message" ||
+    entry.kind === "task-card"
+  ) {
     return entry.runId;
   }
   return entry.kind === "work" ? (entry.entry.runId ?? null) : null;
@@ -646,6 +651,7 @@ type MessagesTimelineRowContent =
       createdAt: string;
       htmlRender: HtmlRenderReference;
     }
+  | Extract<TimelineEntry, { kind: "task-card" }>
   | {
       kind: "sent-message";
       id: string;
@@ -836,6 +842,7 @@ function deriveSupersededAttemptFolds(
       entry.kind === "html-render" ||
       entry.kind === "mcp-app" ||
       entry.kind === "sent-message" ||
+      entry.kind === "task-card" ||
       timelineEntryIsPersistentResourceCard(entry) ||
       liveSubagentEntryIds.has(entry.id) ||
       (entry.kind === "work" && entry.entry.itemType === "system_notice")
@@ -1577,7 +1584,10 @@ export function deriveMessagesTimelineRows(input: {
   const timelineEntries = timelineRowEntries(input);
   const embeddedResultRunIds = new Set<RunId>();
   for (const entry of timelineEntries) {
-    if ((entry.kind === "html-render" || entry.kind === "mcp-app") && entry.runId !== null) {
+    if (
+      (entry.kind === "html-render" || entry.kind === "mcp-app" || entry.kind === "task-card") &&
+      entry.runId !== null
+    ) {
       embeddedResultRunIds.add(entry.runId);
     }
   }
@@ -2155,6 +2165,11 @@ export function deriveMessagesTimelineRows(input: {
         createdAt: timelineEntry.createdAt,
         htmlRender: timelineEntry.htmlRender,
       });
+      continue;
+    }
+
+    if (timelineEntry.kind === "task-card") {
+      nextRows.push(timelineEntry);
       continue;
     }
 
@@ -2771,6 +2786,9 @@ function isRowUnchanged(a: MessagesTimelineRow, b: MessagesTimelineRow): boolean
       const bh = b as typeof a;
       return a.createdAt === bh.createdAt && htmlRenderReferencesEqual(a.htmlRender, bh.htmlRender);
     }
+
+    case "task-card":
+      return Equal.equals(a, b);
 
     case "sent-message": {
       const bs = b as typeof a;

@@ -19,10 +19,12 @@ import {
   createEnvironmentRpcCommand,
   environmentConnectionAtom,
   mapAtomCommandResult,
+  withCommandPermissions,
 } from "./runtime.ts";
 import { waitForTitleRegenerationOutcome } from "./threadTitleRegeneration.ts";
 import {
   type InterruptThreadTurnInput,
+  type StartThreadTurnInput,
   type UpdateThreadMetadataInput,
   archiveThread,
   closeGuestShare,
@@ -307,7 +309,8 @@ export function createThreadEnvironmentAtoms<R, E>(
     }),
     startTurn: createEnvironmentCommand(runtime, {
       label: "environment-data:commands:thread:start-turn",
-      execute: startThreadTurn,
+      execute: (input: StartThreadTurnInput, registry) =>
+        startThreadTurn(input).pipe(withCommandPermissions(runtime, registry)),
       scheduler,
       concurrency,
     }),

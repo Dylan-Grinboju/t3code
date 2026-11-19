@@ -44,6 +44,7 @@ import {
   getInitialServerConfig,
   isRpcClientError,
   request,
+  requestGuarded,
 } from "../rpc/client.ts";
 
 interface CommandMetadata {
@@ -787,7 +788,7 @@ export const startThreadTurn = Effect.fn("EnvironmentCommands.startThreadTurn")(
                 ? {}
                 : { branch: bootstrap.branch }),
             };
-    return yield* request(ORCHESTRATION_V2_WS_METHODS.launchThread, {
+    return yield* requestGuarded(ORCHESTRATION_V2_WS_METHODS.launchThread, {
       commandId,
       creationSource: input.creationSource ?? "web",
       threadId: input.threadId,

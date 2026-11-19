@@ -2190,7 +2190,7 @@ const INLINE_WORK_OUTPUT = new RegExp(
   "i",
 );
 const TOOL_NAME_PREFIX = /"toolName":"/i;
-const INLINE_TOOL_NAME = /(?:delegate.task|send.to.user)"/is;
+const INLINE_TOOL_NAME = /(?:delegate.task|send.to.user|present.task.card)"/is;
 
 const isInlineWorkOutput = (payloadJson: string) => {
   if (INLINE_WORK_OUTPUT.test(payloadJson)) return true;

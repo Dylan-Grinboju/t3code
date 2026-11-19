@@ -6,6 +6,7 @@ import {
   mcpToolResultOutput,
   SEND_TO_USER_MAX_LENGTH,
   sentMessageFromToolItem,
+  taskCardFromToolItem,
   toolOutputImages,
   toolOutputIndicatesFailure,
 } from "./toolOutput.ts";
@@ -35,6 +36,50 @@ describe("compactDynamicToolOutput", () => {
     // OpenCode 2 Code Mode reports a script's nested send_to_user call as one `execute` item.
     const output = JSON.stringify({ sentMessage: "Draft", message: "Shown to the user." });
     expect(sentMessageFromToolItem({ toolName: "execute", output })).toBe("Draft");
+  });
+
+  it("preserves actionable and decision cards only for successful T3 card calls", () => {
+    const common = { title: "Refresh filters", summary: "The review has two findings." };
+    const action = {
+      projectId: "app",
+      baseRef: "origin/filters",
+      modelSelection: {
+        instanceId: "provider",
+        model: "review",
+        options: [{ id: "effort", value: "high" }],
+      },
+      instruction: "Fix both findings and draft replies.",
+    };
+    const toolName = "mcp__t3-code__present_task_card";
+    for (const card of [{ ...common, action }, { ...common, question: "Which default?" }, common]) {
+      const result = { content: [{ type: "text", text: JSON.stringify({ taskCard: card }) }] };
+      const output = compactDynamicToolOutput(result);
+      expect(taskCardFromToolItem({ status: "completed", toolName, output })).toEqual(card);
+      expect(taskCardFromToolItem({ status: "running", toolName, output })).toBeUndefined();
+      expect(
+        taskCardFromToolItem({
+          status: "completed",
+          toolName: "mcp__other__present_task_card",
+          output,
+        }),
+      ).toBeUndefined();
+      expect(
+        taskCardFromToolItem({ status: "completed", toolName: "execute", output }),
+      ).toBeUndefined();
+      expect(compactDynamicToolOutput({ ...result, isError: true })).toEqual({ isError: true });
+    }
+    for (const invalid of [
+      { ...common, action, question: "Pick one?" },
+      { ...common, action: { instruction: "Fix it." } },
+      { ...common, sourceUrl: "javascript:void(0)" },
+      {
+        ...common,
+        summary: "界".repeat(2_000),
+        action: { ...action, instruction: "界".repeat(2_000) },
+      },
+    ]) {
+      expect(compactDynamicToolOutput({ taskCard: invalid })).toBeUndefined();
+    }
   });
 
   it("keeps nested thread identity and scalar task IDs without result bodies", () => {
