@@ -1,5 +1,5 @@
 import * as Schema from "effect/Schema";
-import { TrimmedNonEmptyString } from "./baseSchemas.ts";
+import { ThreadId, TrimmedNonEmptyString } from "./baseSchemas.ts";
 import { ProjectIconColor } from "./project.ts";
 
 export const ThreadBot = Schema.Struct({
@@ -12,3 +12,15 @@ export const ThreadBot = Schema.Struct({
 export type ThreadBot = typeof ThreadBot.Type;
 
 export const DEFAULT_BOT_FRESH_AFTER_TURNS = 12;
+
+export const BotRunSyncInput = Schema.Struct({ threadId: ThreadId });
+export type BotRunSyncInput = typeof BotRunSyncInput.Type;
+
+export const BotRunSyncResult = Schema.Struct({
+  status: Schema.Literals(["started", "already-running"]),
+});
+export type BotRunSyncResult = typeof BotRunSyncResult.Type;
+
+export class BotRunSyncError extends Schema.TaggedError<BotRunSyncError>()("BotRunSyncError", {
+  message: Schema.String,
+}) {}

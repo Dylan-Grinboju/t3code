@@ -4,8 +4,9 @@ import { useQuietThreadShell } from "../../state/entities";
 import { Button } from "../ui/button";
 import { Popover, PopoverPopup, PopoverTrigger } from "../ui/popover";
 import { BotStatus } from "./BotIdentity";
+import { BotSyncButton } from "./BotSyncButton";
 import { BotWorkPanel } from "./BotWorkPanel";
-import { botStatus } from "./botPresentation";
+import { botStatus, isVisibleBot } from "./botPresentation";
 import { openBotSettings } from "./botSettingsState";
 
 export function BotHeaderActions({ threadRef }: { threadRef: ScopedThreadRef }) {
@@ -14,6 +15,7 @@ export function BotHeaderActions({ threadRef }: { threadRef: ScopedThreadRef }) 
   return (
     <div className="flex shrink-0 items-center gap-1">
       <BotStatus status={botStatus(shell)} />
+      {isVisibleBot(shell) && <BotSyncButton threadRef={threadRef} />}
       <Popover>
         <PopoverTrigger
           render={

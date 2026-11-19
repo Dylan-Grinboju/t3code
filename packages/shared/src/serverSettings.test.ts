@@ -7,6 +7,7 @@ import {
   SecretProviderKind,
   ServerSettings,
   ServerSettingsPatch,
+  ThreadId,
   UsageLimitSourceId,
   type ServerProvider,
 } from "@t3tools/contracts";
@@ -151,6 +152,24 @@ describe("serverSettings helpers", () => {
       sourceControlHosts: { github: { tokens: { " GitHub.com ": "ghp_new" } } },
     });
     expect(recased.sourceControlHosts.github?.tokens).toEqual({ "github.com": "ghp_new" });
+  });
+
+  it("updates and clears one bot's sync command independently of other bots", () => {
+    const frontDesk = ThreadId.make("front-desk");
+    const maintainer = ThreadId.make("maintainer");
+    const initial = decodeServerSettings({});
+    expect(initial.botSyncCommands).toEqual({});
+    const first = applyServerSettingsPatch(initial, { botSyncCommands: { [frontDesk]: "sync" } });
+    const second = applyServerSettingsPatch(first, { botSyncCommands: { [maintainer]: "fetch" } });
+    const updated = applyServerSettingsPatch(
+      second,
+      decodeServerSettingsPatch({
+        botSyncCommands: { [frontDesk]: "  sync --now  " },
+      }),
+    );
+    expect(updated.botSyncCommands).toEqual({ [frontDesk]: "sync --now", [maintainer]: "fetch" });
+    const cleared = applyServerSettingsPatch(updated, { botSyncCommands: { [frontDesk]: null } });
+    expect(cleared.botSyncCommands).toEqual({ [maintainer]: "fetch" });
   });
 
   it("inherits actions, preserves existing actions, and supports empty overrides and reset", () => {

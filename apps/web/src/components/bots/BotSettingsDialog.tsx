@@ -4,17 +4,20 @@ import { useAtomValue } from "@effect/atom-react";
 import { scopedThreadKey } from "@t3tools/client-runtime/environment";
 import {
   AuthOrchestrationOperateScope,
+  AuthSettingsWriteScope,
   DEFAULT_BOT_FRESH_AFTER_TURNS,
   type ScopedThreadRef,
   type ThreadBot,
 } from "@t3tools/contracts";
+import * as Equal from "effect/Equal";
 import { useState } from "react";
 import { appAtomRegistry } from "../../rpc/atomRegistry";
 import { useQuietThreadShell } from "../../state/entities";
-import { useEnvironment } from "../../state/environments";
-import { useEnvironmentScope } from "../../state/session";
+import { serverEnvironment } from "../../state/server";
+import { readEnvironmentScope, useEnvironmentScope } from "../../state/session";
 import { threadEnvironment } from "../../state/threads";
 import { useOrchestrationCommand } from "../../state/use-orchestration-command";
+import { useAtomCommand } from "../../state/use-atom-command";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
@@ -56,28 +59,51 @@ export function BotSettingsDialog({
   const [draftIconColor, setIconColor] = useState<ThreadBot["iconColor"] | null>(null);
   const iconColor = draftIconColor === null ? bot?.iconColor : draftIconColor;
   const canOperate = useEnvironmentScope(threadRef.environmentId, AuthOrchestrationOperateScope);
-  const freshSessions =
-    useEnvironment(threadRef.environmentId)?.serverConfig?.environment.capabilities.freshContext ===
-    true;
+  const canEditSync = useEnvironmentScope(threadRef.environmentId, AuthSettingsWriteScope);
+  const config = useAtomValue(serverEnvironment.configValueAtom(threadRef.environmentId));
+  const freshSessions = config?.environment.capabilities.freshContext === true;
+  const supportsSync = config?.environment.capabilities.botSync === true;
+  const configuredCommand = config?.settings.botSyncCommands[threadRef.threadId];
+  const syncCommand = typeof configuredCommand === "string" ? configuredCommand : "";
+  const [draftSyncCommand, setSyncCommand] = useState<string | null>(null);
   const [confirmingDisable, setConfirmingDisable] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const update = useOrchestrationCommand(threadEnvironment.updateMetadata);
-  const save = async (value: ThreadBot | null) => {
-    setSaving(true);
-    setError(null);
-    try {
+  const updateSettings = useAtomCommand(serverEnvironment.updateSettings, { reportFailure: false });
+  const persistSettings = async (value: ThreadBot | null) => {
+    const botChanged = !Equal.equals(bot, value);
+    if (botChanged) {
       const result = await update({
         environmentId: threadRef.environmentId,
         input: { threadId: threadRef.threadId, bot: value },
       });
       if (result._tag === "Failure")
-        setError("Could not save bot settings. Your previous settings are unchanged.");
-      else onClose();
-    } catch {
-      setError("Could not confirm bot settings. Reopen settings before retrying.");
+        return "Could not save bot settings. Reopen settings and try again.";
     }
+    const command = draftSyncCommand?.trim();
+    if (!value || command === undefined || command === syncCommand) return null;
+    const prefix = botChanged ? "Bot settings saved. " : "";
+    if (!supportsSync)
+      return `${prefix}Reconnect to the bot’s environment and save the sync command again.`;
+    if (!readEnvironmentScope(threadRef.environmentId, AuthSettingsWriteScope)) {
+      return `${prefix}Use a connection with permission to edit environment settings to save the sync command.`;
+    }
+    const result = await updateSettings({
+      environmentId: threadRef.environmentId,
+      input: { patch: { botSyncCommands: { [threadRef.threadId]: command || null } } },
+    });
+    return result._tag === "Failure"
+      ? `${prefix}Could not save the sync command. Click Save bot to retry.`
+      : null;
+  };
+  const save = async (value: ThreadBot | null) => {
+    setSaving(true);
+    setError(null);
+    const message = await persistSettings(value).catch(() => "Reopen settings and try again.");
     setSaving(false);
+    if (message) setError(message);
+    else onClose();
   };
   if (!shell) return null;
   return (
@@ -97,7 +123,7 @@ export function BotSettingsDialog({
           </DialogTitle>
           <DialogDescription>
             {confirmingDisable
-              ? "This removes the bot settings and returns this chat to the normal thread list. Conversation history and work files are kept. Existing automations continue until you disable them in Automations."
+              ? "This removes the bot settings and returns this chat to the normal thread list. Conversation history and work files are kept. Existing automations continue until you disable them in Automations. A saved sync command becomes available again if you re-enable the bot."
               : "Keep a standing objective and work state across conversations."}
           </DialogDescription>
         </DialogHeader>
@@ -170,6 +196,31 @@ export function BotSettingsDialog({
                   />
                 </label>
               </div>
+              {supportsSync && (
+                <div className="grid gap-1.5">
+                  <label htmlFor="bot-sync-command" className="text-xs font-medium">
+                    Background sync command
+                  </label>
+                  <Textarea
+                    id="bot-sync-command"
+                    aria-describedby="bot-sync-command-hint"
+                    name="syncCommand"
+                    rows={2}
+                    disabled={!canEditSync}
+                    value={draftSyncCommand ?? syncCommand}
+                    onChange={(event) => setSyncCommand(event.target.value)}
+                    spellCheck={false}
+                    autoCapitalize="none"
+                    autoComplete="off"
+                    placeholder="Enter a shell command"
+                  />
+                  <p id="bot-sync-command-hint" className="text-xs text-muted-foreground">
+                    {canEditSync
+                      ? "Sync now runs this command in the bot’s project. Clear it to remove the link."
+                      : "Editing this command requires permission to change environment settings."}
+                  </p>
+                </div>
+              )}
               <label className="grid max-w-64 gap-1.5 text-xs font-medium">
                 Start fresh after completed turns
                 <Input

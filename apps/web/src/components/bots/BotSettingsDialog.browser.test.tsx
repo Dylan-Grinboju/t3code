@@ -1,12 +1,16 @@
 import "../../index.css";
 import { expect, it, vi } from "vite-plus/test";
 import { page, userEvent } from "vite-plus/test/browser";
-import { AsyncResult } from "effect/reactivity";
+import { AsyncResult, AtomRegistry } from "effect/reactivity";
+import { RegistryContext } from "@effect/atom-react";
+import { DEFAULT_SERVER_SETTINGS } from "@t3tools/contracts";
+import * as Cause from "effect/Cause";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { render } from "../../../test/render";
 import { makeThreadFixture } from "../../test-fixtures";
 import { useQuietThreadShell } from "../../state/entities";
-import { useEnvironmentScope } from "../../state/session";
+import { readEnvironmentScope, useEnvironmentScope } from "../../state/session";
+import { serverEnvironment } from "../../state/server";
 import { useOrchestrationCommand } from "../../state/use-orchestration-command";
 import { BotSettingsDialog } from "./BotSettingsDialog";
 import { useState } from "react";
@@ -100,5 +104,69 @@ it("edits and resets a bot's icon color without changing its standing settings",
   expect(update).toHaveBeenLastCalledWith({
     environmentId: ref.environmentId,
     input: { threadId: ref.threadId, bot: defaultBot },
+  });
+});
+
+it("retries a sync command edit after the bot settings were saved", async () => {
+  const bot = {
+    objective: "Review work",
+    skillPath: "~/review/SKILL.md",
+    statePath: "~/review.sqlite",
+    freshAfterTurns: 12,
+  };
+  const shell = makeThreadFixture({ bot });
+  const ref = scopeThreadRef(shell.environmentId, shell.id);
+  const registry = AtomRegistry.make({
+    initialValues: [
+      [
+        serverEnvironment.configValueAtom(ref.environmentId),
+        {
+          environment: { capabilities: { botSync: true } },
+          settings: {
+            ...DEFAULT_SERVER_SETTINGS,
+            botSyncCommands: { [shell.id]: "sync previous" },
+          },
+        },
+        { skipInitialRun: true },
+      ],
+    ],
+  });
+  using _registry = { [Symbol.dispose]: () => registry.dispose() };
+  const update = vi.fn().mockResolvedValue(AsyncResult.success(undefined));
+  const onClose = vi.fn();
+  vi.mocked(useQuietThreadShell).mockReturnValue(shell);
+  vi.mocked(useEnvironmentScope).mockReturnValue(true);
+  vi.mocked(readEnvironmentScope).mockReturnValue(true);
+  vi.mocked(useOrchestrationCommand).mockReturnValue(update);
+  await using _screen = await render(
+    <RegistryContext value={registry}>
+      <BotSettingsDialog threadRef={ref} onClose={onClose} />
+    </RegistryContext>,
+  );
+  using saveSettings = vi
+    .spyOn(serverEnvironment.updateSettings, "run")
+    .mockResolvedValueOnce(AsyncResult.failure(Cause.die(new Error("Disconnected"))))
+    .mockResolvedValueOnce(AsyncResult.success(DEFAULT_SERVER_SETTINGS));
+  const dialog = page.getByRole("dialog", { name: "Bot settings" });
+  const command = dialog.getByRole("textbox", { name: "Background sync command" });
+  await expect.element(command).toHaveValue("sync previous");
+  await userEvent.fill(
+    dialog.getByRole("textbox", { name: "Standing objective" }),
+    "Review all work",
+  );
+  await userEvent.fill(command, "");
+  const save = dialog.getByRole("button", { name: "Save bot" });
+  await userEvent.click(save);
+  await expect
+    .element(dialog.getByRole("alert"))
+    .toHaveTextContent(
+      "Bot settings saved. Could not save the sync command. Click Save bot to retry.",
+    );
+  expect(onClose).not.toHaveBeenCalled();
+  await userEvent.click(save);
+  await vi.waitFor(() => expect(onClose).toHaveBeenCalledOnce());
+  expect(saveSettings).toHaveBeenLastCalledWith(registry, {
+    environmentId: ref.environmentId,
+    input: { patch: { botSyncCommands: { [shell.id]: null } } },
   });
 });

@@ -1,4 +1,4 @@
-import { ORCHESTRATION_V2_WS_METHODS } from "@t3tools/contracts";
+import { ORCHESTRATION_V2_WS_METHODS, WS_METHODS } from "@t3tools/contracts";
 import { createOrchestrationEnvironmentAtoms } from "@t3tools/client-runtime/state/orchestration";
 import { createEnvironmentRpcCommand } from "@t3tools/client-runtime/state/runtime";
 
@@ -17,4 +17,9 @@ export const threadTitlesRead = createEnvironmentRpcCommand(connectionAtomRuntim
 export const launchThread = createEnvironmentRpcCommand(connectionAtomRuntime, {
   label: "environment-data:orchestration:launch-thread",
   tag: ORCHESTRATION_V2_WS_METHODS.launchThread,
+});
+
+export const runBotSync = createEnvironmentRpcCommand(connectionAtomRuntime, {
+  label: "environment-data:bot:run-sync",
+  tag: WS_METHODS.botRunSync,
 });

@@ -8,16 +8,19 @@ import { resolveThreadStatusPill } from "../Sidebar.logic";
 import { taskCardFromToolItem } from "@t3tools/shared/toolOutput";
 import { taskCardThreadId } from "../chat/taskCardLaunch.logic";
 
+export function isVisibleBot(thread: EnvironmentThreadShell) {
+  return (
+    thread.bot != null &&
+    thread.delegatedFrom == null &&
+    isListedThreadLineage(thread.lineage) &&
+    thread.archivedAt === null &&
+    thread.deletedAt === null
+  );
+}
+
 export function visibleBots(threads: ReadonlyArray<EnvironmentThreadShell>) {
   return threads
-    .filter(
-      (thread) =>
-        thread.bot != null &&
-        thread.delegatedFrom == null &&
-        isListedThreadLineage(thread.lineage) &&
-        thread.archivedAt === null &&
-        thread.deletedAt === null,
-    )
+    .filter(isVisibleBot)
     .toSorted(
       (left, right) => left.title.localeCompare(right.title) || left.id.localeCompare(right.id),
     );

@@ -1415,6 +1415,9 @@ export const ServerSettings = Schema.Struct({
   defaultProjectScripts: Schema.Array(ProjectScript).pipe(
     Schema.withDecodingDefault(Effect.succeed([])),
   ),
+  botSyncCommands: Schema.Record(ThreadId, TrimmedNonEmptyString).pipe(
+    Schema.withDecodingDefault(Effect.succeed({})),
+  ),
   projectScriptOverrides: Schema.Record(ProjectId, Schema.NullOr(Schema.Array(ProjectScript))).pipe(
     Schema.withDecodingDefault(Effect.succeed({})),
   ),
@@ -1867,6 +1870,9 @@ export const ServerSettingsPatch = Schema.Struct({
   ),
   defaultAutoPull: Schema.optionalKey(Schema.Boolean),
   defaultProjectScripts: Schema.optionalKey(Schema.Array(ProjectScript)),
+  botSyncCommands: Schema.optionalKey(
+    Schema.Record(ThreadId, Schema.NullOr(TrimmedNonEmptyString)),
+  ),
   projectScriptOverrides: Schema.optionalKey(
     Schema.Record(ProjectId, Schema.NullOr(Schema.Array(ProjectScript))),
   ),

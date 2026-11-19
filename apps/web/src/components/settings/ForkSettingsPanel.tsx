@@ -30,6 +30,11 @@ const FORK_REPOSITORY_URL = "https://github.com/Dylan-Grinboju/t3code";
 
 const FORK_FEATURES = [
   {
+    title: "Manual bot sync",
+    description:
+      "Set a background sync command in Bot settings. Click Sync now in that bot’s header to run the command on its host.",
+  },
+  {
     title: "Task cards in chat",
     description:
       "The front desk can show a task with its next step. Click Start to open a work thread, or select text and choose Cite to change the instructions. A card can also ask you for a decision.",

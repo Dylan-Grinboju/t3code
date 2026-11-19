@@ -59,6 +59,7 @@ describe("RPC authorization scopes", () => {
     for (const method of [
       WS_METHODS.terminalAttach,
       WS_METHODS.terminalOpen,
+      WS_METHODS.botRunSync,
       WS_METHODS.terminalWrite,
       WS_METHODS.terminalResize,
       WS_METHODS.terminalClear,

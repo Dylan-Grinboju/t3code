@@ -10,4 +10,6 @@ A bot reads its skill once per session and reaches its work state the way the sk
 
 For proactive checks, use the thread's **Automations** and select a fresh session. Bot settings alone do not create or enable a schedule. Keep an existing host's routine paused while moving it here. Import its tracker and verify a manual check before enabling the new schedule.
 
+To run an existing sync job on demand, open **Bot settings**, enter the shell command that starts the job in **Background sync command**, and save. **Sync now** in the header runs that command on the bot’s host while you keep chatting. Clear the field to remove the button.
+
 Use **Use normal thread** in bot settings to remove the standing objective and quiet presentation and return it to the ordinary thread list. Existing schedules are independent: pause or remove them in Automations if you also want background checks to stop. The conversation and work tracker are retained.
