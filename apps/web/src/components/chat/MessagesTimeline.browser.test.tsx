@@ -1247,6 +1247,12 @@ describe("MessagesTimeline citations", () => {
           output,
           updatedAt: DateTime.makeUnsafe(CREATED_AT),
         }),
+        v2Item("dynamic_tool", {
+          id: "next",
+          toolName: "mcp__t3-code__present_task_card",
+          output: { taskCard: { title: "Next task", summary: "Next steps" } },
+          updatedAt: DateTime.makeUnsafe(CREATED_AT),
+        }),
       ],
       optimisticMessages: [],
     });
@@ -1256,12 +1262,16 @@ describe("MessagesTimeline citations", () => {
     });
     if ("taskCard" in output) {
       const toggle = screen.getByRole("button", {
-        name: `Show details for ${output.taskCard.title}`,
+        name: new RegExp(`details for ${output.taskCard.title}$`),
       });
       await expect.element(toggle).toHaveAttribute("aria-expanded", "false");
       await expect.element(screen.getByText(output.taskCard.summary)).not.toBeVisible();
-      await toggle.click();
       if ("action" in output.taskCard) {
+        await screen
+          .getByRole("article")
+          .first()
+          .click({ position: { x: 2, y: 2 } });
+        await expect.element(toggle).toHaveAttribute("aria-expanded", "true");
         await expect
           .element(screen.getByText(output.taskCard.action.instruction))
           .not.toBeInTheDocument();
@@ -1274,6 +1284,20 @@ describe("MessagesTimeline citations", () => {
       expect.objectContaining({ messageId: "source", threadId: "fork", text }),
       expect.anything(),
     );
+    if ("taskCard" in output) {
+      const expanded = "action" in output.taskCard;
+      const toggle = screen.getByRole("button", {
+        name: new RegExp(`details for ${output.taskCard.title}$`),
+      });
+      await expect.element(toggle).toHaveAttribute("aria-expanded", String(expanded));
+      await screen
+        .getByRole("article")
+        .first()
+        .click({ position: { x: 2, y: 2 } });
+      await expect.element(toggle).toHaveAttribute("aria-expanded", String(!expanded));
+      await userEvent.keyboard("{Enter}");
+      await expect.element(toggle).toHaveAttribute("aria-expanded", String(expanded));
+    }
   });
 
   it("lands a citation present at mount under StrictMode", async () => {
