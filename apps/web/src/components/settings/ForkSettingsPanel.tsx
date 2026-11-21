@@ -37,7 +37,7 @@ const FORK_FEATURES = [
   {
     title: "Task cards in chat",
     description:
-      "Each front-desk card shows one task or decision on a single line. Click empty space or the arrow for context, select text to cite it, choose or write an answer on a decision card, or click Start to launch a work thread.",
+      "Each front-desk card shows one task or decision on a single line. Click empty space or the arrow for context, select text to cite it, choose or write an answer on a decision card, or click Start to launch a work thread. After launch, View thread takes you there.",
   },
   {
     title: "Native review skills",

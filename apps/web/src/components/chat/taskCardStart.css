@@ -1,0 +1,35 @@
+@media (prefers-reduced-motion: no-preference) {
+  [data-task-launched] > [data-launch-check] {
+    animation: task-card-launch-check 560ms both;
+  }
+
+  [data-task-launched] > [data-launch-arrow] {
+    animation: task-card-launch-arrow 560ms both;
+  }
+}
+
+@keyframes task-card-launch-check {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  20%,
+  68% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes task-card-launch-arrow {
+  0%,
+  68% {
+    opacity: 0;
+    transform: translate(-2px, 2px);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(0);
+  }
+}
