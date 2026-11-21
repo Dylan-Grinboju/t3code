@@ -79,6 +79,8 @@ export function BotSettingsDialog({
   );
   const [draftGlyph, setGlyph] = useState<ThreadBot["glyph"] | null>(null);
   const glyph = draftGlyph === null ? bot?.glyph : draftGlyph;
+  const [draftSkill, setSelectedSkill] = useState<string | null>(null);
+  const selectedSkill = draftSkill ?? bot?.skillPath ?? "";
   const [draftIconColor, setIconColor] = useState<ThreadBot["iconColor"] | null>(null);
   const iconColor = draftIconColor === null ? bot?.iconColor : draftIconColor;
   const canOperate = useEnvironmentScope(threadRef.environmentId, AuthOrchestrationOperateScope);
@@ -120,13 +122,16 @@ export function BotSettingsDialog({
       ? `${prefix}Could not save the sync command. Click Save bot to retry.`
       : null;
   };
-  const save = async (value: ThreadBot | null) => {
+  const save = async (value: ThreadBot | null, reload = false) => {
     setSaving(true);
     setError(null);
     const message = await persistSettings(value).catch(() => "Reopen settings and try again.");
     setSaving(false);
     if (message) setError(message);
-    else onClose();
+    else {
+      if (reload) armFreshSession(scopedThreadKey(threadRef));
+      onClose();
+    }
   };
   if (!shell) return null;
   return (
@@ -184,14 +189,17 @@ export function BotSettingsDialog({
             onSubmit={(event) => {
               event.preventDefault();
               const data = new FormData(event.currentTarget);
-              void save({
-                objective: String(data.get("objective")).trim(),
-                skillPath: String(data.get("skillPath")).trim(),
-                statePath: String(data.get("statePath")).trim(),
-                freshAfterTurns: Number(data.get("freshAfterTurns")),
-                ...(glyph ? { glyph } : {}),
-                ...(iconColor ? { iconColor } : {}),
-              });
+              void save(
+                {
+                  objective: String(data.get("objective")).trim(),
+                  skillPath: String(data.get("skillPath")).trim(),
+                  statePath: String(data.get("statePath")).trim(),
+                  freshAfterTurns: Number(data.get("freshAfterTurns")),
+                  ...(glyph ? { glyph } : {}),
+                  ...(iconColor ? { iconColor } : {}),
+                },
+                (event.nativeEvent as SubmitEvent).submitter?.getAttribute("value") === "reload",
+              );
             }}
           >
             <fieldset disabled={saving || !canOperate} className="grid min-w-0 gap-4">
@@ -214,7 +222,11 @@ export function BotSettingsDialog({
                 />
               </label>
               <div className="grid gap-4 sm:grid-cols-2">
-                <BotSkillPicker threadRef={threadRef} defaultValue={bot?.skillPath ?? ""} />
+                <BotSkillPicker
+                  onChange={setSelectedSkill}
+                  threadRef={threadRef}
+                  defaultValue={bot?.skillPath ?? ""}
+                />
                 <label className="grid min-w-0 gap-1.5 text-xs font-medium">
                   Durable work state path
                   <Input
@@ -282,21 +294,32 @@ export function BotSettingsDialog({
                 <Button type="submit" disabled={saving}>
                   {saving ? "Saving…" : "Save bot"}
                 </Button>
+                {bot &&
+                  freshSessions &&
+                  shell.latestRun != null &&
+                  selectedSkill.trim() !== bot.skillPath && (
+                    <Button type="submit" value="reload" disabled={saving}>
+                      Save and reload on next message
+                    </Button>
+                  )}
                 <Button variant="ghost" onClick={onClose}>
                   Cancel
                 </Button>
-                {bot && freshSessions && shell.latestRun != null && (
-                  <Button
-                    variant="outline"
-                    disabled={saving}
-                    onClick={() => {
-                      armFreshSession(scopedThreadKey(threadRef));
-                      onClose();
-                    }}
-                  >
-                    Reload skill
-                  </Button>
-                )}
+                {bot &&
+                  freshSessions &&
+                  shell.latestRun != null &&
+                  selectedSkill.trim() === bot.skillPath && (
+                    <Button
+                      variant="outline"
+                      disabled={saving}
+                      onClick={() => {
+                        armFreshSession(scopedThreadKey(threadRef));
+                        onClose();
+                      }}
+                    >
+                      Reload skill
+                    </Button>
+                  )}
                 {bot && (
                   <Button
                     variant="destructive-outline"

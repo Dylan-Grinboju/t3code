@@ -119,6 +119,8 @@ it.layer(layerTest, { excludeTestServices: true })("WorkspaceFileSystemLive", (i
           yield* writeTextFile(cwd, ".npmrc", "registry=test");
           yield* fs.makeDirectory(path.join(cwd, "folder.ts"));
           const file = path.join(cwd, "custom-name");
+          const dated = yield* service.getMetadata({ paths: [file], includeModifiedAt: true });
+          expect(dated.entries[0]?.modifiedAtMs).toEqual(expect.any(Number));
           const result = yield* service.getMetadata({
             paths: [
               file,

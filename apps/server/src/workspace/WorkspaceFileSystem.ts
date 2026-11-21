@@ -171,7 +171,10 @@ export const make = Effect.gen(function* () {
       Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner),
     );
 
-  const metadataForPath = Effect.fnUntraced(function* (requestedPath: string) {
+  const metadataForPath = Effect.fnUntraced(function* (
+    requestedPath: string,
+    includeModifiedAt: boolean,
+  ) {
     const expandedPath = expandHomePath(
       yield* toHostPath(requestedPath),
       yield* HostProcess.HomeDirectory,
@@ -207,6 +210,8 @@ export const make = Effect.gen(function* () {
     return {
       kind: "file",
       byteLength: Number(stat.value.size),
+      ...(includeModifiedAt &&
+        stat.value.mtime._tag === "Some" && { modifiedAtMs: stat.value.mtime.value.getTime() }),
       ...(mimeType === undefined ? {} : { mimeType }),
     } satisfies FilesystemEntryMetadata;
   });
@@ -215,7 +220,11 @@ export const make = Effect.gen(function* () {
     "WorkspaceFileSystem.getMetadata",
   )(function* (input) {
     const paths = [...new Set(input.paths)];
-    const entries = yield* Effect.forEach(paths, metadataForPath, { concurrency: 8 });
+    const entries = yield* Effect.forEach(
+      paths,
+      (requestedPath) => metadataForPath(requestedPath, input.includeModifiedAt === true),
+      { concurrency: 8 },
+    );
     const byPath = new Map(paths.map((value, index) => [value, entries[index] ?? null]));
     return { entries: input.paths.map((value) => byPath.get(value) ?? null) };
   });

@@ -20,9 +20,11 @@ import {
 export function BotSkillPicker({
   threadRef,
   defaultValue,
+  onChange,
 }: {
   threadRef: ScopedThreadRef;
   defaultValue: string;
+  onChange?: ((path: string) => void) | undefined;
 }) {
   const shell = useQuietThreadShell(threadRef);
   const project = useProject(
@@ -40,6 +42,7 @@ export function BotSkillPicker({
   });
   return (
     <BotSkillInput
+      onChange={onChange}
       defaultValue={defaultValue}
       skills={provider ? resolveProviderSkillsForCwd(provider, gitCwd) : []}
       scanning={scanning}
@@ -50,11 +53,13 @@ export function BotSkillPicker({
 
 export function BotSkillInput({
   defaultValue,
+  onChange,
   skills,
   scanning,
   onSearch,
 }: {
   defaultValue: string;
+  onChange?: ((path: string) => void) | undefined;
   skills: ReadonlyArray<ServerProviderSkill>;
   scanning: boolean;
   onSearch: () => void;
@@ -75,10 +80,14 @@ export function BotSkillInput({
         autoHighlight
         onInputValueChange={(value) => {
           setInput(value);
+          onChange?.(value);
           onSearch();
         }}
         onValueChange={(path) => {
-          if (path) setInput(path);
+          if (path) {
+            setInput(path);
+            onChange?.(path);
+          }
         }}
       >
         <ComboboxInput
