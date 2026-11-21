@@ -13,6 +13,12 @@ export type ThreadBot = typeof ThreadBot.Type;
 
 export const DEFAULT_BOT_FRESH_AFTER_TURNS = 12;
 
+export const BotSyncState = Schema.Struct({
+  status: Schema.Literals(["idle", "running", "succeeded", "failed"]),
+  changedAt: Schema.Number,
+});
+export type BotSyncState = typeof BotSyncState.Type;
+
 export const BotRunSyncInput = Schema.Struct({ threadId: ThreadId });
 export type BotRunSyncInput = typeof BotRunSyncInput.Type;
 

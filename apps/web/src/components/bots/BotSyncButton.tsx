@@ -6,7 +6,8 @@ import {
 import type { ScopedThreadRef } from "@t3tools/contracts";
 import { RefreshCwIcon } from "lucide-react";
 import { useState } from "react";
-import { runBotSync } from "../../state/orchestration";
+import { useEnvironmentQuery } from "../../state/query";
+import { botSyncStatus, runBotSync } from "../../state/orchestration";
 import { serverEnvironment } from "../../state/server";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { Button } from "../ui/button";
@@ -24,6 +25,15 @@ export function BotSyncButton({
       typeof config.settings.botSyncCommands[threadId] === "string",
   );
   const canRun = useAtomValue(runBotSync.permissionAtom(environmentId));
+  const supportsStatus = useAtomValue(
+    serverEnvironment.configValueAtom(environmentId),
+    (config) => config?.environment.capabilities.botSyncStatus === true,
+  );
+  const { data: state } = useEnvironmentQuery(
+    configured && canRun && supportsStatus
+      ? botSyncStatus({ environmentId, input: { threadId } })
+      : null,
+  );
   const run = useAtomCommand(runBotSync, { reportFailure: false });
   const [starting, setStarting] = useState(false);
   if (!configured || !canRun) return null;
@@ -34,12 +44,13 @@ export function BotSyncButton({
     setStarting(false);
     if (result._tag === "Success") {
       const started = result.value.status === "started";
-      toastManager.add(
-        stackedThreadToast({
-          type: started ? "success" : "info",
-          title: started ? "Background sync started" : "Background sync is already running",
-        }),
-      );
+      if (!supportsStatus)
+        toastManager.add(
+          stackedThreadToast({
+            type: started ? "success" : "info",
+            title: started ? "Background sync started" : "Background sync is already running",
+          }),
+        );
     } else if (!isAtomCommandInterrupted(result)) {
       const error = squashAtomCommandFailure(result);
       toastManager.add(
@@ -52,10 +63,30 @@ export function BotSyncButton({
     }
   };
 
+  const running = state?.status === "running";
+  const label = starting
+    ? "Starting…"
+    : running
+      ? "Syncing…"
+      : state?.status === "failed"
+        ? "Sync failed · Retry"
+        : state?.status === "succeeded"
+          ? "Synced · Sync again"
+          : "Sync now";
   return (
-    <Button variant="ghost-muted" size="micro" disabled={starting} onClick={() => void sync()}>
+    <Button
+      title={
+        state?.status === "succeeded"
+          ? "Last synced " + new Date(state.changedAt).toLocaleString()
+          : undefined
+      }
+      variant="ghost-muted"
+      size="micro"
+      disabled={starting || running}
+      onClick={() => void sync()}
+    >
       <RefreshCwIcon aria-hidden />
-      {starting ? "Starting…" : "Sync now"}
+      {label}
     </Button>
   );
 }

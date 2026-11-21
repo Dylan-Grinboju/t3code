@@ -276,6 +276,7 @@ export const make = Effect.gen(function* () {
       ignoredFileListing: true,
       ignoredFileSearch: true,
       triage: true,
+      botSyncStatus: true,
       botSync: true,
       oneTimeSchedules: true,
       freshContext: true,

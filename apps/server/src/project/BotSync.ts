@@ -1,12 +1,16 @@
 import {
   BotRunSyncError,
   type BotRunSyncInput,
+  type BotSyncState,
   type BotRunSyncResult,
   isListedThreadLineage,
   type ThreadId,
 } from "@t3tools/contracts";
 import * as KeyedLock from "@t3tools/shared/KeyedLock";
 import { projectScriptRuntimeEnv } from "@t3tools/shared/projectScripts";
+import * as Clock from "effect/Clock";
+import * as Stream from "effect/Stream";
+import * as SubscriptionRef from "effect/SubscriptionRef";
 import * as Context from "effect/Context";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
@@ -22,7 +26,10 @@ import * as ServerSettings from "../serverSettings.ts";
 
 export class BotSync extends Context.Service<
   BotSync,
-  { readonly run: (input: BotRunSyncInput) => Effect.Effect<BotRunSyncResult, BotRunSyncError> }
+  {
+    readonly subscribe: (threadId: ThreadId) => Stream.Stream<BotSyncState>;
+    readonly run: (input: BotRunSyncInput) => Effect.Effect<BotRunSyncResult, BotRunSyncError>;
+  }
 >()("t3/project/BotSync") {}
 
 const make = Effect.gen(function* () {
@@ -33,6 +40,23 @@ const make = Effect.gen(function* () {
   const active = yield* FiberMap.make<ThreadId, void>();
   const launches = yield* KeyedLock.make<ThreadId>();
 
+  const states = yield* SubscriptionRef.make<ReadonlyMap<ThreadId, BotSyncState>>(new Map());
+  const idle: BotSyncState = { status: "idle", changedAt: 0 };
+  const subscribe = (threadId: ThreadId) =>
+    SubscriptionRef.changes(states).pipe(
+      Stream.map((byThread) => byThread.get(threadId) ?? idle),
+      Stream.changes,
+    );
+  const setStatus = Effect.fn("BotSync.setStatus")(function* (
+    threadId: ThreadId,
+    status: BotSyncState["status"],
+  ) {
+    const changedAt = yield* Clock.currentTimeMillis;
+    yield* SubscriptionRef.update(states, (previous) =>
+      new Map(previous).set(threadId, { status, changedAt }),
+    );
+  });
+
   const monitor = Effect.fn("BotSync.monitor")(
     function* (
       threadId: ThreadId,
@@ -40,6 +64,7 @@ const make = Effect.gen(function* () {
       cwd: string,
       started: Deferred.Deferred<void, BotRunSyncError>,
     ) {
+      yield* setStatus(threadId, "running");
       const command = ChildProcess.make(script, {
         shell: true,
         cwd,
@@ -60,9 +85,11 @@ const make = Effect.gen(function* () {
         Effect.onExit((exit) => Deferred.done(started, Exit.asVoid(exit))),
       );
       const exitCode = yield* child.exitCode;
+      yield* setStatus(threadId, exitCode === 0 ? "succeeded" : "failed");
       if (exitCode !== 0)
         yield* Effect.logWarning("Bot sync command failed", { threadId, exitCode });
     },
+    (effect, threadId) => effect.pipe(Effect.onError(() => setStatus(threadId, "failed"))),
     Effect.scoped,
     Effect.ignore({ log: true }),
   );
@@ -110,7 +137,7 @@ const make = Effect.gen(function* () {
     );
   });
 
-  return BotSync.of({ run });
+  return BotSync.of({ run, subscribe });
 });
 
 export const layer = Layer.effect(BotSync, make);

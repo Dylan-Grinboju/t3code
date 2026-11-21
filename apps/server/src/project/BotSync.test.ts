@@ -4,6 +4,8 @@ import {
   ThreadId,
   type OrchestrationV2ThreadShell,
 } from "@t3tools/contracts";
+import * as Deferred from "effect/Deferred";
+import * as Option from "effect/Option";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as PlatformError from "effect/PlatformError";
@@ -60,6 +62,7 @@ it.effect(
     Effect.gen(function* () {
       const started: string[] = [];
       const stopped: string[] = [];
+      const finish = yield* Deferred.make<void>();
       const layer = runner((command) =>
         Effect.gen(function* () {
           if (command._tag !== "StandardCommand")
@@ -70,7 +73,11 @@ it.effect(
           yield* Effect.addFinalizer(() => Effect.sync(() => stopped.push(command.command)));
           return ChildProcessSpawner.makeHandle({
             pid: ChildProcessSpawner.ProcessId(1),
-            exitCode: Effect.never,
+            exitCode: Deferred.await(finish).pipe(
+              Effect.as(
+                ChildProcessSpawner.ExitCode(command.command === configured[threadId] ? 0 : 7),
+              ),
+            ),
             isRunning: Effect.succeed(true),
             kill: () => Effect.void,
             unref: Effect.succeed(Effect.void),
@@ -99,6 +106,20 @@ it.effect(
         );
         assert.sameMembers(started, Object.values(configured));
         assert.deepEqual(stopped, []);
+        const state = (id: ThreadId, status: string) =>
+          service.subscribe(id).pipe(
+            Stream.filter((value) => value.status === status),
+            Stream.runHead,
+            Effect.map(Option.getOrThrow),
+          );
+        assert.equal((yield* state(threadId, "running")).status, "running");
+        yield* Deferred.succeed(finish, undefined);
+        assert.equal((yield* state(threadId, "succeeded")).status, "succeeded");
+        assert.equal((yield* state(otherBot, "failed")).status, "failed");
+        assert.equal(
+          (yield* Stream.runHead(service.subscribe(otherBot))).pipe(Option.getOrThrow).status,
+          "failed",
+        );
       }).pipe(Effect.provide(layer));
       assert.sameMembers(stopped, started);
     }),

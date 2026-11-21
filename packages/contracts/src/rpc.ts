@@ -35,7 +35,7 @@ import {
   ChatGptHandoffState,
 } from "./providerSetup.ts";
 import * as Schema from "effect/Schema";
-import { BotRunSyncError, BotRunSyncInput, BotRunSyncResult } from "./threadBot.ts";
+import { BotSyncState, BotRunSyncError, BotRunSyncInput, BotRunSyncResult } from "./threadBot.ts";
 import * as Rpc from "effect/rpc/Rpc";
 import * as RpcGroup from "effect/rpc/RpcGroup";
 import * as RpcMiddleware from "effect/rpc/RpcMiddleware";
@@ -549,6 +549,7 @@ export const WS_METHODS = {
   serverRetryResourceTelemetry: "server.retryResourceTelemetry",
   serverCheckOtlpEndpoint: "server.checkOtlpEndpoint",
   serverListTextGeneratorModels: "server.listTextGeneratorModels",
+  botSubscribeSync: "bot.subscribeSync",
   botRunSync: "bot.runSync",
   serverPrepareTriage: "server.prepareTriage",
   serverSignalProcess: "server.signalProcess",
@@ -1024,6 +1025,13 @@ const WsServerListTextGeneratorModelsRpc = Rpc.make(WS_METHODS.serverListTextGen
   payload: ListTextGeneratorModelsInput,
   success: ListTextGeneratorModelsResult,
   error: Schema.Union([TextGeneratorError, EnvironmentAuthorizationError]),
+});
+
+const WsBotSubscribeSyncRpc = Rpc.make(WS_METHODS.botSubscribeSync, {
+  payload: BotRunSyncInput,
+  success: BotSyncState,
+  stream: true,
+  error: EnvironmentAuthorizationError,
 });
 
 const WsBotRunSyncRpc = Rpc.make(WS_METHODS.botRunSync, {
@@ -2185,6 +2193,7 @@ export const WsRpcGroup = RpcGroup.make(
   WsServerRetryResourceTelemetryRpc,
   WsServerCheckOtlpEndpointRpc,
   WsServerListTextGeneratorModelsRpc,
+  WsBotSubscribeSyncRpc,
   WsBotRunSyncRpc,
   WsServerPrepareTriageRpc,
   WsServerGetUsageSummaryRpc,

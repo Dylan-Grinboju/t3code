@@ -32,7 +32,7 @@ const FORK_FEATURES = [
   {
     title: "Manual bot sync",
     description:
-      "Set a background sync command in Bot settings. Click Sync now in that bot’s header to run the command on its host.",
+      "Set a background sync command in Bot settings. Click Sync now in that bot’s header to run the command on its host. The header shows when it finishes and lets you retry a failed sync.",
   },
   {
     title: "Task cards in chat",
