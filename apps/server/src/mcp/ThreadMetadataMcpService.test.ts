@@ -85,9 +85,15 @@ it.effect("makes a top-level thread a bot and returns it to a normal thread", ()
       ...settings,
       freshAfterTurns: 3,
       iconColor: "green",
+      glyph: "rocket",
     });
     const made = yield* update({ threadId, action: "set_bot", bot: settings });
-    assert.deepEqual(made.bot, { ...settings, freshAfterTurns: 12, iconColor: "green" });
+    assert.deepEqual(made.bot, {
+      ...settings,
+      freshAfterTurns: 12,
+      iconColor: "green",
+      glyph: "rocket",
+    });
     const cleared = yield* update({ threadId, action: "clear_bot" });
     assert.equal(cleared.bot, null);
     assert.deepEqual(

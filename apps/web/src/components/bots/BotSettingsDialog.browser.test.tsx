@@ -118,11 +118,12 @@ it("edits and resets a bot's icon color without changing its standing settings",
     .element(colors.getByRole("button", { name: "Green", exact: true }))
     .toHaveAttribute("aria-pressed", "true");
   await userEvent.click(colors.getByRole("button", { name: "Purple", exact: true }));
+  await userEvent.click(page.getByRole("button", { name: "rocket", exact: true }));
   await userEvent.click(page.getByRole("button", { name: "Save bot", exact: true }));
   await vi.waitFor(() => expect(onClose).toHaveBeenCalledOnce());
   expect(update).toHaveBeenLastCalledWith({
     environmentId: ref.environmentId,
-    input: { threadId: ref.threadId, bot: { ...bot, iconColor: "purple" } },
+    input: { threadId: ref.threadId, bot: { ...bot, iconColor: "purple", glyph: "rocket" } },
   });
   await screen.rerender(<BotSettingsDialog key="reset" threadRef={ref} onClose={onClose} />);
   await userEvent.click(page.getByRole("button", { name: "Default", exact: true }));

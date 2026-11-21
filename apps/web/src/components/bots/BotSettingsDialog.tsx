@@ -77,6 +77,8 @@ export function BotSettingsDialog({
       normalizeProjectPathForComparison(thread.bot.statePath) ===
         normalizeProjectPathForComparison(statePath.trim()),
   );
+  const [draftGlyph, setGlyph] = useState<ThreadBot["glyph"] | null>(null);
+  const glyph = draftGlyph === null ? bot?.glyph : draftGlyph;
   const [draftIconColor, setIconColor] = useState<ThreadBot["iconColor"] | null>(null);
   const iconColor = draftIconColor === null ? bot?.iconColor : draftIconColor;
   const canOperate = useEnvironmentScope(threadRef.environmentId, AuthOrchestrationOperateScope);
@@ -187,12 +189,18 @@ export function BotSettingsDialog({
                 skillPath: String(data.get("skillPath")).trim(),
                 statePath: String(data.get("statePath")).trim(),
                 freshAfterTurns: Number(data.get("freshAfterTurns")),
+                ...(glyph ? { glyph } : {}),
                 ...(iconColor ? { iconColor } : {}),
               });
             }}
           >
             <fieldset disabled={saving || !canOperate} className="grid min-w-0 gap-4">
-              <BotIconColorPicker color={iconColor} onChange={setIconColor} />
+              <BotIconColorPicker
+                glyph={glyph}
+                onGlyphChange={setGlyph}
+                color={iconColor}
+                onChange={setIconColor}
+              />
               <label className="grid gap-1.5 text-xs font-medium">
                 Standing objective
                 <Textarea

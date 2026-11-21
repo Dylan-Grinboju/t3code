@@ -84,7 +84,7 @@ function metadataCommand(input: {
         regenerateTitle: true,
       };
     case "set_bot": {
-      const iconColor = input.currentBot?.iconColor;
+      const { iconColor, glyph } = input.currentBot ?? {};
       return {
         type: "thread.metadata.update",
         commandId: input.commandId,
@@ -92,6 +92,7 @@ function metadataCommand(input: {
         bot: {
           ...input.update.bot!,
           freshAfterTurns: input.update.bot!.freshAfterTurns ?? DEFAULT_BOT_FRESH_AFTER_TURNS,
+          ...(glyph === undefined ? {} : { glyph }),
           ...(iconColor === undefined ? {} : { iconColor }),
         },
       };

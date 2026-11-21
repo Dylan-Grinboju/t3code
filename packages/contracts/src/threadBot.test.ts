@@ -13,7 +13,7 @@ it("round-trips optional bot colors while accepting existing bots and rejecting 
     freshAfterTurns: 12,
   };
   expect(decode(bot)).toEqual(bot);
-  const colored = { ...bot, iconColor: "purple" };
+  const colored = { ...bot, iconColor: "purple", glyph: "inbox" };
   expect(decode(encode(decode(colored)))).toEqual(colored);
   expect(() => decode({ ...bot, iconColor: "unknown" })).toThrow();
 });

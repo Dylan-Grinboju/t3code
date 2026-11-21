@@ -91,6 +91,7 @@ function BotRow({ bot, ...props }: BotRowProps & { bot: EnvironmentThreadShell }
     return (
       <div className={className} data-sidebar-row={key}>
         <BotAvatar
+          glyph={bot.bot?.glyph}
           color={bot.bot?.iconColor}
           needsYou={status.needsYou}
           compact={!status.needsYou}
@@ -125,7 +126,12 @@ function BotRow({ bot, ...props }: BotRowProps & { bot: EnvironmentThreadShell }
       onContextMenu={handleContextMenu}
       className={className}
     >
-      <BotAvatar color={bot.bot?.iconColor} needsYou={status.needsYou} compact={!status.needsYou} />
+      <BotAvatar
+        glyph={bot.bot?.glyph}
+        color={bot.bot?.iconColor}
+        needsYou={status.needsYou}
+        compact={!status.needsYou}
+      />
       <span className={cn("min-w-0 flex-1", !status.needsYou && "flex items-center gap-2")}>
         <span className="block min-w-0 flex-1 truncate text-xs font-medium">{bot.title}</span>
         {statusLine}

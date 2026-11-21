@@ -1,21 +1,47 @@
-import type { ThreadBot } from "@t3tools/contracts";
+import { BotGlyph, type ThreadBot } from "@t3tools/contracts";
 import { cn } from "../../lib/utils";
 import { PROJECT_ICON_COLORS } from "../../projectIconColors";
 import { Button } from "../ui/button";
-import { BotAvatar } from "./BotIdentity";
+import { BotIcon } from "lucide-react";
+import { BotAvatar, botGlyphs } from "./BotIdentity";
 
 export function BotIconColorPicker({
   color,
+  glyph,
+  onGlyphChange,
   onChange,
 }: {
+  glyph: ThreadBot["glyph"];
+  onGlyphChange: (value: ThreadBot["glyph"]) => void;
   color: ThreadBot["iconColor"];
   onChange: (color: ThreadBot["iconColor"]) => void;
 }) {
   return (
     <div className="grid gap-1.5">
+      <div className="text-xs font-medium">Bot icon</div>
+      <div className="flex flex-wrap gap-1" role="group" aria-label="Bot icon">
+        {[undefined, ...BotGlyph.literals].map((value) => {
+          const Icon = value ? botGlyphs[value] : BotIcon;
+          const label = value ?? "robot";
+          return (
+            <Button
+              key={label}
+              type="button"
+              size="icon-sm"
+              variant={glyph === value ? "outline" : "ghost"}
+              aria-label={label}
+              title={label}
+              aria-pressed={glyph === value}
+              onClick={() => onGlyphChange(value)}
+            >
+              <Icon aria-hidden />
+            </Button>
+          );
+        })}
+      </div>
       <div className="text-xs font-medium">Icon color</div>
       <div className="flex items-center gap-3">
-        <BotAvatar color={color} />
+        <BotAvatar glyph={glyph} color={color} />
         <div className="flex max-w-64 flex-wrap gap-1" role="group" aria-label="Bot icon color">
           {PROJECT_ICON_COLORS.map((option) => (
             <button
