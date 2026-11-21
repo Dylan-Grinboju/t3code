@@ -3,6 +3,7 @@ import { useBotView } from "./botViewState";
 import { useAtomValue } from "@effect/atom-react";
 import { scopedThreadKey } from "@t3tools/client-runtime/environment";
 import {
+  isListedThreadLineage,
   AuthOrchestrationOperateScope,
   AuthSettingsWriteScope,
   DEFAULT_BOT_FRESH_AFTER_TURNS,
@@ -12,7 +13,8 @@ import {
 import * as Equal from "effect/Equal";
 import { useState } from "react";
 import { appAtomRegistry } from "../../rpc/atomRegistry";
-import { useQuietThreadShell } from "../../state/entities";
+import { normalizeProjectPathForComparison, isHostPath } from "@t3tools/shared/path";
+import { useQuietThreadShells, useQuietThreadShell } from "../../state/entities";
 import { serverEnvironment } from "../../state/server";
 import { readEnvironmentScope, useEnvironmentScope } from "../../state/session";
 import { threadEnvironment } from "../../state/threads";
@@ -56,6 +58,25 @@ export function BotSettingsDialog({
   const [{ activity, history }, setView] = useBotView(threadRef);
   const shell = useQuietThreadShell(threadRef);
   const bot = shell?.bot;
+  const threads = useQuietThreadShells();
+  const [draftStatePath, setStatePath] = useState<string | null>(null);
+  const statePath =
+    draftStatePath ??
+    bot?.statePath ??
+    `~/.local/share/t3/bots/bot-${encodeURIComponent(threadRef.threadId)}/work.sqlite`;
+  const sharedPath = threads.find(
+    (thread) =>
+      thread.environmentId === threadRef.environmentId &&
+      thread.id !== threadRef.threadId &&
+      thread.bot &&
+      thread.deletedAt === null &&
+      !thread.delegatedFrom &&
+      isListedThreadLineage(thread.lineage) &&
+      (isHostPath(statePath.trim()) ||
+        (thread.projectId === shell?.projectId && thread.worktreePath === shell.worktreePath)) &&
+      normalizeProjectPathForComparison(thread.bot.statePath) ===
+        normalizeProjectPathForComparison(statePath.trim()),
+  );
   const [draftIconColor, setIconColor] = useState<ThreadBot["iconColor"] | null>(null);
   const iconColor = draftIconColor === null ? bot?.iconColor : draftIconColor;
   const canOperate = useEnvironmentScope(threadRef.environmentId, AuthOrchestrationOperateScope);
@@ -192,8 +213,14 @@ export function BotSettingsDialog({
                     name="statePath"
                     required
                     maxLength={2048}
-                    defaultValue={bot?.statePath ?? "~/.local/share/chief-of-staff/work.sqlite"}
+                    value={statePath}
+                    onChange={(event) => setStatePath(event.target.value)}
                   />
+                  {sharedPath && (
+                    <span className="text-xs text-muted-foreground">
+                      Also used by {sharedPath.title}. Save to share this work state.
+                    </span>
+                  )}
                 </label>
               </div>
               {supportsSync && (
