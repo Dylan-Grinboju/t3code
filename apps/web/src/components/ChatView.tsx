@@ -52,7 +52,12 @@ import { visibleThreadPullRequests } from "@t3tools/shared/threadPullRequests";
 import type { UsageLimitSourceSnapshots } from "@t3tools/contracts";
 import { feedbackBannerItem } from "./chat/ComposerFeedback";
 import { freshSessionBannerItem } from "./chat/ComposerFreshSession";
-import { armFreshSession, disarmFreshSession, useFreshSessionArmed } from "./chat/freshSessionArms";
+import {
+  armFreshSession,
+  disarmFreshSession,
+  readFreshSessionArm,
+  useFreshSessionArmed,
+} from "./chat/freshSessionArms";
 import { useUsageLimitsPanel } from "./chat/useUsageLimitsPanel";
 import { useWorktreeSetup } from "./chat/useWorktreeSetup";
 import { useChatShortcuts } from "./chat/useChatShortcuts";
@@ -1928,17 +1933,28 @@ export default function ChatView(props: ChatViewProps) {
     scheduleComposerFocusStable();
   };
   const insertArtifactTemplateStable = useStableCallback(insertArtifactTemplate);
-  const sendAppMessage = async (text: string) => {
+  const sendAppMessage = async (text: string, reply?: ResponseContextRecord) => {
     if (!isServerThread || activeThreadId === null) {
       throw new Error("Messages from apps need a started thread.");
     }
+    const freshArm =
+      reply && serverConfig?.environment.capabilities.freshContext
+        ? readFreshSessionArm(routeThreadKey)
+        : undefined;
     const result = await startThreadTurn({
       environmentId,
       input: {
         threadId: activeThreadId,
-        message: { messageId: newMessageId(), role: "user", text, attachments: [] },
+        message: {
+          messageId: newMessageId(),
+          role: "user",
+          text,
+          attachments: [],
+          ...(reply && { context: { version: 1, records: [reply] } }),
+        },
+        ...(freshArm !== undefined && { freshContext: true }),
         runtimeMode,
-        interactionMode: DEFAULT_INTERACTION_MODE,
+        interactionMode: (reply && activeThread?.interactionMode) || DEFAULT_INTERACTION_MODE,
         dispatchMode: "queue",
       },
     });
@@ -1946,6 +1962,7 @@ export default function ChatView(props: ChatViewProps) {
       const error = squashAtomCommandFailure(result);
       throw error instanceof Error ? error : new Error("Could not send the app's message.");
     }
+    if (freshArm !== undefined) disarmFreshSession(routeThreadKey, freshArm);
   };
   const sendAppMessageStable = useStableCallback(sendAppMessage);
   const queuedRunsControlRef = useRef<QueuedRunsControlHandle>(null);

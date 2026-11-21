@@ -293,7 +293,7 @@ interface MessagesTimelineProps {
   availableRevertTurnCounts?: ReadonlySet<number> | undefined;
   onRevertToTurnCount: (targetTurnCount: number, messageId: MessageId) => void;
   onUseArtifactTemplate?: (template: CodexArtifactTemplate) => void;
-  onSendAppMessage?: (text: string) => Promise<void>;
+  onSendAppMessage?: TimelineRowSharedState["onSendAppMessage"];
   onRunShellCommand?: (command: string) => void;
   isRevertingCheckpoint: boolean;
   onImageExpand: (preview: ExpandedImagePreview) => void;

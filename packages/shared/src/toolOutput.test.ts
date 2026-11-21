@@ -51,7 +51,11 @@ describe("compactDynamicToolOutput", () => {
       instruction: "Fix both findings and draft replies.",
     };
     const toolName = "mcp__t3-code__present_task_card";
-    for (const card of [{ ...common, action }, { ...common, question: "Which default?" }, common]) {
+    for (const card of [
+      { ...common, action },
+      { ...common, question: "Which default?", suggestedAnswers: ["Ship", "Wait"] },
+      common,
+    ]) {
       const result = { content: [{ type: "text", text: JSON.stringify({ taskCard: card }) }] };
       const output = compactDynamicToolOutput(result);
       expect(taskCardFromToolItem({ status: "completed", toolName, output })).toEqual(card);

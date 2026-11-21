@@ -24,6 +24,7 @@ import {
 } from "@t3tools/shared/toolActivity";
 import type { HtmlRenderReference } from "@t3tools/shared/htmlRender";
 import { turnItemDetailRevision } from "@t3tools/client-runtime/work-log/item-detail";
+import { stripInlineContextReferences } from "./lib/composerContextReferences";
 import type { TaskCard } from "@t3tools/shared/taskCard";
 import type { McpAppReference } from "@t3tools/shared/mcpApp";
 import {
@@ -137,6 +138,7 @@ export type TimelineEntry = (
       readonly sourceThreadId: ThreadId;
       readonly itemId: TurnItemId;
       readonly card: TaskCard;
+      readonly answer?: string;
     }
   | {
       readonly id: string;
@@ -528,6 +530,7 @@ export function deriveTimelineEntriesFromVisibleTurnItems(
 ): TimelineEntry[] {
   const committedMessageIds = new Set<string>();
   const entries: TimelineEntry[] = [];
+  const cardRows = new Map<string, number>();
   const attemptByRootNodeId = new Map(
     (input.attempts ?? []).map((attempt) => [attempt.rootNodeId, attempt] as const),
   );
@@ -563,6 +566,22 @@ export function deriveTimelineEntriesFromVisibleTurnItems(
     const { item } = row;
     if (turnItemIsWorkspacePreparation(item) && !item.deferredWork) continue;
     if (item.type === "checkpoint") continue;
+    if (
+      item.type === "user_message" &&
+      item.createdBy === "user" &&
+      item.status !== "cancelled" &&
+      item.context
+    ) {
+      for (const record of item.context.records) {
+        if (record.kind !== "response" || !("citation" in record)) continue;
+        const index = cardRows.get(record.citation.messageId);
+        const card = index === undefined ? undefined : entries[index];
+        if (index !== undefined && card?.kind === "task-card" && card.itemId === record.itemId) {
+          const answer = stripInlineContextReferences(item.text).trim();
+          if (answer) entries[index] = { ...card, answer };
+        }
+      }
+    }
     if (
       item.type === "user_message" &&
       item.inputIntent === "queued_turn" &&
@@ -681,6 +700,7 @@ export function deriveTimelineEntriesFromVisibleTurnItems(
         ? taskCardFromToolItem(item)
         : undefined;
     if (card !== undefined) {
+      if (card.question) cardRows.set(item.id, entries.length);
       entries.push({
         id: item.id,
         kind: "task-card",
@@ -929,7 +949,8 @@ function canRederiveInPlace(
     item.item.type !== "user_input_request" &&
     // An app call projects two entries; in-place reuse replaces one.
     (previousItem.item.type !== "dynamic_tool" ||
-      mcpAppFromToolItem(previousItem.item) === undefined) &&
+      (mcpAppFromToolItem(previousItem.item) === undefined &&
+        !taskCardFromToolItem(previousItem.item)?.question)) &&
     ((input.anchoredMessages?.length ?? 0) === 0 ||
       projectedItemCreatedAt(item) === projectedItemCreatedAt(previousItem))
   );
@@ -980,7 +1001,9 @@ function reuseTimelineEntries(
       .some(
         ({ item }) =>
           (item.type === "user_input_request" && item.questionAnswer !== undefined) ||
-          (item.type === "user_message" && item.messageId.startsWith("async-answer:")),
+          (item.type === "user_message" &&
+            (item.messageId.startsWith("async-answer:") ||
+              item.context?.records.some((record) => record.kind === "response"))),
       )
   )
     return null;

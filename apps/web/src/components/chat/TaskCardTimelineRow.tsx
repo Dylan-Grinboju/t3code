@@ -9,6 +9,7 @@ import { PullRequestGlyph } from "../pullRequest/pullRequestIcons";
 import { toastManager } from "../ui/toast";
 import { AssistantCitationSource } from "./AssistantCitationSource";
 import { findRevealRef } from "./markdownFindContext";
+import { TaskCardReply } from "./TaskCardReply";
 import { TaskCardStart } from "./TaskCardStart";
 import { classifyThreadLink } from "./threadLinks";
 import { TimelineRowCtx, type TimelineRow } from "./timelineRowContext";
@@ -90,6 +91,11 @@ export function TaskCardTimelineRow({ row }: { row: Extract<TimelineRow, { kind:
             >
               <span className="pointer-events-auto">{headline}</span>
             </h4>
+            {card.question && (row.answer || (ctx.canOperateThread && ctx.onSendAppMessage)) && (
+              <span className="max-w-32 truncate text-xs text-muted-foreground">
+                {row.answer ? "Answered · " + row.answer : "Reply"}
+              </span>
+            )}
             {card.action && ctx.threadRef && (
               <div className="relative">
                 <TaskCardStart
@@ -123,6 +129,19 @@ export function TaskCardTimelineRow({ row }: { row: Extract<TimelineRow, { kind:
                 <p className="whitespace-pre-wrap text-sm text-muted-foreground">
                   <span className="pointer-events-auto">{summary}</span>
                 </p>
+                {row.answer && <p className="text-xs">You answered · {row.answer}</p>}
+                {!row.answer &&
+                  card.question &&
+                  ctx.threadRef &&
+                  ctx.canOperateThread &&
+                  ctx.onSendAppMessage && (
+                    <TaskCardReply
+                      key={row.id}
+                      row={row}
+                      threadRef={ctx.threadRef}
+                      send={ctx.onSendAppMessage}
+                    />
+                  )}
                 {sourceUrl && (
                   <a
                     className="pointer-events-auto inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:underline"

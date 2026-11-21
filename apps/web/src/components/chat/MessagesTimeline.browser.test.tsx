@@ -1208,6 +1208,53 @@ const CITATION_REQUEST = {
   },
 } satisfies NonNullable<TimelineProps["citationRequest"]>;
 
+it("sends an inline card answer with its original question and allows a custom reply after failure", async () => {
+  const entries = deriveTimelineEntriesFromVisibleTurnItems({
+    visibleTurnItems: [
+      v2Item("dynamic_tool", {
+        id: "decision",
+        toolName: "mcp__t3-code__present_task_card",
+        updatedAt: DateTime.makeUnsafe(CREATED_AT),
+        output: {
+          taskCard: {
+            title: "Release",
+            summary: "Checks passed.",
+            question: "Ship today?",
+            suggestedAnswers: ["Ship", "Wait"],
+          },
+        },
+      }),
+    ],
+    optimisticMessages: [],
+  });
+  const send = vi.fn().mockRejectedValueOnce(new Error("Offline")).mockResolvedValueOnce(undefined);
+  await using screen = await renderTimeline(entries, {
+    routeThreadKey: "environment-local:fork",
+    canOperateThread: true,
+    onSendAppMessage: send,
+  });
+  await screen.getByRole("button", { name: "Show details for Release" }).click();
+  await screen.getByRole("button", { name: "Ship", exact: true }).click();
+  await expect.element(screen.getByRole("alert")).toHaveTextContent("Offline");
+  await userEvent.fill(
+    screen.getByRole("textbox", { name: "Answer to Ship today?" }),
+    "After lunch",
+  );
+  await screen.getByRole("button", { name: "Send", exact: true }).click();
+  await expect.element(screen.getByText("You answered · After lunch")).toBeVisible();
+  expect(send).toHaveBeenLastCalledWith(
+    expect.stringContaining("After lunch"),
+    expect.objectContaining({
+      itemId: "decision",
+      citation: expect.objectContaining({
+        messageId: "decision",
+        threadId: "fork",
+        text: "Ship today?",
+      }),
+    }),
+  );
+});
+
 describe("MessagesTimeline citations", () => {
   it.each([
     [

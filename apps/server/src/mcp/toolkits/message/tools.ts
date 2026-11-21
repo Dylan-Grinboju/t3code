@@ -40,7 +40,7 @@ const SendToUserTool = Tool.make(SEND_TO_USER_TOOL_NAME, {
 
 const PresentTaskCardTool = Tool.make(TASK_CARD_TOOL_NAME, {
   description:
-    "Show one selectable task card in this thread. For a predictable next step, offer action: Start launches its exact instruction in a new thread in projectId, using baseRef for a fresh worktree or the project root if omitted. For a decision, give the question instead. Showing a card never starts work.",
+    "Show one selectable task card in this thread. For a predictable next step, offer action: Start launches its exact instruction in a new thread in projectId, using baseRef for a fresh worktree or the project root if omitted. For a decision, give the question and optionally two or three suggestedAnswers. The user can also write their own answer. Showing a card never starts work.",
   parameters: TaskCard,
   success: Schema.Struct({ taskCard: TaskCard }),
   failure: OrchestratorMcpFailure,

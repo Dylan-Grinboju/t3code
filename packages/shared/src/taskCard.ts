@@ -23,6 +23,9 @@ export const TaskCard = Schema.Struct({
     ),
   ),
   question: Schema.optionalKey(text(1_000)),
+  suggestedAnswers: Schema.optionalKey(
+    Schema.Array(text(120)).check(Schema.isMinLength(2), Schema.isMaxLength(3)),
+  ),
   action: Schema.optionalKey(
     Schema.Struct({
       instruction: text(3_000),
@@ -32,6 +35,13 @@ export const TaskCard = Schema.Struct({
     }),
   ),
 }).check(
+  Schema.makeFilter(
+    (card) =>
+      !card.suggestedAnswers ||
+      (card.question !== undefined &&
+        new Set(card.suggestedAnswers).size === card.suggestedAnswers.length),
+    { expected: "distinct suggested answers to a question" },
+  ),
   Schema.makeFilter((card) => card.question === undefined || card.action === undefined, {
     expected: "a question or a Start action, never both",
   }),
