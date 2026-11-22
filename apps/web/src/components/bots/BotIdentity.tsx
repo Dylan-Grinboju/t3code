@@ -1,3 +1,4 @@
+import { useGT, useMessages } from "gt-react";
 import {
   BotIcon,
   createLucideIcon,
@@ -64,6 +65,8 @@ export function BotAvatar({
 }
 
 export function BotStatus({ status }: { status: ReturnType<typeof botStatus> | null }) {
+  const gt = useGT();
+  const messages = useMessages();
   return (
     <span
       className={cn(
@@ -73,8 +76,11 @@ export function BotStatus({ status }: { status: ReturnType<typeof botStatus> | n
     >
       <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-current" />
       <span className="truncate">
-        {status?.needsYou ? "Needs you · " : ""}
-        {status?.label ?? "Loading"}
+        {status === null
+          ? gt("Loading")
+          : status.needsYou
+            ? gt("Needs you · {status}", { status: messages(status.label) })
+            : messages(status.label)}
       </span>
     </span>
   );

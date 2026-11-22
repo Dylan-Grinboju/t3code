@@ -1,3 +1,4 @@
+import { useGT } from "gt-react";
 import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/models";
 import { scopedThreadKey, scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { settlePromise } from "@t3tools/client-runtime/state/runtime";
@@ -24,6 +25,7 @@ const GROUP_DOT_CLASS_NAME = {
 } as const;
 
 function GroupNameInput(props: { name: string; onDone: (name: string | null) => void }) {
+  const gt = useGT();
   const [value, setValue] = useState(props.name);
   // Enter and Escape blur the input as it unmounts; that blur must not finish again.
   const doneRef = useRef(false);
@@ -48,7 +50,7 @@ function GroupNameInput(props: { name: string; onDone: (name: string | null) => 
       autoFocus
       value={value}
       dir="auto"
-      aria-label="Group name"
+      aria-label={gt("Group name")}
       onChange={(event) => setValue(event.target.value)}
       onFocus={(event) => event.currentTarget.select()}
       onKeyDown={handleKeyDown}
@@ -66,6 +68,7 @@ export const YosiThreadGroupHeader = memo(function YosiThreadGroupHeader(props: 
   hiddenThreads: readonly EnvironmentThreadShell[];
   dragging: boolean;
 }) {
+  const gt = useGT();
   const { group, hiddenThreads } = props;
   const renaming = useYosiGroupRename((state) => state.groupId === group.id);
   const localLastVisitedAtById = useUiStateStore((state) => state.threadLastVisitedAtById);
@@ -94,12 +97,12 @@ export const YosiThreadGroupHeader = memo(function YosiThreadGroupHeader(props: 
       const clicked = await settlePromise(() =>
         api.contextMenu.show(
           [
-            { id: "rename", label: "Rename group", icon: "pencil" },
-            { id: "new", label: "New group", icon: "folder-plus" },
+            { id: "rename", label: gt("Rename group"), icon: "pencil" },
+            { id: "new", label: gt("New group"), icon: "folder-plus" },
             {
               id: "delete",
-              label: "Delete group",
-              detail: "Its threads stay",
+              label: gt("Delete group"),
+              detail: gt("Its threads stay"),
               icon: "trash",
               destructive: true,
               separatorBefore: true,

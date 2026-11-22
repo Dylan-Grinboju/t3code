@@ -1,3 +1,4 @@
+import { T, useGT, useMessages } from "gt-react";
 import { ArrowUpRightIcon, MessagesSquareIcon, WorkflowIcon } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { Link } from "@tanstack/react-router";
@@ -20,6 +21,8 @@ function WorkConversation({
   threadRef: ScopedThreadRef;
   fallbackTitle: string;
 }) {
+  const gt = useGT();
+  const messages = useMessages();
   const shell = useQuietThreadShell(threadRef);
   if (
     shell?.deletedAt != null ||
@@ -43,9 +46,9 @@ function WorkConversation({
       >
         {shell
           ? shell.settledOverride === "settled"
-            ? "Done"
-            : botStatus(shell).label
-          : "Open conversation"}
+            ? gt("Done")
+            : messages(botStatus(shell).label)
+          : gt("Open conversation")}
       </span>
       <ArrowUpRightIcon
         aria-hidden
@@ -56,6 +59,8 @@ function WorkConversation({
 }
 
 export function BotWorkPanel({ threadRef }: { threadRef: ScopedThreadRef }) {
+  const gt = useGT();
+  const messages = useMessages();
   const projection = useQuietThreadProjection(threadRef)?.projection ?? null;
   const hidden = useHiddenThreadKeys();
   const refs = useEnvironmentThreadRefs(threadRef.environmentId);
@@ -67,15 +72,20 @@ export function BotWorkPanel({ threadRef }: { threadRef: ScopedThreadRef }) {
       !hidden.has(scopedThreadKey(scopeThreadRef(threadRef.environmentId, threadId))),
   );
   return (
-    <section aria-label="Bot work" className="max-h-[60dvh] overflow-y-auto overscroll-contain p-4">
+    <section
+      aria-label={gt("Bot work")}
+      className="max-h-[60dvh] overflow-y-auto overscroll-contain p-4"
+    >
       {conversations.length > 0 && (
         <div className="mb-4 border-b pb-4">
           <div className="flex items-center gap-2">
             <MessagesSquareIcon aria-hidden className="size-4 text-primary" />
-            <h3 className="text-sm font-medium">Conversations to continue</h3>
+            <h3 className="text-sm font-medium">
+              <T>Conversations to continue</T>
+            </h3>
           </div>
           <p className="mb-2 mt-1 text-xs leading-relaxed text-muted-foreground">
-            Separate threads opened by this bot for work that needs your involvement.
+            <T>Separate threads opened by this bot for work that needs your involvement.</T>
           </p>
           {conversations.map(({ threadId, title }) => (
             <WorkConversation
@@ -88,22 +98,32 @@ export function BotWorkPanel({ threadRef }: { threadRef: ScopedThreadRef }) {
       )}
       <div className="flex items-center gap-2">
         <WorkflowIcon aria-hidden className="size-4 text-primary" />
-        <h3 className="text-sm font-medium">Workers</h3>
+        <h3 className="text-sm font-medium">
+          <T>Workers</T>
+        </h3>
       </div>
       <p className="mb-3 mt-1 text-xs leading-relaxed text-muted-foreground">
-        Background work stays here. Ask the bot to continue important work in a normal conversation,
-        including after a worker finishes.
+        <T>
+          Background work stays here. Ask the bot to continue important work in a normal
+          conversation, including after a worker finishes.
+        </T>
       </p>
       <ThreadRelationshipsPanel
         environmentId={threadRef.environmentId}
         threadId={threadRef.threadId}
         showLineage
         showSideChats
-        labels={BOT_RELATIONSHIP_LABELS}
+        labels={{
+          ...BOT_RELATIONSHIP_LABELS,
+          related: messages(BOT_RELATIONSHIP_LABELS.related),
+          active: messages(BOT_RELATIONSHIP_LABELS.active),
+          previous: messages(BOT_RELATIONSHIP_LABELS.previous),
+          lineageTitle: messages(BOT_RELATIONSHIP_LABELS.lineageTitle),
+        }}
       />
       {(projection?.subagents.length ?? 0) === 0 && (
         <p className="rounded-lg bg-muted/30 px-3 py-2.5 text-xs text-muted-foreground">
-          No delegated workers in loaded history.
+          <T>No delegated workers in loaded history.</T>
         </p>
       )}
     </section>

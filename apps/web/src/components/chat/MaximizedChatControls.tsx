@@ -1,3 +1,4 @@
+import { useGT } from "gt-react";
 import type { ScopedThreadRef } from "@t3tools/contracts";
 import { BotHeaderActions } from "../bots/BotHeaderActions";
 import { BotIcon, MinusIcon } from "lucide-react";
@@ -8,11 +9,12 @@ import { FloatingChatDragHandle } from "./FloatingChatDock";
 export type MaximizedChatPresentation = "collapsed" | "expanded" | "tab";
 
 function MinimizeFloatingChatButton(props: { onMinimize: () => void }) {
+  const gt = useGT();
   return (
     <Button
       size="icon-xs"
       variant="ghost"
-      aria-label="Minimize chat"
+      aria-label={gt("Minimize chat")}
       onClick={(event) => {
         event.stopPropagation();
         props.onMinimize();
@@ -30,6 +32,7 @@ export function FloatingChatHeader(props: {
   onToggle: () => void;
   onMinimize: () => void;
 }) {
+  const gt = useGT();
   return (
     <div
       data-floating-chat-header
@@ -49,7 +52,7 @@ export function FloatingChatHeader(props: {
       <button
         type="button"
         className="min-w-0 flex-1 cursor-pointer truncate rounded-sm text-left font-medium text-foreground text-xs focus-visible:outline-2 focus-visible:outline-ring"
-        aria-label={props.expanded ? "Collapse conversation" : "Expand conversation"}
+        aria-label={props.expanded ? gt("Collapse conversation") : gt("Expand conversation")}
         aria-expanded={props.expanded}
         onClick={(event) => {
           event.stopPropagation();

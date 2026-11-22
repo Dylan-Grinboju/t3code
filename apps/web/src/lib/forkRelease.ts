@@ -1,3 +1,5 @@
+import { m, type MessageResolver } from "../i18n/messages";
+import { msg } from "gt-react";
 import type { DesktopForkUpdateState } from "@t3tools/contracts";
 import { threadRuntimeIsActive } from "@t3tools/client-runtime/state/shell";
 import { useSyncExternalStore } from "react";
@@ -103,8 +105,8 @@ export async function checkForkReleaseFromButton() {
   if (await checkForkReleaseNow()) return;
   toastManager.add({
     type: "error",
-    title: "Could not check for updates",
-    description: "Could not reach GitHub to check for a newer fork release.",
+    title: m(msg("Could not check for updates")),
+    description: m(msg("Could not reach GitHub to check for a newer fork release.")),
   });
 }
 
@@ -140,7 +142,7 @@ function refreshLocal() {
     if (local.status === "downloaded" && local.message && local.tag !== FORK_RELEASE_TAG) {
       toastManager.add({
         type: "error",
-        title: `Installing ${local.tag} failed`,
+        title: m(msg("Installing {tag} failed", { tag: local.tag })),
         description: local.message,
       });
     }
@@ -222,7 +224,7 @@ async function downloadForkRelease(tag: string, discardPrevious = false) {
   if (local.status === "failed") {
     toastManager.add({
       type: "error",
-      title: "Update download failed",
+      title: m(msg("Update download failed")),
       description: local.message,
     });
   }
@@ -261,7 +263,11 @@ async function installForkRelease(tag: string) {
   const local = await bridge.install(tag).catch(failedState(tag));
   applyLocal(local);
   if (local.status === "failed") {
-    toastManager.add({ type: "error", title: "Update install failed", description: local.message });
+    toastManager.add({
+      type: "error",
+      title: m(msg("Update install failed")),
+      description: local.message,
+    });
   }
 }
 
@@ -273,15 +279,22 @@ export function runForkUpdateAction(action: ForkUpdateAction) {
   return void installForkRelease(action.tag);
 }
 
-export function forkUpdateActionLabel(action: ForkUpdateAction): string {
+export function forkUpdateActionLabel(
+  action: ForkUpdateAction,
+  resolve: MessageResolver = m,
+): string {
   switch (action.kind) {
     case "check":
-      return action.busy ? "Checking…" : "Check now";
+      return action.busy ? resolve(msg("Checking…")) : resolve(msg("Check now"));
     case "open":
-      return `Download ${action.release.tag}`;
+      return resolve(msg("Download {tag}", { tag: action.release.tag }));
     case "download":
-      return action.busy ? `Downloading ${action.release.tag}…` : `Download ${action.release.tag}`;
+      return action.busy
+        ? resolve(msg("Downloading {tag}…", { tag: action.release.tag }))
+        : resolve(msg("Download {tag}", { tag: action.release.tag }));
     case "install":
-      return action.busy ? "Restarting…" : `Install ${action.tag}`;
+      return action.busy
+        ? resolve(msg("Restarting…"))
+        : resolve(msg("Install {tag}", { tag: action.tag }));
   }
 }

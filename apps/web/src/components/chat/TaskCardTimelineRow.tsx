@@ -1,3 +1,4 @@
+import { useGT } from "gt-react";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { replaceThreadLinks } from "@t3tools/shared/threadLinks";
 import { MessageId } from "@t3tools/contracts";
@@ -15,6 +16,7 @@ import { classifyThreadLink } from "./threadLinks";
 import { TimelineRowCtx, type TimelineRow } from "./timelineRowContext";
 
 export function TaskCardTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "task-card" }> }) {
+  const gt = useGT();
   const ctx = use(TimelineRowCtx);
   const openLink = useOpenLink(ctx.threadRef);
   const { card } = row;
@@ -52,7 +54,7 @@ export function TaskCardTimelineRow({ row }: { row: Extract<TimelineRow, { kind:
     if (event.button !== 0 || event.metaKey || event.ctrlKey) return;
     event.preventDefault();
     void openLink(sourceUrl, { event }).catch(() => {
-      toastManager.add({ type: "error", title: "Unable to open task source" });
+      toastManager.add({ type: "error", title: gt("Unable to open task source") });
     });
   }
 
@@ -73,7 +75,11 @@ export function TaskCardTimelineRow({ row }: { row: Extract<TimelineRow, { kind:
             <button
               type="button"
               className="group flex size-7 shrink-0 cursor-pointer items-center justify-center text-muted-foreground outline-none after:absolute after:inset-0 after:rounded-md hover:text-foreground focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-ring sm:size-6"
-              aria-label={`${expanded ? "Hide" : "Show"} details for ${card.title}`}
+              aria-label={
+                expanded
+                  ? gt("Hide details for {title}", { title: card.title })
+                  : gt("Show details for {title}", { title: card.title })
+              }
               aria-expanded={expanded}
               aria-controls={detailsId}
               onClick={() => setExpanded((open) => !open)}
@@ -93,7 +99,7 @@ export function TaskCardTimelineRow({ row }: { row: Extract<TimelineRow, { kind:
             </h4>
             {card.question && (row.answer || (ctx.canOperateThread && ctx.onSendAppMessage)) && (
               <span className="max-w-32 truncate text-xs text-muted-foreground">
-                {row.answer ? "Answered · " + row.answer : "Reply"}
+                {row.answer ? gt("Answered · {answer}", { answer: row.answer }) : gt("Reply")}
               </span>
             )}
             {card.action && ctx.threadRef && (
@@ -129,7 +135,9 @@ export function TaskCardTimelineRow({ row }: { row: Extract<TimelineRow, { kind:
                 <p className="whitespace-pre-wrap text-sm text-muted-foreground">
                   <span className="pointer-events-auto">{summary}</span>
                 </p>
-                {row.answer && <p className="text-xs">You answered · {row.answer}</p>}
+                {row.answer && (
+                  <p className="text-xs">{gt("You answered · {answer}", { answer: row.answer })}</p>
+                )}
                 {!row.answer &&
                   card.question &&
                   ctx.threadRef &&

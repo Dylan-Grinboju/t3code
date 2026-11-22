@@ -1,3 +1,5 @@
+import { m } from "../../i18n/messages";
+import { msg } from "gt-react";
 import { Schema } from "effect";
 import { create } from "zustand";
 import type { ContextMenuItem, ContextMenuSource, LocalApi } from "@t3tools/contracts";
@@ -99,8 +101,8 @@ export function removeGroup(groups: Groups, groupId: string): Groups {
 function defaultGroupName(groups: Groups): string {
   const names = new Set(groups.map((group) => group.name));
   let index = groups.length + 1;
-  while (names.has(`Group ${index}`)) index += 1;
-  return `Group ${index}`;
+  while (names.has(m(msg("Group {index}", { index })))) index += 1;
+  return m(msg("Group {index}", { index }));
 }
 
 export const useYosiGroupRename = create<{ groupId: string | null }>(() => ({ groupId: null }));
@@ -387,11 +389,11 @@ function yosiThreadMenuItems(input: {
       .filter((group) => threadKeys.some((key) => group.threadKeys.includes(key)))
       .map((group) => group.id),
   );
-  const count = threadKeys.length > 1 ? ` (${threadKeys.length})` : "";
+  const count = threadKeys.length;
   return [
     {
       id: "yosi-group:menu",
-      label: `Move to group${count}`,
+      label: count > 1 ? m(msg("Move to group ({count})", { count })) : m(msg("Move to group")),
       icon: "folder",
       separatorBefore: true,
       children: [
@@ -402,14 +404,22 @@ function yosiThreadMenuItems(input: {
         })),
         {
           id: "yosi-group:new",
-          label: "New group",
+          label: m(msg("New group")),
           icon: "folder-plus",
           separatorBefore: groups.length > 0,
         },
       ],
     },
     ...(groupIds.size > 0
-      ? [{ id: "yosi-group:remove" as const, label: `Remove from group${count}` }]
+      ? [
+          {
+            id: "yosi-group:remove" as const,
+            label:
+              count > 1
+                ? m(msg("Remove from group ({count})", { count }))
+                : m(msg("Remove from group")),
+          },
+        ]
       : []),
   ];
 }

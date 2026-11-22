@@ -331,7 +331,7 @@ export function ForkSettingsPanel() {
                 disabled={"busy" in action && action.busy}
                 onClick={() => runForkUpdateAction(action)}
               >
-                {forkUpdateActionLabel(action)}
+                {forkUpdateActionLabel(action, messages)}
               </Button>
             )
           }

@@ -1,3 +1,4 @@
+import { T, useGT } from "gt-react";
 import { useAtomValue } from "@effect/atom-react";
 import { scopeProjectRef } from "@t3tools/client-runtime/environment";
 import { resolveProviderSkillsForCwd } from "@t3tools/client-runtime/providerSkills";
@@ -64,6 +65,7 @@ export function BotSkillInput({
   scanning: boolean;
   onSearch: () => void;
 }) {
+  const gt = useGT();
   const id = useId();
   const [input, setInput] = useState(defaultValue);
   const selected = skills.find((skill) => skill.path === input) ?? null;
@@ -71,7 +73,9 @@ export function BotSkillInput({
   const matches = searchProviderSkills(skills, query, 50).slice(0, 50);
   return (
     <div className="grid min-w-0 gap-1.5 text-xs font-medium">
-      <label htmlFor={id}>Skill</label>
+      <label htmlFor={id}>
+        <T>Skill</T>
+      </label>
       <Combobox
         items={matches.map((skill) => skill.path)}
         filter={null}
@@ -95,12 +99,14 @@ export function BotSkillInput({
           name="skillPath"
           required
           maxLength={2048}
-          placeholder="Search skills or paste a path"
+          placeholder={gt("Search skills or paste a path")}
           onFocus={onSearch}
         />
         <ComboboxPopup className="w-[min(28rem,var(--available-width))]">
           <ComboboxEmpty>
-            {scanning ? "Looking for skills…" : "No matching skills. You can paste a skill path."}
+            {scanning
+              ? gt("Looking for skills…")
+              : gt("No matching skills. You can paste a skill path.")}
           </ComboboxEmpty>
           <ComboboxList>
             {(path: string) => {

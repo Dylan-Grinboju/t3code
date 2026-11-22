@@ -164,7 +164,10 @@ export function SidebarUsageBars(props: {
   const messages = useMessages();
   const nowMinute = useNowMinute();
   const now = Date.parse(`${nowMinute}:00Z`);
-  const rows = sidebarUsageRows(collectLimitPools(collectLimitAccounts(presentations), now), now);
+  const rows = sidebarUsageRows(
+    collectLimitPools(collectLimitAccounts(presentations), now),
+    now,
+  ).map((row) => ({ ...row, label: messages(row.label) }));
   if (rows.length === 0) return props.fallback;
   const label = `Usage: ${rows
     .map((row) => `${row.label} ${measured(row, measure).percent}% ${measured(row, measure).word}`)

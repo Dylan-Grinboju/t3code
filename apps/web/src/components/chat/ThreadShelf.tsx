@@ -1,3 +1,5 @@
+import { m } from "../../i18n/messages";
+import { T, msg, useGT } from "gt-react";
 import { scopedThreadKey } from "@t3tools/client-runtime/environment";
 import type { ChatImageAttachment, ScopedThreadRef } from "@t3tools/contracts";
 import { useNavigate } from "@tanstack/react-router";
@@ -24,7 +26,8 @@ import { toastManager } from "../ui/toast";
 import { openExpandedImagePreview } from "./ExpandedImageDialog";
 
 function reportShelfWrite(saved: boolean) {
-  if (!saved) toastManager.add({ type: "error", title: "Could not save the shelf on this device" });
+  if (!saved)
+    toastManager.add({ type: "error", title: m(msg("Could not save the shelf on this device")) });
   return saved;
 }
 
@@ -35,6 +38,7 @@ export function ThreadShelf({
   threadRef: ScopedThreadRef;
   draftId?: DraftId;
 }) {
+  const gt = useGT();
   // A detail read before the server has the thread 404s and parks it as deleted for this mount.
   const shell = useQuietThreadShell(threadRef);
   const shellExists = shell !== null;
@@ -61,19 +65,23 @@ export function ThreadShelf({
   const count = shelf.pins.length + savedImages.length + pendingImages.length;
   return (
     <section
-      aria-label="Shelf"
+      aria-label={gt("Shelf")}
       data-thread-shelf
       className="dropdown-glass overflow-hidden rounded-2xl p-3"
     >
       <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
         <PinIcon className="size-3.5" aria-hidden />
-        <h3>Shelf</h3>
+        <h3>
+          <T>Shelf</T>
+        </h3>
         {count > 0 ? <span className="ml-auto tabular-nums">{count}</span> : null}
       </div>
       <div data-thread-shelf-items className="flex max-h-80 flex-col gap-2 overflow-y-auto">
         {count === 0 ? (
           <p className="text-xs leading-relaxed text-muted-foreground">
-            Screenshots you add appear here. Select text in a reply and choose Pin to keep it.
+            <T>
+              Screenshots you add appear here. Select text in a reply and choose Pin to keep it.
+            </T>
           </p>
         ) : null}
         {shelf.pins.map((citation) => (
@@ -83,7 +91,7 @@ export function ThreadShelf({
           >
             <button
               type="button"
-              aria-label={`Go to pinned text: ${citation.text}`}
+              aria-label={gt("Go to pinned text: {text}", { text: citation.text })}
               className="block w-full rounded-lg py-2 pr-8 pl-2 text-left text-xs leading-relaxed hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring"
               onClick={() =>
                 void navigate(
@@ -102,7 +110,7 @@ export function ThreadShelf({
               <Button
                 size="icon-xs"
                 variant="ghost"
-                aria-label="Unpin text"
+                aria-label={gt("Unpin text")}
                 onClick={() => reportShelfWrite(useThreadShelfStore.getState().unpin(citation))}
               >
                 <XIcon />
@@ -125,7 +133,7 @@ export function ThreadShelf({
         </div>
         {savedImages.length > visibleCount ? (
           <Button size="xs" variant="ghost" onClick={() => setVisibleCount(visibleCount + 6)}>
-            Show more screenshots
+            <T>Show more screenshots</T>
           </Button>
         ) : null}
         {shelf.dismissedImages.length > 0 ? (
@@ -136,7 +144,7 @@ export function ThreadShelf({
               reportShelfWrite(useThreadShelfStore.getState().restoreImages(threadRef))
             }
           >
-            Restore hidden screenshots
+            <T>Restore hidden screenshots</T>
           </Button>
         ) : null}
       </div>
@@ -173,11 +181,12 @@ function ShelfImage({
   image: ChatImageAttachment;
   previewUrl?: string | undefined;
 }) {
+  const gt = useGT();
   return (
     <div className="group relative min-w-0">
       <button
         type="button"
-        aria-label={`Open screenshot: ${image.name}`}
+        aria-label={gt("Open screenshot: {name}", { name: image.name })}
         disabled={!previewUrl}
         className="flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-lg border border-border/60 bg-background/40 hover:border-ring focus-visible:outline-2 focus-visible:outline-ring"
         onClick={() => {
@@ -225,7 +234,7 @@ function ShelfImage({
         <Button
           size="icon-xs"
           variant="media-close"
-          aria-label={`Remove screenshot from shelf: ${image.name}`}
+          aria-label={gt("Remove screenshot from shelf: {name}", { name: image.name })}
           onClick={() =>
             reportShelfWrite(useThreadShelfStore.getState().dismissImage(threadRef, image.id))
           }

@@ -1,3 +1,4 @@
+import { msg } from "gt-react";
 import type { EnvironmentThreadShell, ThreadStructure } from "@t3tools/client-runtime/state/shell";
 import {
   isListedThreadLineage,
@@ -43,7 +44,7 @@ export function botStatus(thread: EnvironmentThreadShell) {
         : thread,
   });
   return {
-    label: status?.label === "Completed" ? "New update" : (status?.label ?? "Ready"),
+    label: status?.label === "Completed" ? msg("New update") : (status?.label ?? msg("Ready")),
     colorClass: status?.colorClass ?? "text-muted-foreground",
     needsYou:
       status?.label === "Pending Approval" ||
@@ -73,12 +74,12 @@ export function botCreatedConversations(
 }
 
 export const BOT_RELATIONSHIP_LABELS = {
-  related: "Related conversations",
-  active: "Background workers",
-  previous: "Finished workers",
-  lineageTitle: "Work details",
+  related: msg("Related conversations"),
+  active: msg("Background workers"),
+  previous: msg("Finished workers"),
+  lineageTitle: msg("Work details"),
   lineageHeadingId: "bot-work-details-heading",
   sideChatsHeadingId: "bot-work-side-chats-heading",
 };
 
-export type ThreadRelationshipLabels = typeof BOT_RELATIONSHIP_LABELS;
+export type ThreadRelationshipLabels = Record<keyof typeof BOT_RELATIONSHIP_LABELS, string>;

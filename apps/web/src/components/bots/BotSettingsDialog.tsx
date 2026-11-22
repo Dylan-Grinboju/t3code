@@ -1,3 +1,4 @@
+import { T, useGT } from "gt-react";
 import { Toggle, ToggleGroup } from "../ui/toggle-group";
 import { useBotView } from "./botViewState";
 import { useAtomValue } from "@effect/atom-react";
@@ -56,6 +57,7 @@ export function BotSettingsDialog({
   threadRef: ScopedThreadRef;
   onClose: () => void;
 }) {
+  const gt = useGT();
   const [open, setOpen] = useState(true);
   const transitionDurationMs = usePanelTransitionDurationMs();
   const [{ activity, history }, setView] = useBotView(threadRef);
@@ -107,28 +109,39 @@ export function BotSettingsDialog({
         input: { threadId: threadRef.threadId, bot: value },
       });
       if (result._tag === "Failure")
-        return "Could not save bot settings. Reopen settings and try again.";
+        return gt("Could not save bot settings. Reopen settings and try again.");
     }
     const command = draftSyncCommand?.trim();
     if (!value || command === undefined || command === syncCommand) return null;
-    const prefix = botChanged ? "Bot settings saved. " : "";
     if (!supportsSync)
-      return `${prefix}Reconnect to the bot’s environment and save the sync command again.`;
+      return botChanged
+        ? gt(
+            "Bot settings saved. Reconnect to the bot’s environment and save the sync command again.",
+          )
+        : gt("Reconnect to the bot’s environment and save the sync command again.");
     if (!readEnvironmentScope(threadRef.environmentId, AuthSettingsWriteScope)) {
-      return `${prefix}Use a connection with permission to edit environment settings to save the sync command.`;
+      return botChanged
+        ? gt(
+            "Bot settings saved. Use a connection with permission to edit environment settings to save the sync command.",
+          )
+        : gt(
+            "Use a connection with permission to edit environment settings to save the sync command.",
+          );
     }
     const result = await updateSettings({
       environmentId: threadRef.environmentId,
       input: { patch: { botSyncCommands: { [threadRef.threadId]: command || null } } },
     });
     return result._tag === "Failure"
-      ? `${prefix}Could not save the sync command. Click Save bot to retry.`
+      ? botChanged
+        ? gt("Bot settings saved. Could not save the sync command. Click Save bot to retry.")
+        : gt("Could not save the sync command. Click Save bot to retry.")
       : null;
   };
   const save = async (value: ThreadBot | null, reload = false) => {
     setSaving(true);
     setError(null);
-    const message = await persistSettings(value).catch(() => "Reopen settings and try again.");
+    const message = await persistSettings(value).catch(() => gt("Reopen settings and try again."));
     setSaving(false);
     if (message) setError(message);
     else {
@@ -156,43 +169,57 @@ export function BotSettingsDialog({
       >
         <DialogHeader>
           <DialogTitle>
-            {confirmingDisable ? "Disable bot?" : bot ? "Bot settings" : "Make this a bot"}
+            {confirmingDisable
+              ? gt("Disable bot?")
+              : bot
+                ? gt("Bot settings")
+                : gt("Make this a bot")}
           </DialogTitle>
           <DialogDescription>
             {confirmingDisable
-              ? "This removes the bot settings and returns this chat to the normal thread list. Conversation history and work files are kept. Existing automations continue until you disable them in Automations. A saved sync command becomes available again if you re-enable the bot."
-              : "Keep a standing objective and work state across conversations."}
+              ? gt(
+                  "This removes the bot settings and returns this chat to the normal thread list. Conversation history and work files are kept. Existing automations continue until you disable them in Automations. A saved sync command becomes available again if you re-enable the bot.",
+                )
+              : gt("Keep a standing objective and work state across conversations.")}
           </DialogDescription>
         </DialogHeader>
         <DialogPanel hidden={confirmingDisable}>
           {bot && (
             <div className="mb-5 flex flex-wrap items-center gap-3 border-b pb-4">
               <ToggleGroup
-                aria-label="Conversation detail"
+                aria-label={gt("Conversation detail")}
                 value={[activity ? "activity" : "quiet"]}
                 onValueChange={(value) => {
                   if (value.length) setView({ activity: value[0] === "activity", history });
                 }}
               >
-                <Toggle value="quiet">Quiet</Toggle>
-                <Toggle value="activity">Activity</Toggle>
+                <Toggle value="quiet">
+                  <T>Quiet</T>
+                </Toggle>
+                <Toggle value="activity">
+                  <T>Activity</T>
+                </Toggle>
               </ToggleGroup>
               <ToggleGroup
-                aria-label="Conversation history"
+                aria-label={gt("Conversation history")}
                 disabled={activity}
                 value={[history ? "history" : "recent"]}
                 onValueChange={(value) => {
                   if (value.length) setView({ activity, history: value[0] === "history" });
                 }}
               >
-                <Toggle value="recent">Recent</Toggle>
-                <Toggle value="history">History</Toggle>
+                <Toggle value="recent">
+                  <T>Recent</T>
+                </Toggle>
+                <Toggle value="history">
+                  <T>History</T>
+                </Toggle>
               </ToggleGroup>
             </div>
           )}
 
           <form
-            aria-label="Bot settings"
+            aria-label={gt("Bot settings")}
             aria-busy={saving}
             className="grid gap-4"
             onSubmit={(event) => {
@@ -219,7 +246,7 @@ export function BotSettingsDialog({
                 onChange={setIconColor}
               />
               <label className="grid gap-1.5 text-xs font-medium">
-                Standing objective
+                <T>Standing objective</T>
                 <Textarea
                   name="objective"
                   required
@@ -237,7 +264,7 @@ export function BotSettingsDialog({
                   defaultValue={bot?.skillPath ?? ""}
                 />
                 <label className="grid min-w-0 gap-1.5 text-xs font-medium">
-                  Durable work state path
+                  <T>Durable work state path</T>
                   <Input
                     name="statePath"
                     required
@@ -247,7 +274,9 @@ export function BotSettingsDialog({
                   />
                   {sharedPath && (
                     <span className="text-xs text-muted-foreground">
-                      Also used by {sharedPath.title}. Save to share this work state.
+                      {gt("Also used by {title}. Save to share this work state.", {
+                        title: sharedPath.title,
+                      })}
                     </span>
                   )}
                 </label>
@@ -255,7 +284,7 @@ export function BotSettingsDialog({
               {supportsSync && (
                 <div className="grid gap-1.5">
                   <label htmlFor="bot-sync-command" className="text-xs font-medium">
-                    Background sync command
+                    <T>Background sync command</T>
                   </label>
                   <Textarea
                     id="bot-sync-command"
@@ -268,17 +297,21 @@ export function BotSettingsDialog({
                     spellCheck={false}
                     autoCapitalize="none"
                     autoComplete="off"
-                    placeholder="Enter a shell command"
+                    placeholder={gt("Enter a shell command")}
                   />
                   <p id="bot-sync-command-hint" className="text-xs text-muted-foreground">
                     {canEditSync
-                      ? "Sync now runs this command in the bot’s project. Clear it to remove the link."
-                      : "Editing this command requires permission to change environment settings."}
+                      ? gt(
+                          "Sync now runs this command in the bot’s project. Clear it to remove the link.",
+                        )
+                      : gt(
+                          "Editing this command requires permission to change environment settings.",
+                        )}
                   </p>
                 </div>
               )}
               <label className="grid max-w-64 gap-1.5 text-xs font-medium">
-                Start fresh after completed turns
+                <T>Start fresh after completed turns</T>
                 <Input
                   name="freshAfterTurns"
                   type="number"
@@ -289,10 +322,12 @@ export function BotSettingsDialog({
                 />
               </label>
               <p className="text-xs text-muted-foreground">
-                Fresh sessions reload the skill and work state. After editing the skill, Reload
-                skill starts one with your next message. History stays searchable. Use this thread’s
-                Automations to schedule checks in fresh sessions; bot settings do not start a
-                schedule.
+                <T>
+                  Fresh sessions reload the skill and work state. After editing the skill, Reload
+                  skill starts one with your next message. History stays searchable. Use this
+                  thread’s Automations to schedule checks in fresh sessions; bot settings do not
+                  start a schedule.
+                </T>
               </p>
               {error && (
                 <p role="alert" className="text-xs text-destructive-foreground">
@@ -301,18 +336,18 @@ export function BotSettingsDialog({
               )}
               <div className="flex flex-wrap items-center gap-2 border-t pt-3">
                 <Button type="submit" disabled={saving}>
-                  {saving ? "Saving…" : "Save bot"}
+                  {saving ? gt("Saving…") : gt("Save bot")}
                 </Button>
                 {bot &&
                   freshSessions &&
                   shell.latestRun != null &&
                   selectedSkill.trim() !== bot.skillPath && (
                     <Button type="submit" value="reload" disabled={saving}>
-                      Save and reload on next message
+                      <T>Save and reload on next message</T>
                     </Button>
                   )}
                 <Button variant="ghost" onClick={() => setOpen(false)}>
-                  Cancel
+                  <T>Cancel</T>
                 </Button>
                 {bot &&
                   freshSessions &&
@@ -326,7 +361,7 @@ export function BotSettingsDialog({
                         setOpen(false);
                       }}
                     >
-                      Reload skill
+                      <T>Reload skill</T>
                     </Button>
                   )}
                 {bot && (
@@ -335,7 +370,7 @@ export function BotSettingsDialog({
                     disabled={saving}
                     onClick={() => setConfirmingDisable(true)}
                   >
-                    Disable bot
+                    <T>Disable bot</T>
                   </Button>
                 )}
               </div>
@@ -345,7 +380,7 @@ export function BotSettingsDialog({
         {confirmingDisable && (
           <DialogFooter>
             <Button variant="outline" disabled={saving} onClick={() => setConfirmingDisable(false)}>
-              Cancel
+              <T>Cancel</T>
             </Button>
             <Button
               variant="destructive"
@@ -355,7 +390,7 @@ export function BotSettingsDialog({
                 void save(null);
               }}
             >
-              Disable bot
+              <T>Disable bot</T>
             </Button>
           </DialogFooter>
         )}

@@ -1,3 +1,4 @@
+import { T, useGT } from "gt-react";
 import { useEffect } from "react";
 import { scopedThreadKey, scopeProjectRef } from "@t3tools/client-runtime/environment";
 import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/shell";
@@ -23,6 +24,7 @@ export function BotSkillReload({
   threadRef: ScopedThreadRef;
   shell: EnvironmentThreadShell;
 }) {
+  const gt = useGT();
   const { environmentId } = threadRef;
   const key = scopedThreadKey(threadRef);
   const armed = useFreshSessionArmed(key);
@@ -73,10 +75,12 @@ export function BotSkillReload({
     <Button
       variant="outline"
       size="micro"
-      title="Skill changed since your last message. Start a fresh session with your next message."
+      title={gt(
+        "Skill changed since your last message. Start a fresh session with your next message.",
+      )}
       onClick={() => armFreshSession(key)}
     >
-      Skill changed · Reload
+      <T>Skill changed · Reload</T>
     </Button>
   );
 }

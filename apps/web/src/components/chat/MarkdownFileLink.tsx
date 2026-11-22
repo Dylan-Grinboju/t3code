@@ -7,11 +7,16 @@ import {
   type AtomCommandResult,
 } from "@t3tools/client-runtime/state/runtime";
 import type { ContextMenuSource, EnvironmentId, ScopedThreadRef } from "@t3tools/contracts";
-import { memo, useState, type MouseEvent as ReactMouseEvent } from "react";
+import {
+  memo,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
 import { T, useGT } from "gt-react";
 import { FolderIcon } from "lucide-react";
 
-import { contextMenuSourceOf } from "../../contextMenuSource";
+import { contextMenuTriggerOf } from "../../contextMenuSource";
 import { readLocalApi } from "../../localApi";
 import { cn } from "../../lib/utils";
 import { shouldOpenMarkdownFileLinkInEditor } from "../../markdown-links";
@@ -318,17 +323,11 @@ export const MarkdownFileLink = memo(function MarkdownFileLink({
     }
   };
 
-  const handleContextMenu = (event: ReactMouseEvent<HTMLElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-    const position =
-      event.clientX === 0 && event.clientY === 0
-        ? (() => {
-            const bounds = event.currentTarget.getBoundingClientRect();
-            return { x: bounds.left, y: bounds.bottom };
-          })()
-        : { x: event.clientX, y: event.clientY };
-    void showFileContextMenu(position, contextMenuSourceOf(event));
+  const handleContextMenu = (
+    event: ReactMouseEvent<HTMLElement> | ReactKeyboardEvent<HTMLElement>,
+  ) => {
+    const trigger = contextMenuTriggerOf(event);
+    if (trigger) void showFileContextMenu(trigger.position, trigger.source);
   };
 
   const canOpenInEditor = onOpen !== undefined;
@@ -377,6 +376,7 @@ export const MarkdownFileLink = memo(function MarkdownFileLink({
                 handleOpenInFilePreview();
               }}
               onContextMenu={handleContextMenu}
+              onKeyDown={handleContextMenu}
             >
               <FileTagChipContent
                 icon={
@@ -402,6 +402,7 @@ export const MarkdownFileLink = memo(function MarkdownFileLink({
               data-markdown-copy={copyMarkdown}
               onClick={handleContextMenu}
               onContextMenu={handleContextMenu}
+              onKeyDown={handleContextMenu}
             >
               <FileTagChipContent
                 icon={

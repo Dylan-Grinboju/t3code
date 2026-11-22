@@ -1,3 +1,4 @@
+import { T, useGT } from "gt-react";
 import { useLocation, useNavigate, useRouter } from "@tanstack/react-router";
 import { ArrowUpRightIcon } from "lucide-react";
 import { lazy, Suspense, useState, type ReactNode } from "react";
@@ -11,6 +12,7 @@ import { ReferencePeekContext, type ReferencePeekTarget } from "./referencePeek"
 const ReferencePeekContent = lazy(() => import("./ReferencePeekContent"));
 
 export function ReferencePeekProvider({ children }: { children: ReactNode }) {
+  const gt = useGT();
   const transitionDurationMs = usePanelTransitionDurationMs();
   const pathname = useLocation({ select: (location) => location.pathname });
   const navigate = useNavigate();
@@ -46,18 +48,24 @@ export function ReferencePeekProvider({ children }: { children: ReactNode }) {
           {target ? (
             <>
               <DialogHeader>
-                <DialogTitle>Peek: {target.title}</DialogTitle>
+                <DialogTitle>{gt("Peek: {title}", { title: target.title })}</DialogTitle>
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-xs text-muted-foreground">Escape to return</span>
+                  <span className="text-xs text-muted-foreground">
+                    <T>Escape to return</T>
+                  </span>
                   <Button size="sm" variant="outline" onClick={promote}>
                     <ArrowUpRightIcon />
-                    {target.kind === "file" ? "Open in panel" : "Open thread"}
+                    {target.kind === "file" ? gt("Open in panel") : gt("Open thread")}
                   </Button>
                 </div>
               </DialogHeader>
               <div className="flex h-[min(32rem,65dvh)] min-h-0 flex-col overflow-hidden">
                 <Suspense
-                  fallback={<p className="p-6 text-sm text-muted-foreground">Loading preview…</p>}
+                  fallback={
+                    <p className="p-6 text-sm text-muted-foreground">
+                      <T>Loading preview…</T>
+                    </p>
+                  }
                 >
                   <ReferencePeekContent key={JSON.stringify(target)} target={target} />
                 </Suspense>

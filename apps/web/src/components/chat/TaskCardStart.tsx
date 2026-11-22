@@ -1,3 +1,4 @@
+import { T, useGT } from "gt-react";
 import { useAtomValue } from "@effect/atom-react";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import {
@@ -27,6 +28,7 @@ export function TaskCardStart({
   threadRef: ScopedThreadRef;
   itemId: TurnItemId;
 }) {
+  const gt = useGT();
   const { environmentId } = threadRef;
   const targetId = taskCardThreadId(threadRef.threadId, itemId);
   const targetRef = scopeThreadRef(environmentId, targetId);
@@ -55,10 +57,10 @@ export function TaskCardStart({
         lookup.refresh();
       } else if (!isAtomCommandInterrupted(result)) {
         const cause = squashAtomCommandFailure(result);
-        setError(cause instanceof Error ? cause.message : "Could not start the task.");
+        setError(cause instanceof Error ? cause.message : gt("Could not start the task."));
       }
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Could not start the task.");
+      setError(cause instanceof Error ? cause.message : gt("Could not start the task."));
     }
     setStarting(false);
   };
@@ -76,7 +78,7 @@ export function TaskCardStart({
           )}
           <ArrowUpRightIcon data-launch-arrow="" className="col-start-1 row-start-1" />
         </span>
-        View thread
+        <T>View thread</T>
       </Button>
     );
   }
@@ -90,7 +92,7 @@ export function TaskCardStart({
         onClick={() => void start()}
       >
         <PlayIcon aria-hidden />
-        {starting ? "Starting…" : "Start"}
+        {starting ? gt("Starting…") : gt("Start")}
       </Button>
       {error && (
         <span role="alert" className="text-xs text-destructive-foreground">

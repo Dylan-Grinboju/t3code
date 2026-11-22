@@ -1,3 +1,4 @@
+import { T, useGT } from "gt-react";
 import type { FileDiffContentsLoader } from "@pierre/diffs";
 import type { EnvironmentId } from "@t3tools/contracts";
 import { maskMarkdownFrontmatter } from "@t3tools/shared/markdownFrontmatter";
@@ -32,6 +33,7 @@ export function PullRequestMarkdownFilePreviewButton({
   readonly cwd: string;
   readonly environmentId: EnvironmentId;
 }) {
+  const gt = useGT();
   const [open, setOpen] = useState(false);
   const [state, setState] = useState<PreviewState>({ _tag: "loading" });
   const request = useRef(0);
@@ -54,7 +56,7 @@ export function PullRequestMarkdownFilePreviewButton({
       <Button
         size="xs"
         variant="ghost-muted"
-        aria-label={`Preview ${path}`}
+        aria-label={gt("Preview {path}", { path })}
         onClick={(event) => {
           event.stopPropagation();
           setOpen(true);
@@ -62,7 +64,9 @@ export function PullRequestMarkdownFilePreviewButton({
         }}
       >
         <BookOpenIcon />
-        <span className="@max-xs:hidden">Preview</span>
+        <span className="@max-xs:hidden">
+          <T>Preview</T>
+        </span>
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogPopup className="max-w-4xl">
@@ -78,13 +82,17 @@ export function PullRequestMarkdownFilePreviewButton({
               />
             ) : state._tag === "error" ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span>This file could not be loaded.</span>
+                <span>
+                  <T>This file could not be loaded.</T>
+                </span>
                 <Button size="xs" variant="outline" onClick={load}>
-                  Retry
+                  <T>Retry</T>
                 </Button>
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">Loading…</p>
+              <p className="text-sm text-muted-foreground">
+                <T>Loading…</T>
+              </p>
             )}
           </DialogPanel>
         </DialogPopup>

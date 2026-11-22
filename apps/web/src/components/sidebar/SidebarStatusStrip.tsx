@@ -1,3 +1,4 @@
+import { msg, useGT, useMessages } from "gt-react";
 import { useAtomValue } from "@effect/atom-react";
 import { scopeThreadRef, scopedThreadKey } from "@t3tools/client-runtime/environment";
 import { isListedThreadLineage } from "@t3tools/contracts";
@@ -20,21 +21,27 @@ import { useSidebar } from "../ui/sidebar";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 
 const STATUS_INDICATORS = {
-  approval: { label: "Approval needed", icon: CircleAlertIcon, color: "text-warning-foreground" },
-  input: { label: "Input needed", icon: CircleAlertIcon, color: "text-warning-foreground" },
-  request: { label: "Reply needed", icon: CircleAlertIcon, color: "text-warning-foreground" },
-  preparing: { label: "Setting up", icon: CircleDashedIcon, color: "text-info-foreground" },
-  working: { label: "Working", icon: CircleDashedIcon, color: "text-info-foreground" },
-  waiting: { label: "Waiting", icon: ClockIcon, color: "text-muted-foreground" },
-  failed: { label: "Failed", icon: CircleAlertIcon, color: "text-destructive" },
-  limited: { label: "Usage limit", icon: CircleAlertIcon, color: "text-warning-foreground" },
-  ready: { label: "Finished", icon: CircleCheckIcon, color: "text-success-foreground" },
+  approval: {
+    label: msg("Approval needed"),
+    icon: CircleAlertIcon,
+    color: "text-warning-foreground",
+  },
+  input: { label: msg("Input needed"), icon: CircleAlertIcon, color: "text-warning-foreground" },
+  request: { label: msg("Reply needed"), icon: CircleAlertIcon, color: "text-warning-foreground" },
+  preparing: { label: msg("Setting up"), icon: CircleDashedIcon, color: "text-info-foreground" },
+  working: { label: msg("Working"), icon: CircleDashedIcon, color: "text-info-foreground" },
+  waiting: { label: msg("Waiting"), icon: ClockIcon, color: "text-muted-foreground" },
+  failed: { label: msg("Failed"), icon: CircleAlertIcon, color: "text-destructive" },
+  limited: { label: msg("Usage limit"), icon: CircleAlertIcon, color: "text-warning-foreground" },
+  ready: { label: msg("Finished"), icon: CircleCheckIcon, color: "text-success-foreground" },
 } satisfies Record<
   SidebarThreadStatus,
   { label: string; icon: typeof CircleAlertIcon; color: string }
 >;
 
 function StatusStripThreads() {
+  const gt = useGT();
+  const messages = useMessages();
   const threads = useAtomValue(environmentThreadShells.quietThreadShellsAtom);
   const liveEnvironments = useAtomValue(liveShellEnvironmentIdsAtom);
 
@@ -44,12 +51,15 @@ function StatusStripThreads() {
       const ref = scopeThreadRef(thread.environmentId, thread.id);
       const status = resolveSidebarThreadStatus(thread);
       const indicator = !liveEnvironments.has(thread.environmentId)
-        ? { label: "Disconnected", icon: CircleDotIcon, color: "text-muted-foreground" }
+        ? { label: msg("Disconnected"), icon: CircleDotIcon, color: "text-muted-foreground" }
         : status === "ready" && thread.latestRun === null
-          ? { label: "Not started", icon: CircleDotIcon, color: "text-muted-foreground" }
+          ? { label: msg("Not started"), icon: CircleDotIcon, color: "text-muted-foreground" }
           : STATUS_INDICATORS[status];
       const Icon = indicator.icon;
-      const label = `${thread.title}: ${indicator.label}`;
+      const label = gt("{title}: {status}", {
+        title: thread.title,
+        status: messages(indicator.label),
+      });
       return (
         <Tooltip key={scopedThreadKey(ref)}>
           <TooltipTrigger
@@ -72,13 +82,14 @@ function StatusStripThreads() {
 }
 
 export function SidebarStatusStrip() {
+  const gt = useGT();
   const { displayMode, isMobile, setHoverOpen } = useSidebar();
   // Stays mounted under a hover-revealed sidebar so it does not flash while the panel slides.
   if (isMobile || displayMode !== "strip") return null;
 
   return (
     <nav
-      aria-label="Chat status strip"
+      aria-label={gt("Chat status strip")}
       data-sidebar-status-strip=""
       onPointerEnter={(event) => {
         if (event.pointerType === "mouse" || event.pointerType === "pen") setHoverOpen(true);

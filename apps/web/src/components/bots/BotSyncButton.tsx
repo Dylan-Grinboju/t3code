@@ -1,3 +1,4 @@
+import { useGT } from "gt-react";
 import { useAtomValue } from "@effect/atom-react";
 import {
   isAtomCommandInterrupted,
@@ -18,6 +19,7 @@ export function BotSyncButton({
 }: {
   threadRef: ScopedThreadRef;
 }) {
+  const gt = useGT();
   const configured = useAtomValue(
     serverEnvironment.configValueAtom(environmentId),
     (config) =>
@@ -48,7 +50,9 @@ export function BotSyncButton({
         toastManager.add(
           stackedThreadToast({
             type: started ? "success" : "info",
-            title: started ? "Background sync started" : "Background sync is already running",
+            title: started
+              ? gt("Background sync started")
+              : gt("Background sync is already running"),
           }),
         );
     } else if (!isAtomCommandInterrupted(result)) {
@@ -56,7 +60,7 @@ export function BotSyncButton({
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: "Could not start background sync",
+          title: gt("Could not start background sync"),
           description: error instanceof Error ? error.message : undefined,
         }),
       );

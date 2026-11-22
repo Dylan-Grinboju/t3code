@@ -1,3 +1,4 @@
+import { useGT } from "gt-react";
 import * as Schema from "effect/Schema";
 import { BotIcon, GripVerticalIcon } from "lucide-react";
 import {
@@ -53,12 +54,15 @@ type Gesture = {
 const DragContext = createContext<ComponentProps<"button">>({});
 
 export function FloatingChatDragHandle() {
+  const gt = useGT();
   const handlers = useContext(DragContext);
   return (
     <button
       type="button"
-      aria-label="Move floating chat"
-      aria-description="Drag to a screen edge. Arrow keys move along the edge; Alt+arrow changes edges."
+      aria-label={gt("Move floating chat")}
+      aria-description={gt(
+        "Drag to a screen edge. Arrow keys move along the edge; Alt+arrow changes edges.",
+      )}
       className="flex size-7 shrink-0 touch-none cursor-grab items-center justify-center rounded-md text-muted-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring active:cursor-grabbing"
       {...handlers}
     >
@@ -83,6 +87,7 @@ export function FloatingChatDock({
   onMinimize: () => void;
   onRestore: () => void;
 }) {
+  const gt = useGT();
   const floating = presentation === "collapsed" || presentation === "expanded";
   const [placement, setPlacement] = useState(() =>
     readLocalStorageValue(STORAGE_KEY, DEFAULT_FLOATING_CHAT, PlacementSchema),
@@ -308,7 +313,7 @@ export function FloatingChatDock({
               <div
                 key={side}
                 role="separator"
-                aria-label="Resize floating chat"
+                aria-label={gt("Resize floating chat")}
                 aria-orientation="vertical"
                 aria-valuemin={Math.min(FLOATING_CHAT_MIN_WIDTH, bounds.width)}
                 aria-valuemax={Math.min(
@@ -351,7 +356,7 @@ export function FloatingChatDock({
           <Button
             variant="glass"
             size="icon-xl"
-            aria-label={`Show chat: ${title}`}
+            aria-label={gt("Show chat: {title}", { title })}
             onClick={() => {
               if (restorePlacement) {
                 commit(restorePlacement);

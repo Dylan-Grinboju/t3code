@@ -1,3 +1,4 @@
+import { T, msg, useGT, useMessages } from "gt-react";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import {
   isAtomCommandInterrupted,
@@ -12,6 +13,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { ArrowUpLeftIcon, ChevronDownIcon, FolderGitIcon, FolderIcon, XIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import type { MessageResolver } from "../../i18n/messages";
 import { ComposerHandleContext } from "../../composerHandleContext";
 import { useStableCallback } from "../../hooks/useStableCallback";
 import type { SideChatParentPanel } from "../../lib/sideChatPane";
@@ -53,13 +55,18 @@ export default function ThreadSurfacePane(props: PaneProps) {
   return <ThreadTabPane {...props} />;
 }
 
+const NEW_THREAD_TITLE = "New thread";
 const MAIN_CHECKOUT = "main";
 const PROJECT_FOLDER = "project";
 const NEW_WORKTREE = "new-worktree";
 
-function checkoutLabel(worktreePath: string | null, mainWorktreePath: string | null) {
-  if (worktreePath === mainWorktreePath) return "Main thread's checkout";
-  if (worktreePath === null) return "Project folder";
+function checkoutLabel(
+  worktreePath: string | null,
+  mainWorktreePath: string | null,
+  resolve: MessageResolver,
+) {
+  if (worktreePath === mainWorktreePath) return resolve(msg("Main thread's checkout"));
+  if (worktreePath === null) return resolve(msg("Project folder"));
   return worktreePath.split(/[\\/]/).at(-1) ?? worktreePath;
 }
 
@@ -86,6 +93,8 @@ function ThreadTabCheckoutMenu(props: {
   /** The full composer, where a new worktree is chosen, only shows in the main chat. */
   readonly onMakeMain: () => void;
 }) {
+  const gt = useGT();
+  const messages = useMessages();
   const shell = useQuietThreadShell(props.threadRef);
   const main = useQuietThreadShell(props.mainRef);
   const updateMetadata = useOrchestrationCommand(threadEnvironment.updateMetadata, {
@@ -119,7 +128,7 @@ function ThreadTabCheckoutMenu(props: {
       const error = squashAtomCommandFailure(result);
       toastManager.add({
         type: "error",
-        title: "Could not change the checkout",
+        title: gt("Could not change the checkout"),
         ...(error instanceof Error ? { description: error.message } : {}),
       });
     } else if (result._tag === "Success" && next === NEW_WORKTREE) {
@@ -128,19 +137,21 @@ function ThreadTabCheckoutMenu(props: {
   };
   return (
     <Menu>
-      <MenuTrigger render={<Button variant="ghost" size="xs" aria-label="Checkout" />}>
+      <MenuTrigger render={<Button variant="ghost" size="xs" aria-label={gt("Checkout")} />}>
         {current === null ? <FolderIcon /> : <FolderGitIcon />}
-        <span className="max-w-32 truncate">{checkoutLabel(current, main.worktreePath)}</span>
+        <span className="max-w-32 truncate">
+          {checkoutLabel(current, main.worktreePath, messages)}
+        </span>
         <ChevronDownIcon />
       </MenuTrigger>
       <MenuPopup align="end">
         <MenuRadioGroup value={value} onValueChange={(next) => void choose(String(next))}>
           <MenuRadioItem value={MAIN_CHECKOUT} closeOnClick>
-            Main thread's checkout
+            <T>Main thread's checkout</T>
           </MenuRadioItem>
           {main.worktreePath === null ? null : (
             <MenuRadioItem value={PROJECT_FOLDER} closeOnClick>
-              Project folder
+              <T>Project folder</T>
             </MenuRadioItem>
           )}
           {projectWorktrees(
@@ -150,16 +161,18 @@ function ThreadTabCheckoutMenu(props: {
           ).map(([path, branch]) => (
             <MenuRadioItem key={path} value={path} closeOnClick>
               <span className="flex min-w-0 flex-col">
-                <span className="truncate">{branch ?? checkoutLabel(path, null)}</span>
+                <span className="truncate">{branch ?? checkoutLabel(path, null, messages)}</span>
                 <span className="truncate text-muted-foreground text-xs">{path}</span>
               </span>
             </MenuRadioItem>
           ))}
           <MenuRadioItem value={NEW_WORKTREE} closeOnClick>
             <span className="flex min-w-0 flex-col">
-              <span className="truncate">New worktree…</span>
+              <span className="truncate">
+                <T>New worktree…</T>
+              </span>
               <span className="truncate text-muted-foreground text-xs">
-                Opens it as the main chat; choose it under Run context
+                <T>Opens it as the main chat; choose it under Run context</T>
               </span>
             </span>
           </MenuRadioItem>
@@ -171,6 +184,7 @@ function ThreadTabCheckoutMenu(props: {
 
 /** A thread tab: its title, checkout while empty, Make main and Close, over the thread's chat. */
 function ThreadTabPane(props: PaneProps) {
+  const gt = useGT();
   const { parentRef, threadId } = props;
   const threadRef = scopeThreadRef(parentRef.environmentId, threadId);
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- registers the main thread's panel as host in the panel store
@@ -197,7 +211,7 @@ function ThreadTabPane(props: PaneProps) {
         className="flex h-9 shrink-0 items-center gap-1 border-b border-border pr-1 pl-3"
       >
         <span className="min-w-0 flex-1 truncate text-xs font-medium">
-          {shell?.title ?? "Thread"}
+          {shell?.title ?? gt("Thread")}
         </span>
         {empty && canOperate ? (
           <ThreadTabCheckoutMenu threadRef={threadRef} mainRef={parentRef} onMakeMain={makeMain} />
@@ -209,7 +223,7 @@ function ThreadTabPane(props: PaneProps) {
               <Button
                 variant="ghost"
                 size="icon-xs"
-                aria-label="Make main thread"
+                aria-label={gt("Make main thread")}
                 disabled={shell === null}
                 onClick={makeMain}
               >
@@ -218,13 +232,13 @@ function ThreadTabPane(props: PaneProps) {
             }
           />
           <TooltipPopup side="bottom">
-            Make this the main chat; the main chat becomes a tab.
+            <T>Make this the main chat; the main chat becomes a tab.</T>
           </TooltipPopup>
         </Tooltip>
         <Button
           variant="ghost"
           size="icon-xs"
-          aria-label="Close thread tab"
+          aria-label={gt("Close thread tab")}
           onClick={props.onClose}
         >
           <XIcon />
@@ -232,7 +246,9 @@ function ThreadTabPane(props: PaneProps) {
       </div>
       {shell === null ? (
         snapshotLoaded ? (
-          <p className="p-3 text-xs text-muted-foreground">This thread was deleted.</p>
+          <p className="p-3 text-xs text-muted-foreground">
+            <T>This thread was deleted.</T>
+          </p>
         ) : null
       ) : (
         <BackgroundThreadContext value>
@@ -257,51 +273,56 @@ function ThreadTabPane(props: PaneProps) {
  * Resolves false when nothing started, or another one is still starting.
  */
 export function useNewThreadTab(host: ScopedThreadRef | null) {
+  const gt = useGT();
   const pendingRef = useRef(false);
   const createThread = useAtomCommand(threadEnvironment.create, { reportFailure: false });
+  const createTab = async (
+    host: ScopedThreadRef,
+    hostShell: NonNullable<ReturnType<typeof readThreadShell>>,
+  ) => {
+    const threadId = newThreadId();
+    const result = await createThread({
+      environmentId: host.environmentId,
+      input: {
+        threadId,
+        projectId: hostShell.projectId,
+        title: NEW_THREAD_TITLE,
+        modelSelection: hostShell.modelSelection,
+        runtimeMode: hostShell.runtimeMode,
+        interactionMode: hostShell.interactionMode,
+        branch: hostShell.branch,
+        worktreePath: hostShell.worktreePath,
+      },
+    });
+    if (result._tag === "Failure") {
+      if (!isAtomCommandInterrupted(result)) {
+        const error = squashAtomCommandFailure(result);
+        toastManager.add({
+          type: "error",
+          title: gt("Could not start a thread"),
+          ...(error instanceof Error ? { description: error.message } : {}),
+        });
+      }
+      return false;
+    }
+    if (!(await waitForThreadShell(scopeThreadRef(host.environmentId, threadId)))) {
+      toastManager.add({
+        type: "error",
+        title: gt("Could not open the thread"),
+        description: gt("The thread was created, but it did not reach this client."),
+      });
+      return false;
+    }
+    openThreadTab(host, threadId);
+    return true;
+  };
   const start = async () => {
     const hostShell = host === null ? null : readThreadShell(host);
     if (host === null || hostShell === null || pendingRef.current) return false;
     pendingRef.current = true;
-    try {
-      const threadId = newThreadId();
-      const result = await createThread({
-        environmentId: host.environmentId,
-        input: {
-          threadId,
-          projectId: hostShell.projectId,
-          title: "New thread",
-          modelSelection: hostShell.modelSelection,
-          runtimeMode: hostShell.runtimeMode,
-          interactionMode: hostShell.interactionMode,
-          branch: hostShell.branch,
-          worktreePath: hostShell.worktreePath,
-        },
-      });
-      if (result._tag === "Failure") {
-        if (!isAtomCommandInterrupted(result)) {
-          const error = squashAtomCommandFailure(result);
-          toastManager.add({
-            type: "error",
-            title: "Could not start a thread",
-            ...(error instanceof Error ? { description: error.message } : {}),
-          });
-        }
-        return false;
-      }
-      if (!(await waitForThreadShell(scopeThreadRef(host.environmentId, threadId)))) {
-        toastManager.add({
-          type: "error",
-          title: "Could not open the thread",
-          description: "The thread was created, but it did not reach this client.",
-        });
-        return false;
-      }
-      openThreadTab(host, threadId);
-      return true;
-    } finally {
+    return createTab(host, hostShell).finally(() => {
       pendingRef.current = false;
-    }
+    });
   };
   return { available: host !== null, open: useStableCallback(start) };
 }

@@ -1,3 +1,4 @@
+import { msg } from "gt-react";
 import {
   ProviderDriverKind,
   type ServerProvider,
@@ -12,9 +13,9 @@ import {
 } from "@t3tools/shared/usageLimits";
 
 const SIDEBAR_USAGE_WINDOWS = [
-  { driver: ProviderDriverKind.make("codex"), kind: "weekly", label: "Codex weekly" },
-  { driver: ProviderDriverKind.make("claudeAgent"), kind: "session", label: "Claude session" },
-  { driver: ProviderDriverKind.make("claudeAgent"), kind: "weekly", label: "Claude weekly" },
+  { driver: ProviderDriverKind.make("codex"), kind: "weekly", label: msg("Codex weekly") },
+  { driver: ProviderDriverKind.make("claudeAgent"), kind: "session", label: msg("Claude session") },
+  { driver: ProviderDriverKind.make("claudeAgent"), kind: "weekly", label: msg("Claude weekly") },
 ] as const;
 
 // Too early in a window to read a burn rate from it.

@@ -1,4 +1,4 @@
-import { useGT } from "gt-react";
+import { useGT, useMessages } from "gt-react";
 import { YOSI_FEATURES, useYosiFeatures } from "../../lib/yosiFeatures";
 import { Switch } from "../ui/switch";
 import { SettingResetButton, SettingsRow } from "./settingsLayout";
@@ -6,6 +6,7 @@ import { useSearchableSetting } from "./settingsSearch";
 
 export function YosiFeaturesSettings() {
   const gt = useGT();
+  const messages = useMessages();
   const setting = useSearchableSetting();
   const [enabled, setEnabled] = useYosiFeatures();
 
@@ -19,8 +20,8 @@ export function YosiFeaturesSettings() {
         <ul className="max-w-2xl list-disc space-y-0.5 pl-4">
           {YOSI_FEATURES.map((feature) => (
             <li key={feature.title}>
-              <span className="font-medium text-foreground">{feature.title}:</span>{" "}
-              {feature.description}
+              <span className="font-medium text-foreground">{messages(feature.title)}:</span>{" "}
+              {messages(feature.description)}
             </li>
           ))}
         </ul>

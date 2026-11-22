@@ -1,3 +1,4 @@
+import { useGT, useMessages } from "gt-react";
 import { scopeThreadRef, scopedThreadKey } from "@t3tools/client-runtime/environment";
 import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/shell";
 import {
@@ -38,10 +39,11 @@ export function BotsSidebar({
   bots,
   ...rowProps
 }: BotRowProps & { bots: ReadonlyArray<EnvironmentThreadShell> }) {
+  const gt = useGT();
   if (bots.length === 0) return null;
   return (
     <nav
-      aria-label="Bots"
+      aria-label={gt("Bots")}
       className="max-h-[30vh] shrink-0 overflow-y-auto border-b border-sidebar-border pb-2"
     >
       {bots.map((bot) => (
@@ -56,9 +58,11 @@ export function BotsSidebar({
 }
 
 function BotRow({ bot, ...props }: BotRowProps & { bot: EnvironmentThreadShell }) {
+  const gt = useGT();
   const ref = scopeThreadRef(bot.environmentId, bot.id);
   const key = scopedThreadKey(ref);
   const localLastVisitedAt = useUiStateStore((state) => state.threadLastVisitedAtById[key]);
+  const messages = useMessages();
   const status = botStatus({
     ...bot,
     lastVisitedAt: resolveThreadLastVisitedAt(bot.lastVisitedAt, localLastVisitedAt) ?? null,
@@ -82,8 +86,9 @@ function BotRow({ bot, ...props }: BotRowProps & { bot: EnvironmentThreadShell }
     >
       <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-current" />
       <span className="truncate">
-        {status.needsYou ? "Needs you · " : ""}
-        {status.label}
+        {status.needsYou
+          ? gt("Needs you · {status}", { status: messages(status.label) })
+          : messages(status.label)}
       </span>
     </span>
   );

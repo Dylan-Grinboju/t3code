@@ -1,3 +1,4 @@
+import { T, useGT } from "gt-react";
 import { useState } from "react";
 import type { ResponseContextRecord, ScopedThreadRef } from "@t3tools/contracts";
 import { MessageId } from "@t3tools/contracts";
@@ -16,6 +17,7 @@ export function TaskCardReply({
   threadRef: ScopedThreadRef;
   send: (text: string, reply: ResponseContextRecord) => Promise<void>;
 }) {
+  const gt = useGT();
   const [draft, setDraft] = useState("");
   const [pending, setPending] = useState(false);
   const [sent, setSent] = useState<string | null>(null);
@@ -41,22 +43,23 @@ export function TaskCardReply({
       itemId: row.itemId,
       subagents: [],
     });
-    try {
+    const sendAnswer = async () => {
       await send(
         formatInlineContextReference(responseContextReference(record)) + " " + text,
         record,
       );
       setSent(text);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Could not send the answer.");
-    } finally {
-      setPending(false);
-    }
+    };
+    await sendAnswer()
+      .catch((cause: unknown) => {
+        setError(cause instanceof Error ? cause.message : gt("Could not send the answer."));
+      })
+      .finally(() => setPending(false));
   };
   if (sent)
     return (
       <p role="status" className="text-xs">
-        You answered · {sent}
+        {gt("You answered · {answer}", { answer: sent })}
       </p>
     );
   return (
@@ -85,13 +88,13 @@ export function TaskCardReply({
         )}
         <div className="flex gap-2">
           <Input
-            aria-label={"Answer to " + question}
+            aria-label={gt("Answer to {question}", { question })}
             value={draft}
-            placeholder="Your answer…"
+            placeholder={gt("Your answer…")}
             onChange={(event) => setDraft(event.target.value)}
           />
           <Button type="submit" size="sm" variant="outline" disabled={!draft.trim()}>
-            Send
+            <T>Send</T>
           </Button>
         </div>
       </fieldset>

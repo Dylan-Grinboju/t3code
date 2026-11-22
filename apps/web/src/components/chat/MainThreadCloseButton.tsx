@@ -1,3 +1,4 @@
+import { useGT } from "gt-react";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import type { ScopedThreadRef } from "@t3tools/contracts";
 import { useNavigate } from "@tanstack/react-router";
@@ -15,6 +16,7 @@ import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
  * takes its place along with the other thread tabs. The closed thread stays in the sidebar.
  */
 export function MainThreadCloseButton(props: { readonly threadRef: ScopedThreadRef }) {
+  const gt = useGT();
   const { threadRef } = props;
   const navigate = useNavigate();
   const nextThreadId = useRightPanelStore((state) => {
@@ -34,13 +36,15 @@ export function MainThreadCloseButton(props: { readonly threadRef: ScopedThreadR
     <Tooltip>
       <TooltipTrigger
         render={
-          <Button variant="ghost" size="icon-xs" aria-label="Close main chat" onClick={close}>
+          <Button variant="ghost" size="icon-xs" aria-label={gt("Close main chat")} onClick={close}>
             <XIcon />
           </Button>
         }
       />
       <TooltipPopup side="bottom">
-        Close this chat. {next?.title ?? "The next thread tab"} takes its place.
+        {next
+          ? gt("Close this chat. {title} takes its place.", { title: next.title })
+          : gt("Close this chat. The next thread tab takes its place.")}
       </TooltipPopup>
     </Tooltip>
   );

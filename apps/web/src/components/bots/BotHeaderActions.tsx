@@ -1,3 +1,4 @@
+import { useGT } from "gt-react";
 import type { ScopedThreadRef } from "@t3tools/contracts";
 import { ListTodoIcon, Settings2Icon } from "lucide-react";
 import { usePanelTransitionDurationMs } from "../../panelAnimations";
@@ -12,6 +13,7 @@ import { botStatus, isVisibleBot } from "./botPresentation";
 import { openBotSettings } from "./botSettingsState";
 
 export function BotHeaderActions({ threadRef }: { threadRef: ScopedThreadRef }) {
+  const gt = useGT();
   const shell = useQuietThreadShell(threadRef);
   const transitionDurationMs = usePanelTransitionDurationMs();
   if (!shell?.bot) return null;
@@ -27,7 +29,12 @@ export function BotHeaderActions({ threadRef }: { threadRef: ScopedThreadRef }) 
       <Popover>
         <PopoverTrigger
           render={
-            <Button variant="ghost-muted" size="icon-sm" aria-label="Bot work" title="Bot work" />
+            <Button
+              variant="ghost-muted"
+              size="icon-sm"
+              aria-label={gt("Bot work")}
+              title={gt("Bot work")}
+            />
           }
         >
           <ListTodoIcon aria-hidden />
@@ -37,7 +44,7 @@ export function BotHeaderActions({ threadRef }: { threadRef: ScopedThreadRef }) 
           align="end"
           width="lg"
           padding="none"
-          aria-label="Bot work"
+          aria-label={gt("Bot work")}
         >
           <BotWorkPanel threadRef={threadRef} />
         </PopoverPopup>
@@ -45,8 +52,8 @@ export function BotHeaderActions({ threadRef }: { threadRef: ScopedThreadRef }) 
       <Button
         variant="ghost-muted"
         size="icon-sm"
-        aria-label="Bot settings"
-        title="Bot settings"
+        aria-label={gt("Bot settings")}
+        title={gt("Bot settings")}
         onClick={() => openBotSettings(threadRef)}
       >
         <Settings2Icon aria-hidden />

@@ -1,3 +1,4 @@
+import { useGT } from "gt-react";
 import { createEnvironmentRpcQueryAtomFamily } from "@t3tools/client-runtime/state/runtime";
 import { type EnvironmentId, WS_METHODS } from "@t3tools/contracts";
 import {
@@ -47,6 +48,7 @@ export function JiraLinkPreview({
   href: string;
   children: ReactElement;
 }) {
+  const gt = useGT();
   const [open, setOpen] = useState(false);
   const preview = useEnvironmentQuery(
     open
@@ -66,7 +68,7 @@ export function JiraLinkPreview({
         <div className="p-3">
           <div className="flex items-center gap-1.5 text-2xs text-muted-foreground">
             <Icon
-              aria-label={card?.issueType ?? "Jira issue"}
+              aria-label={card?.issueType ?? gt("Jira issue")}
               className="size-3 shrink-0 text-info"
             />
             <span className="shrink-0">{issue.label}</span>
@@ -93,7 +95,7 @@ export function JiraLinkPreview({
                 >
                   {card.assignee?.trim().charAt(0) || <UserRoundIcon className="size-3" />}
                 </span>
-                <span className="truncate">{card.assignee ?? "Unassigned"}</span>
+                <span className="truncate">{card.assignee ?? gt("Unassigned")}</span>
                 <span aria-hidden>·</span>
                 <span className="shrink-0">
                   updated <RelativeTime timestamp={card.updatedAt} />
@@ -102,7 +104,7 @@ export function JiraLinkPreview({
             </>
           ) : (
             <p className="mt-1 break-all text-xs text-muted-foreground">
-              {preview.isSuccess || preview.error ? href : "Loading issue…"}
+              {preview.isSuccess || preview.error ? href : gt("Loading issue…")}
             </p>
           )}
         </div>
