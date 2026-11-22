@@ -95,7 +95,7 @@ export function deriveThreadRelationshipGraph(input: {
     addEdge({
       sourceThreadId: parentThreadId,
       targetThreadId: thread.id,
-      kind: thread.lineage.relationshipToParent === "subagent" ? "subagent" : "fork",
+      kind: thread.lineage.attached ? "parent" : (thread.lineage.relationshipToParent ?? "fork"),
       status: thread.activityRunStatus ?? thread.status,
     });
   }

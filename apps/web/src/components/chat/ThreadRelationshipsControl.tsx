@@ -203,6 +203,7 @@ function ThreadLineageGroup<Row extends LineageRow>(props: {
 
 function relationshipLabel(edge: ThreadRelationshipEdge, currentThreadId: ThreadId) {
   if (edge.kind === "transfer") return "Context transfer";
+  if (edge.kind === "parent" && edge.sourceThreadId === currentThreadId) return "Conversation";
   if (edge.kind === "subagent") {
     return edge.sourceThreadId === currentThreadId ? "Subagent" : "Parent agent";
   }
@@ -751,7 +752,7 @@ export function ThreadRelationshipsPanel(props: {
       ? CornerLeftUpIcon
       : isSubagent
         ? BotIcon
-        : node?.thread?.lineage.sideChat === true
+        : edge.kind === "parent" || node?.thread?.lineage.sideChat === true
           ? MessagesSquareIcon
           : GitForkIcon;
     const relationship =

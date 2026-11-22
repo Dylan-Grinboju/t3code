@@ -384,7 +384,7 @@ function shellSubscriberThreadIds(
   );
   const ancestorIds = hiddenChildAncestorIds([
     ...subagents,
-    ...index.filter((entry) => entry.lineage.sideChat === true),
+    ...index.filter((entry) => entry.lineage.sideChat === true || entry.lineage.attached === true),
   ]);
   const keptSubagentIds = new Set(subagents.map((entry) => entry.id));
   const beforeMs = facts.olderSettledBeforeMs;

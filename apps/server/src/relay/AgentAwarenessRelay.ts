@@ -733,10 +733,7 @@ export const make = Effect.gen(function* () {
   const findTopLevelThreadId = Effect.fnUntraced(function* (child: AgentAwarenessThread) {
     const seen = new Set<ThreadId>([child.id]);
     let current: AgentAwarenessThread | null = child;
-    while (
-      current?.lineage.relationshipToParent === "subagent" ||
-      current?.lineage.sideChat === true
-    ) {
+    while (current !== null && !isListedThreadLineage(current.lineage)) {
       const parentId: ThreadId | null = current.lineage.parentThreadId;
       if (parentId === null || seen.has(parentId)) return null;
       seen.add(parentId);
