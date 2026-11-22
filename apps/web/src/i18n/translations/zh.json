@@ -8563,7 +8563,7 @@
   "dab9abc0891cf8fc": "Machines in the new thread picker",
   "132780952936e56c": "Hide a connected machine's projects from New thread in… until you type. In the picker, Ctrl+Tab (or the footer button) steps through one machine at a time.",
   "5c4683aaf69c8802": "Thread links",
-  "4c24bc1a998bb3cc": "线程详情列出聊天中提及的 GitHub 拉取请求和 Jira 事项，最新的排在前面。如果已关联的拉取请求行可见，就会替代对应的聊天链接。可通过卡片的右键菜单隐藏链接。将鼠标悬停在聊天或线程详情中的 Jira 链接上，即可通过该环境中已登录的 Atlassian CLI 查看状态、摘要、负责人和最后更新时间。",
+  "fa7fd50c24f6db3f": "线程详情列出聊天中提及的 GitHub 拉取请求和 Jira 事项，最新的排在前面。如果已关联的拉取请求行可见，就会替代对应的聊天链接。可通过卡片的右键菜单隐藏链接。Jira 链接出现在屏幕上时，预览就会开始加载。将鼠标悬停在聊天或线程详情中的 Jira 链接上，即可通过该环境中已登录的 Atlassian CLI 查看状态、摘要、负责人和最后更新时间。",
   "1aa608da89f2e56e": "Shelf and Peek",
   "dedfe6b849aaec6d": "The shelf below thread details keeps screenshots and text you pin beside Cite. Select a text pin to return to its source. Pins stay on this device. Shift-click a file or thread reference to peek without leaving your conversation; Escape returns, and Open keeps it open.",
   "f35b7c35b5a1478d": "Full screen right panel",

@@ -12,6 +12,7 @@ import {
 import { type ReactElement, useState } from "react";
 
 import { connectionAtomRuntime } from "~/connection/runtime";
+import { observeIntersection } from "~/lib/observeIntersection";
 import { useEnvironmentQuery } from "~/state/query";
 
 import { RelativeTime } from "../RelativeTime";
@@ -42,24 +43,31 @@ export function JiraLinkPreview({
   issue,
   href,
   children,
-  prefetch = false,
+  prefetch = "visible",
 }: {
   environmentId: EnvironmentId;
   issue: ThreadLink;
   href: string;
   children: ReactElement;
-  prefetch?: boolean;
+  prefetch?: "visible" | "immediate" | "interaction";
 }) {
   const gt = useGT();
   const [open, setOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
+  const [inView, setInView] = useState(false);
+  const observeTrigger = (node: HTMLElement | null) => {
+    if (node === null) return;
+    return observeIntersection(node, ({ isIntersecting }) => setInView(isIntersecting));
+  };
+  const interacting = hovered || focused || open;
+  const visiblePrefetch = prefetch === "visible" && inView;
   const preview = useEnvironmentQuery(
-    prefetch || hovered || focused || open
-      ? jiraPreview({
-          environmentId,
-          input: { origin: new URL(issue.url).origin, key: issue.label },
-        })
+    prefetch === "immediate" || interacting || visiblePrefetch
+      ? jiraPreview(
+          { environmentId, input: { origin: new URL(issue.url).origin, key: issue.label } },
+          visiblePrefetch && !interacting ? "visible" : undefined,
+        )
       : null,
   );
   const card = preview.data;
@@ -68,6 +76,7 @@ export function JiraLinkPreview({
   return (
     <PreviewCard open={open} onOpenChange={setOpen}>
       <PreviewCardTrigger
+        ref={prefetch === "visible" ? observeTrigger : undefined}
         render={children}
         delay={350}
         closeDelay={120}

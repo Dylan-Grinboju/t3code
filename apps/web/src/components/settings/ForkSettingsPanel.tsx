@@ -110,7 +110,7 @@ const FORK_FEATURES = [
   {
     title: msg("Thread links"),
     description: msg(
-      "Thread details list the GitHub pull requests and Jira issues mentioned in the thread, newest first. A visible linked pull request replaces its matching chat link. Hide links from the card's right-click menu. Hover a Jira link in chat or thread details to see its status, summary, assignee and last update using the environment’s signed-in Atlassian CLI.",
+      "Thread details list the GitHub pull requests and Jira issues mentioned in the thread, newest first. A visible linked pull request replaces its matching chat link. Hide links from the card's right-click menu. Jira previews start loading when links in chat or thread details come into view. Hover to see the status, summary, assignee and last update using the environment’s signed-in Atlassian CLI.",
     ),
   },
   {

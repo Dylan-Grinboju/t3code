@@ -77,7 +77,7 @@ export function TaskCardLinks({
                 environmentId={threadRef.environmentId}
                 issue={jiraIssue}
                 href={href}
-                prefetch={jiraPrefetchLinks.includes(link)}
+                prefetch={jiraPrefetchLinks.includes(link) ? "immediate" : "interaction"}
               >
                 {anchor}
               </JiraLinkPreview>

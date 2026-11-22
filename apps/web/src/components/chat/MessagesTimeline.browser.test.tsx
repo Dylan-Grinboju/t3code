@@ -854,6 +854,18 @@ describe("MessagesTimeline messages", () => {
     }
   });
 
+  it("preloads a Jira link in chat before hover", async () => {
+    setup();
+    environmentQuery.data = null;
+    await using screen = await renderTimeline([
+      message("[Release ticket](https://acme.atlassian.net/browse/REL-10)", { role: "assistant" }),
+    ]);
+
+    await expect.element(screen.getByRole("link", { name: "Release ticket" })).toBeVisible();
+    await vi.waitFor(() => expect(environmentQuery.jiraKeys).toEqual(new Set(["REL-10"])));
+    expect(document.querySelector('[data-slot="preview-card-popup"]')).toBeNull();
+  });
+
   it("preserves XML-like tags and comparisons in user messages as text", async () => {
     const source = [
       'Without reading a file, do you have <global-agent-instructions scope="workspace">',

@@ -8506,7 +8506,7 @@
   "dab9abc0891cf8fc": "Machines in the new thread picker",
   "132780952936e56c": "Hide a connected machine's projects from New thread in… until you type. In the picker, Ctrl+Tab (or the footer button) steps through one machine at a time.",
   "5c4683aaf69c8802": "Thread links",
-  "4c24bc1a998bb3cc": "스레드 세부 정보에는 대화에서 언급한 GitHub 풀 리퀘스트와 Jira 이슈가 최신순으로 표시됩니다. 연결된 풀 리퀘스트 행이 표시되면 해당 채팅 링크를 대신합니다. 카드의 마우스 오른쪽 버튼 메뉴에서 링크를 숨길 수 있습니다. 채팅이나 스레드 세부 정보에서 Jira 링크에 마우스를 올리면 환경에 로그인된 Atlassian CLI를 통해 상태, 요약, 담당자, 마지막 업데이트를 볼 수 있습니다.",
+  "fa7fd50c24f6db3f": "스레드 세부 정보에는 대화에서 언급한 GitHub 풀 리퀘스트와 Jira 이슈가 최신순으로 표시됩니다. 연결된 풀 리퀘스트 행이 표시되면 해당 채팅 링크를 대신합니다. 카드의 마우스 오른쪽 버튼 메뉴에서 링크를 숨길 수 있습니다. Jira 링크가 화면에 표시되면 미리 보기를 불러오기 시작합니다. 채팅이나 스레드 세부 정보에서 Jira 링크에 마우스를 올리면 환경에 로그인된 Atlassian CLI를 통해 상태, 요약, 담당자, 마지막 업데이트를 볼 수 있습니다.",
   "1aa608da89f2e56e": "Shelf and Peek",
   "dedfe6b849aaec6d": "The shelf below thread details keeps screenshots and text you pin beside Cite. Select a text pin to return to its source. Pins stay on this device. Shift-click a file or thread reference to peek without leaving your conversation; Escape returns, and Open keeps it open.",
   "f35b7c35b5a1478d": "Full screen right panel",
