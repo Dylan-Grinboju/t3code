@@ -523,6 +523,114 @@ it.effect("leaves a task delegated from a linked environment out of the top-leve
   }).pipe(Effect.provide(harness.layer));
 });
 
+it.effect(
+  "an attached review owns its PR checkout and survives settlement and queued handoff",
+  () => {
+    const harness = makeHarness();
+    return Effect.gen(function* () {
+      const launches = yield* ThreadLaunch.ThreadLaunchService;
+      const threads = yield* ThreadManagement.ThreadManagementService;
+      const inbox = yield* launches.launch(
+        launchInput({
+          command: "create-inbox",
+          thread: "inbox",
+          message: "Private inbox history",
+          workspace: { type: "existing_worktree", worktreePath: "/repo/inbox" },
+        }),
+      );
+      const reviewInput = {
+        ...launchInput({
+          command: "create-review",
+          thread: "review",
+          message: "dual review https://github.com/acme/app/pull/42",
+          workspace: { type: "existing_worktree", worktreePath: "/other-repo/pr42" },
+        }),
+        projectId: otherProjectId,
+        attachedParentId: inbox.threadId,
+        createdBy: "agent" as const,
+        creationSource: "mcp" as const,
+      };
+      const review = yield* launches.launch(reviewInput);
+      assert.deepEqual(review.projection.thread.lineage, {
+        parentThreadId: inbox.threadId,
+        rootThreadId: inbox.threadId,
+        relationshipToParent: null,
+        attached: true,
+      });
+      assert.equal(review.projection.thread.projectId, otherProjectId);
+      assert.equal(review.projection.thread.worktreePath, "/other-repo/pr42");
+      assert.isNull(review.projection.thread.forkedFrom);
+      assert.isEmpty(review.projection.contextTransfers);
+      assert.isEmpty(review.projection.contextHandoffs);
+      assert.deepEqual(
+        review.projection.messages.map((message) => message.text),
+        [reviewInput.initialMessage?.text],
+      );
+      assert.isTrue((yield* launches.launch(reviewInput)).resumed);
+      assert.isEmpty(
+        yield* threads.listProjectThreads({ projectId: otherProjectId, includeSubagents: true }),
+      );
+      const link = {
+        host: "github.com",
+        repository: "acme/app",
+        number: 42,
+        url: "https://github.com/acme/app/pull/42",
+        source: "agent" as const,
+      };
+      yield* threads.dispatch({
+        type: "thread.pull-request.link",
+        threadId: review.threadId,
+        commandId: CommandId.make("link-review"),
+        ...link,
+      });
+      const settle = threads.settleThread({
+        threadId: review.threadId,
+        commandId: CommandId.make("settle-review"),
+        byOwnAgent: false,
+      });
+      assert.isTrue(Exit.isFailure(yield* Effect.exit(settle)));
+      yield* threads.dispatch({
+        type: "thread.stop",
+        threadId: review.threadId,
+        commandId: CommandId.make("end-review"),
+      });
+      const notice = yield* threads.sendToThread({
+        threadId: inbox.threadId,
+        projectId,
+        commandId: CommandId.make("review-inbox-completion:42"),
+        messageId: MessageId.make("completion-42"),
+        senderThreadId: review.threadId,
+        mode: "queue",
+        text: "review-inbox completion 42",
+        attachments: [],
+        createdBy: "agent",
+        creationSource: "mcp",
+      });
+      assert.equal(notice.delivery, "queued");
+      assert.equal(notice.message.senderThreadId, review.threadId);
+      yield* threads.settleThread({
+        threadId: review.threadId,
+        commandId: CommandId.make("settle-finished-review"),
+        byOwnAgent: false,
+      });
+      const saved = yield* threads.getThreadProjection(review.threadId);
+      assert.equal(saved.thread.settledOverride, "settled");
+      assert.equal(saved.thread.lineage.parentThreadId, inbox.threadId);
+      assert.equal(saved.thread.pullRequests?.[0]?.url, link.url);
+      assert.deepEqual(
+        saved.messages.map((message) => message.text),
+        [reviewInput.initialMessage?.text],
+      );
+      const parent = yield* threads.getThreadProjection(inbox.threadId);
+      assert.isEmpty(parent.subagents);
+      assert.deepEqual(
+        parent.messages.map((message) => message.text),
+        ["Private inbox history", "review-inbox completion 42"],
+      );
+    }).pipe(Effect.provide(harness.layer));
+  },
+);
+
 it.effect("runs a thread-bound automation on the provider the thread uses now", () => {
   const harness = makeHarness({ adapters: [adapter, claudeAdapter] });
   const layerScheduledTasks = ScheduledTasks.layer.pipe(

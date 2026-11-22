@@ -58,6 +58,7 @@ const clientLaunchHarness = (input: {
   readonly overrideModel?: ModelSelection;
   readonly launched: Array<ThreadLaunch.ThreadLaunchInput>;
   readonly workspaceRoot?: string;
+  readonly caller?: OrchestrationV2ThreadShell;
   readonly checkWorktreeBase?: ThreadLaunch.ThreadLaunchService["Service"]["checkWorktreeBase"];
   readonly hostedAppUrl?: string;
   /** The orchestrator refuses the new thread's mode, as under a managed ceiling. */
@@ -100,19 +101,26 @@ const clientLaunchHarness = (input: {
     Layer.succeed(McpInvocationContext.McpInvocationContext, {
       environmentId: EnvironmentId.make("environment"),
       requestNamespace: "client:session-1",
-      thread: undefined,
-      client: {
-        sessionId: "session-1",
-        label: "Claude Code",
-        access: input.runtimeModeCeiling,
-        hostedAppUrl: input.hostedAppUrl,
+      thread: input.caller && {
+        threadId: input.caller.id,
+        providerInstanceId: input.caller.providerInstanceId,
+        providerSessionId: "provider-session",
       },
+      client: input.caller
+        ? undefined
+        : {
+            sessionId: "session-1",
+            label: "Claude Code",
+            access: input.runtimeModeCeiling,
+            hostedAppUrl: input.hostedAppUrl,
+          },
       issuedAt: 0,
       capabilities: new Set(["orchestration" as const]),
     }),
     Layer.mock(ThreadManagement.ThreadManagementService)({
       // A thread exists once a launch started it.
       getThreadShell: (threadId) => {
+        if (threadId === input.caller?.id) return Effect.succeed(input.caller);
         const launch = input.launched.find((candidate) => candidate.threadId === threadId);
         return Effect.succeed(
           launch === undefined
@@ -209,6 +217,7 @@ it.effect(
           readonly overrideModel?: ModelSelection;
           readonly hostedAppUrl?: string;
           readonly refusedByCeiling?: true;
+          readonly attachToCaller?: boolean;
         },
       ) {
         const { targeted, overrideModel, hostedAppUrl, refusedByCeiling, ...input } = params;
@@ -268,6 +277,13 @@ it.effect(
       expect(escalated.result).toMatchObject({ code: "runtime_mode_escalation_denied" });
       expect(escalated.launched).toHaveLength(0);
 
+      const unattached = yield* launchWith("full-access", "auto", {
+        title: "No parent",
+        attachToCaller: true,
+      });
+      expect(unattached.result).toMatchObject({ code: "invalid_request" });
+      expect(unattached.launched).toHaveLength(0);
+
       const untargeted = yield* launchWith("full-access", "full-access", {
         title: "Fix",
         targeted: false,
@@ -294,6 +310,57 @@ it.effect(
         message: "Example Corp limits threads to Supervised.",
       });
     }),
+);
+
+it.effect("attaches only to the live caller and applies its ceiling in the selected project", () =>
+  Effect.gen(function* () {
+    const launched: ThreadLaunch.ThreadLaunchInput[] = [];
+    const caller = {
+      id: ThreadId.make("inbox"),
+      projectId: ProjectId.make("inbox-project"),
+      modelSelection: { instanceId: ProviderInstanceId.make("codex"), model: "review-model" },
+      providerInstanceId: ProviderInstanceId.make("codex"),
+      activeRunId: "inbox-run",
+      archivedAt: null,
+      deletedAt: null,
+      runtimeMode: "approval-required",
+      interactionMode: "default",
+    } as OrchestrationV2ThreadShell;
+    const { projectId, dependencies } = clientLaunchHarness({
+      runtimeModeCeiling: "full-access",
+      launched,
+      caller,
+    });
+    const toolkit = yield* ProjectToolkit.pipe(
+      Effect.provide(
+        McpToolAccess.HandlersLayer.layer(ProjectHandlers.layer).pipe(Layer.provide(dependencies)),
+      ),
+    );
+    const launch = (runtimeMode?: RuntimeMode) =>
+      toolkit
+        .handle("t3_thread_launch", {
+          title: "PR review",
+          projectId,
+          attachToCaller: true,
+          message: "dual review https://github.com/acme/app/pull/42",
+          ...(runtimeMode && { runtimeMode }),
+        })
+        .pipe(Stream.unwrap, Stream.runCollect, Effect.provide(dependencies));
+    expect((yield* launch("full-access")).at(-1)?.result).toMatchObject({
+      code: "runtime_mode_escalation_denied",
+    });
+    expect((yield* launch()).at(-1)?.result).toMatchObject({
+      projectId,
+      link: expect.stringContaining("t3-thread://"),
+    });
+    expect(launched).toHaveLength(1);
+    expect(launched[0]).toMatchObject({
+      attachedParentId: caller.id,
+      projectId,
+      runtimeMode: "approval-required",
+      workspaceStrategy: { type: "root" },
+    });
+  }),
 );
 
 it.effect("a launch steps an inherited mode down to the provider's, and refuses one it lacks", () =>

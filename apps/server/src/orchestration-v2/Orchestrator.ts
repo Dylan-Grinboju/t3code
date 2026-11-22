@@ -3995,6 +3995,17 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
       });
     }
 
+    const parent =
+      command.attachedParentId === undefined ? null : yield* findThread(command.attachedParentId);
+    if (
+      command.attachedParentId !== undefined &&
+      (parent === null || parent.deletedAt !== null || parent.archivedAt !== null)
+    )
+      return yield* new OrchestratorDispatchError({
+        commandId: command.commandId,
+        commandType: command.type,
+        cause: "The conversation's parent is unavailable.",
+      });
     const now = yield* DateTime.now;
     const emitEvent = emit(events, command);
     const thread: OrchestrationV2AppThread = {
@@ -4017,9 +4028,10 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
         ? {}
         : { delegatedFrom: command.delegatedFrom }),
       lineage: {
-        parentThreadId: null,
+        parentThreadId: parent?.id ?? null,
         relationshipToParent: null,
-        rootThreadId: command.threadId,
+        rootThreadId: parent?.lineage.rootThreadId ?? command.threadId,
+        ...(parent === null ? {} : { attached: true }),
       },
       forkedFrom: null,
       createdAt: now,

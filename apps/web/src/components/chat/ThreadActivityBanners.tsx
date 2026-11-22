@@ -70,9 +70,11 @@ export function childInputNowItem(
       <MessageCircleIcon className="text-info-foreground" />
     ),
     title: childThreadInputsTitle(childThreadInputs, resolve),
-    waitingLabel: childThreadInputs.every((child) => child.lineage.sideChat === true)
-      ? resolve(msg("Side chat waiting"))
-      : resolve(msg("Subagent waiting")),
+    waitingLabel: childThreadInputs.some((child) => child.lineage.attached)
+      ? resolve(msg("Thread waiting"))
+      : childThreadInputs.every((child) => child.lineage.sideChat === true)
+        ? resolve(msg("Side chat waiting"))
+        : resolve(msg("Subagent waiting")),
     description: childThreadInputs.map((child, index) => (
       <Fragment key={child.id}>
         {index > 0 ? " " : null}

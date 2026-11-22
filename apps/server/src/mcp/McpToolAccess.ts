@@ -258,14 +258,28 @@ export interface StartedModes {
  */
 export const startsThreads = <P, A, E, R>(
   modes: (params: P) => {
+    readonly localThreadOnly?: boolean;
     readonly runtimeMode?: RuntimeMode | undefined;
     readonly interactionMode?: ProviderInteractionMode | undefined;
   },
   handle: (params: P, modes: StartedModes) => Effect.Effect<A, E, R>,
   linked: "stamped" | { readonly refused: string },
 ) => {
-  const started = Effect.fn("McpToolAccess.started")(function* (caller: Caller, params: P) {
+  const started = Effect.fn("McpToolAccess.started")(function* (
+    caller: Caller,
+    params: P,
+    forwarding = false,
+  ) {
     const requested = modes(params);
+    if (
+      requested.localThreadOnly &&
+      (forwarding || caller.caller === undefined || callerLinkOrigin(caller) !== undefined)
+    )
+      return yield* new OrchestratorMcpFailure({
+        code: "invalid_request",
+        message:
+          "Attaching a conversation requires a local calling thread in the target environment.",
+      });
     return {
       runtimeMode: yield* resolveRuntimeMode(caller.limits.runtimeMode, requested.runtimeMode),
       interactionMode: yield* resolveInteractionMode(
@@ -282,7 +296,7 @@ export const startsThreads = <P, A, E, R>(
         if (linked !== "stamped") yield* assertNotLinked(caller, linked.refused);
         return yield* handle(params, yield* started(caller, params));
       }),
-    (params: P) => Effect.flatMap(writingCaller, (caller) => started(caller, params)),
+    (params: P) => Effect.flatMap(writingCaller, (caller) => started(caller, params, true)),
   );
 };
 

@@ -46,13 +46,13 @@ const FORK_FEATURES = [
   {
     title: msg("Task cards in chat"),
     description: msg(
-      "Each front-desk card shows one task or decision on a single line. Click empty space or the arrow for context, select text to cite it, choose or write an answer on a decision card, or click Start to launch a work thread. After launch, View thread takes you there.",
+      "Click a front-desk card’s arrow or empty space to see its details and hover linked Jira issues and GitHub pull requests for a preview. Select text to cite it, answer a decision in place, or click Start to launch a work thread and View thread to open it.",
     ),
   },
   {
     title: msg("Native review skills"),
     description: msg(
-      "Review skills can run their own native reviewers from a chat or bot without creating extra T3 projects. The skill controls the review workflow under normal permissions.",
+      "Review skills can run their own native reviewers from a chat or bot without creating extra T3 projects. In Review Inbox, open Work or follow the review link to read its dedicated conversation. It stays out of the sidebar, including after settlement.",
     ),
   },
   {

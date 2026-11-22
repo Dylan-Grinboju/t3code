@@ -220,6 +220,9 @@ function relationshipHint(
 ) {
   if (sideChat) return resolve(msg("Open side chat in this chat"));
   if (edge.kind === "transfer") return resolve(msg("Open context transfer in this chat"));
+  if (edge.kind === "parent" && edge.sourceThreadId === currentThreadId) {
+    return resolve(msg("Open conversation in this chat"));
+  }
   if (edge.kind === "subagent") {
     return edge.sourceThreadId === currentThreadId
       ? resolve(msg("Open subagent in this chat"))
@@ -791,7 +794,7 @@ export function ThreadRelationshipsPanel(props: {
       ? CornerLeftUpIcon
       : isSubagent
         ? BotIcon
-        : node?.thread?.lineage.sideChat === true
+        : edge.kind === "parent" || node?.thread?.lineage.sideChat === true
           ? MessagesSquareIcon
           : GitForkIcon;
 

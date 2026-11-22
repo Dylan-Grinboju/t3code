@@ -139,9 +139,13 @@ const rolledUpRequest = (
     : request;
 
 /** A side chat asks its user directly, so questions roll up to the parent as well as approvals. */
-function sideChatRequest(thread: OrchestrationV2ThreadShell): PendingSubagentRequest | null {
+function conversationRequest(thread: OrchestrationV2ThreadShell): PendingSubagentRequest | null {
   const kind = thread.pendingRuntimeRequest?.kind;
-  if (kind === undefined || kind === "auth_refresh" || thread.lineage.sideChat !== true) {
+  if (
+    kind === undefined ||
+    kind === "auth_refresh" ||
+    (thread.lineage.sideChat !== true && thread.lineage.attached !== true)
+  ) {
     return null;
   }
   return kind === "user_input" ? "user_input" : "approval";
@@ -172,15 +176,15 @@ function pendingSubagentRequestsByThread(
       if (requests.get(parentId) !== "approval") requests.set(parentId, request);
       const parent = byId.get(parentId);
       parentId =
-        parent?.lineage.relationshipToParent === "subagent" || parent?.lineage.sideChat === true
+        parent !== undefined && !isListedThreadLineage(parent.lineage)
           ? parent.lineage.parentThreadId
           : null;
     }
   };
   for (const child of threads) {
     const parentId = child.lineage.parentThreadId;
-    if (child.lineage.sideChat === true) {
-      const request = sideChatRequest(child);
+    if (child.lineage.sideChat === true || child.lineage.attached === true) {
+      const request = conversationRequest(child);
       if (parentId !== null && request !== null && requests.get(parentId) !== "approval") {
         requests.set(parentId, request);
       }
@@ -208,8 +212,18 @@ export function childThreadInputsTitle(
   const approvals = children.filter((child) => child.hasPendingApprovals).length;
   const need = approvals === 0 ? "input" : approvals === children.length ? "approval" : "you";
   const sideChats = children.filter((child) => child.lineage.sideChat === true).length;
-  const kind = sideChats === children.length ? "sideChat" : sideChats === 0 ? "subagent" : "thread";
+  const attached = children.some((child) => child.lineage.attached);
+  const kind = attached
+    ? "thread"
+    : sideChats === children.length
+      ? "sideChat"
+      : sideChats === 0
+        ? "subagent"
+        : "thread";
   const count = children.length;
+  if (count === 1 && attached) {
+    return resolve(need === "input" ? msg("Thread needs input") : msg("Thread needs approval"));
+  }
   if (count === 1) {
     return resolve(
       msg(
@@ -518,10 +532,7 @@ export function createEnvironmentThreadShellAtoms(input: {
       for (const environmentId of enabledEnvironmentIds(get(input.catalogValueAtom))) {
         for (const thread of get(environmentThreadsAtom(environmentId))) {
           const parent = thread.lineage.parentThreadId;
-          if (
-            parent !== null &&
-            (thread.lineage.relationshipToParent === "subagent" || thread.lineage.sideChat === true)
-          ) {
+          if (parent !== null && !isListedThreadLineage(thread.lineage)) {
             addChild({ environmentId, threadId: parent }, environmentId, thread);
           } else if (thread.delegatedFrom !== undefined) {
             addChild(thread.delegatedFrom, environmentId, thread);
@@ -537,7 +548,7 @@ export function createEnvironmentThreadShellAtoms(input: {
           if (seen.has(childKey)) continue;
           seen.add(childKey);
           pending.push(childKey);
-          if (subagentRequest(thread) !== null || sideChatRequest(thread) !== null) {
+          if (subagentRequest(thread) !== null || conversationRequest(thread) !== null) {
             next.push(
               scopedThread(environmentId, thread, get(pendingSubagentRequestsAtom(environmentId))),
             );

@@ -1,7 +1,7 @@
 import type { OrchestrationV2ProjectedTurnItem } from "@t3tools/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
-import { classifyThreadLink, collectThreadLinks } from "./threadLinks";
+import { classifyThreadLink, collectTaskCardLinks, collectThreadLinks } from "./threadLinks";
 
 describe("thread links", () => {
   it.each([
@@ -62,5 +62,19 @@ describe("thread links", () => {
       }),
     ]);
     expect(links.map((link) => link.label)).toEqual(["acme/app#3", "LIM-1"]);
+  });
+
+  it("keeps a card's source and links qualified references without guessing a repository", () => {
+    expect(
+      collectTaskCardLinks(
+        "https://acme.atlassian.net/browse/LIM-1",
+        "Is acme/app#12 ready? Compare #13 and acme/tools#14.",
+        "See [the diff](https://github.com/Acme/App/pull/12/files#diff-1) and acme/tools#14.",
+      ).map(({ href, label, confirmBeforeOpen }) => [href, label, confirmBeforeOpen]),
+    ).toEqual([
+      ["https://acme.atlassian.net/browse/LIM-1", "LIM-1", false],
+      ["https://github.com/Acme/App/pull/12/files#diff-1", "Acme/App#12", false],
+      ["https://github.com/acme/tools/issues/14", "acme/tools#14", true],
+    ]);
   });
 });

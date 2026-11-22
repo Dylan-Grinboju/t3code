@@ -820,6 +820,8 @@
   "7ac52df3f6b0a072": "{minutes} 分钟",
   "8ebe1f516687cb93": "{hours} 小时",
   "1c7254ae11bf7cdc": "{days} 天",
+  "a92e50619146d4f3": "会话需要输入",
+  "4cbd743d71983ab0": "会话需要批准",
   "352655bb7a196642": "{kind, select, sideChat {{need, select, input {侧聊需要输入} approval {侧聊需要批准} other {侧聊需要你处理}}} other {{need, select, input {子智能体需要输入} approval {子智能体需要批准} other {子智能体需要你处理}}}}",
   "e931fd397ade526b": "{kind, select, sideChat {{need, select, input {{count} 个侧聊需要输入} approval {{count} 个侧聊需要批准} other {{count} 个侧聊需要你处理}}} subagent {{need, select, input {{count} 个子智能体需要输入} approval {{count} 个子智能体需要批准} other {{count} 个子智能体需要你处理}}} other {{need, select, input {{count} 个会话需要输入} approval {{count} 个会话需要批准} other {{count} 个会话需要你处理}}}}",
   "4bed196a655ab14f": "{total} 个智能体中有 {live} 个正在工作",

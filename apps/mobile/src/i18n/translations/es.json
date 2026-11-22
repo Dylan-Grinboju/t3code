@@ -820,6 +820,8 @@
   "7ac52df3f6b0a072": "{minutes} min",
   "8ebe1f516687cb93": "{hours} h",
   "1c7254ae11bf7cdc": "{days} d",
+  "a92e50619146d4f3": "El hilo necesita una respuesta",
+  "4cbd743d71983ab0": "El hilo requiere aprobación",
   "352655bb7a196642": "{kind, select, sideChat {{need, select, input {El chat lateral necesita una respuesta} approval {El chat lateral necesita aprobación} other {El chat lateral te necesita}}} other {{need, select, input {El subagente necesita una respuesta} approval {El subagente necesita aprobación} other {El subagente te necesita}}}}",
   "e931fd397ade526b": "{kind, select, sideChat {{need, select, input {{count} chats laterales necesitan una respuesta} approval {{count} chats laterales necesitan aprobación} other {{count} chats laterales te necesitan}}} subagent {{need, select, input {{count} subagentes necesitan una respuesta} approval {{count} subagentes necesitan aprobación} other {{count} subagentes te necesitan}}} other {{need, select, input {{count} hilos necesitan una respuesta} approval {{count} hilos necesitan aprobación} other {{count} hilos te necesitan}}}}",
   "4bed196a655ab14f": "{live} de {total} agentes trabajando",

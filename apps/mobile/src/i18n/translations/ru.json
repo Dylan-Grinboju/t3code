@@ -820,6 +820,8 @@
   "7ac52df3f6b0a072": "{minutes} мин",
   "8ebe1f516687cb93": "{hours} ч",
   "1c7254ae11bf7cdc": "{days} д",
+  "a92e50619146d4f3": "Ветка ждёт ответа",
+  "4cbd743d71983ab0": "Ветка ждёт подтверждения",
   "352655bb7a196642": "{kind, select, sideChat {{need, select, input {Боковому чату нужен ввод} approval {Боковому чату нужно подтверждение} other {Боковой чат ждёт вас}}} other {{need, select, input {Субагенту нужен ввод} approval {Субагенту нужно подтверждение} other {Субагент ждёт вас}}}}",
   "e931fd397ade526b": "{kind, select, sideChat {{need, select, input {Боковых чатов, ожидающих ввода: {count}} approval {Боковых чатов, ожидающих подтверждения: {count}} other {Боковых чатов, ожидающих вас: {count}}}} subagent {{need, select, input {Субагентов, ожидающих ввода: {count}} approval {Субагентов, ожидающих подтверждения: {count}} other {Субагентов, ожидающих вас: {count}}}} other {{need, select, input {Тредов, ожидающих ввода: {count}} approval {Тредов, ожидающих подтверждения: {count}} other {Тредов, ожидающих вас: {count}}}}}",
   "4bed196a655ab14f": "Работают {live} из {total} агентов",

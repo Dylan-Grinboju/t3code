@@ -820,6 +820,8 @@
   "7ac52df3f6b0a072": "{minutes}분",
   "8ebe1f516687cb93": "{hours}시간",
   "1c7254ae11bf7cdc": "{days}일",
+  "a92e50619146d4f3": "스레드에 입력이 필요합니다",
+  "4cbd743d71983ab0": "스레드에 승인이 필요합니다",
   "352655bb7a196642": "{kind, select, sideChat {{need, select, input {사이드 채팅에 입력이 필요합니다} approval {사이드 채팅에 승인이 필요합니다} other {사이드 채팅이 응답을 기다립니다}}} other {{need, select, input {서브에이전트에 입력이 필요합니다} approval {서브에이전트에 승인이 필요합니다} other {서브에이전트가 응답을 기다립니다}}}}",
   "e931fd397ade526b": "{kind, select, sideChat {{need, select, input {사이드 채팅 {count}개에 입력이 필요합니다} approval {사이드 채팅 {count}개에 승인이 필요합니다} other {사이드 채팅 {count}개가 응답을 기다립니다}}} subagent {{need, select, input {서브에이전트 {count}개에 입력이 필요합니다} approval {서브에이전트 {count}개에 승인이 필요합니다} other {서브에이전트 {count}개가 응답을 기다립니다}}} other {{need, select, input {스레드 {count}개에 입력이 필요합니다} approval {스레드 {count}개에 승인이 필요합니다} other {스레드 {count}개가 응답을 기다립니다}}}}",
   "4bed196a655ab14f": "에이전트 {total}개 중 {live}개 작업 중",

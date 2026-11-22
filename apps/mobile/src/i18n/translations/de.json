@@ -820,6 +820,8 @@
   "7ac52df3f6b0a072": "{minutes} Min.",
   "8ebe1f516687cb93": "{hours} Std.",
   "1c7254ae11bf7cdc": "{days} T.",
+  "a92e50619146d4f3": "Thread benötigt eine Eingabe",
+  "4cbd743d71983ab0": "Thread benötigt eine Genehmigung",
   "352655bb7a196642": "{kind, select, sideChat {{need, select, input {Nebenchat wartet auf Eingabe} approval {Nebenchat wartet auf Genehmigung} other {Nebenchat braucht dich}}} other {{need, select, input {Subagent wartet auf Eingabe} approval {Subagent wartet auf Genehmigung} other {Subagent braucht dich}}}}",
   "e931fd397ade526b": "{kind, select, sideChat {{need, select, input {{count} Nebenchats warten auf Eingabe} approval {{count} Nebenchats warten auf Genehmigung} other {{count} Nebenchats brauchen dich}}} subagent {{need, select, input {{count} Subagenten warten auf Eingabe} approval {{count} Subagenten warten auf Genehmigung} other {{count} Subagenten brauchen dich}}} other {{need, select, input {{count} Threads warten auf Eingabe} approval {{count} Threads warten auf Genehmigung} other {{count} Threads brauchen dich}}}}",
   "4bed196a655ab14f": "{live} von {total} Agenten arbeiten",

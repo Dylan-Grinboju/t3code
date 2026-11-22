@@ -90,6 +90,7 @@ export function withCreationProvenance(
       const {
         linkOrigin: _linkOrigin,
         delegatedFrom: _delegatedFrom,
+        attachedParentId: _attachedParentId,
         initialMessage: _initialMessage,
         ...rest
       } = command;
@@ -855,7 +856,7 @@ const make = Effect.gen(function* () {
         threads
           .filter((thread) =>
             input.includeSubagents
-              ? thread.lineage.sideChat !== true
+              ? thread.lineage.sideChat !== true && thread.lineage.attached !== true
               : isListedThreadLineage(thread.lineage) && !isDelegatedAppThread(thread),
           )
           .toSorted(

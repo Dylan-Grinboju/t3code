@@ -820,6 +820,8 @@
   "7ac52df3f6b0a072": "{minutes} min",
   "8ebe1f516687cb93": "{hours} h",
   "1c7254ae11bf7cdc": "{days} j",
+  "a92e50619146d4f3": "Le fil attend une réponse",
+  "4cbd743d71983ab0": "Le fil attend une approbation",
   "352655bb7a196642": "{kind, select, sideChat {{need, select, input {La discussion annexe attend une réponse} approval {La discussion annexe attend une approbation} other {La discussion annexe a besoin de vous}}} other {{need, select, input {Le sous-agent attend une réponse} approval {Le sous-agent attend une approbation} other {Le sous-agent a besoin de vous}}}}",
   "e931fd397ade526b": "{kind, select, sideChat {{need, select, input {{count} discussions annexes attendent une réponse} approval {{count} discussions annexes attendent une approbation} other {{count} discussions annexes ont besoin de vous}}} subagent {{need, select, input {{count} sous-agents attendent une réponse} approval {{count} sous-agents attendent une approbation} other {{count} sous-agents ont besoin de vous}}} other {{need, select, input {{count} fils attendent une réponse} approval {{count} fils attendent une approbation} other {{count} fils ont besoin de vous}}}}",
   "4bed196a655ab14f": "{live} agents sur {total} en cours",
