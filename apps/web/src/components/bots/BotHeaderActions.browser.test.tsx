@@ -1,9 +1,10 @@
+import * as Effect from "effect/Effect";
 import { expect, it, vi } from "vite-plus/test";
 import { page, userEvent } from "vite-plus/test/browser";
 import { RegistryContext } from "@effect/atom-react";
 import { DEFAULT_SERVER_SETTINGS, ThreadId, type ServerSettings } from "@t3tools/contracts";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
-import { AsyncResult, Atom, AtomRegistry } from "effect/reactivity";
+import { Atom, AtomRegistry } from "effect/reactivity";
 import { act, render } from "../../../test/render";
 import {
   makeStreamingTimelineFixture,
@@ -121,11 +122,8 @@ it("runs the configured bot sync on its host and allows another attempt after di
   });
   using launch = vi
     .spyOn(runBotSync, "run")
-    .mockImplementationOnce(async () => {
-      await pending;
-      return AsyncResult.success({ status: "started" });
-    })
-    .mockResolvedValueOnce(AsyncResult.success({ status: "already-running" }));
+    .mockReturnValueOnce(Effect.promise(() => pending).pipe(Effect.as({ status: "started" })))
+    .mockReturnValueOnce(Effect.succeed({ status: "already-running" }));
   using feedback = vi.spyOn(toastManager, "add").mockReturnValue("toast");
 
   const sync = screen.getByRole("button", { name: "Sync now" });

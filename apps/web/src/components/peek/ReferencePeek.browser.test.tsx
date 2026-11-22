@@ -56,6 +56,7 @@ function FileReference({ source = threadRef }: { source?: typeof threadRef }) {
       openInEditorMenuLabel="Open in editor"
       onOpenInPanel={(path, line) => useRightPanelStore.getState().openFile(threadRef, path, line)}
       resolveCopyPaths={async () => ({ relativePath: "sample.ts", fullPath: "/repo/sample.ts" })}
+      resolveDragPath={async () => "/repo/sample.ts"}
       onPeek={() =>
         peek?.({
           kind: "file",

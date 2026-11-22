@@ -64,6 +64,7 @@ export function ThreadTimeline({
   return (
     <MessagesTimeline
       {...timelineProps}
+      syncing={syncing}
       timelineEntries={botTimelineEntries({
         entries: displayedEntries,
         bot: bot != null,

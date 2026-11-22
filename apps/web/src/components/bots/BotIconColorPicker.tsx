@@ -1,3 +1,4 @@
+import { T, useGT, useMessages } from "gt-react";
 import { BotGlyph, type ThreadBot } from "@t3tools/contracts";
 import { cn } from "../../lib/utils";
 import { PROJECT_ICON_COLORS } from "../../projectIconColors";
@@ -16,10 +17,14 @@ export function BotIconColorPicker({
   color: ThreadBot["iconColor"];
   onChange: (color: ThreadBot["iconColor"]) => void;
 }) {
+  const gt = useGT();
+  const messages = useMessages();
   return (
     <div className="grid gap-1.5">
-      <div className="text-xs font-medium">Bot icon</div>
-      <div className="flex flex-wrap gap-1" role="group" aria-label="Bot icon">
+      <div className="text-xs font-medium">
+        <T>Bot icon</T>
+      </div>
+      <div className="flex flex-wrap gap-1" role="group" aria-label={gt("Bot icon")}>
         {[undefined, ...BotGlyph.literals].map((value) => {
           const Icon = value ? botGlyphs[value] : BotIcon;
           const label = value ?? "robot";
@@ -39,15 +44,21 @@ export function BotIconColorPicker({
           );
         })}
       </div>
-      <div className="text-xs font-medium">Icon color</div>
+      <div className="text-xs font-medium">
+        <T>Icon color</T>
+      </div>
       <div className="flex items-center gap-3">
         <BotAvatar glyph={glyph} color={color} />
-        <div className="flex max-w-64 flex-wrap gap-1" role="group" aria-label="Bot icon color">
+        <div
+          className="flex max-w-64 flex-wrap gap-1"
+          role="group"
+          aria-label={gt("Bot icon color")}
+        >
           {PROJECT_ICON_COLORS.map((option) => (
             <button
               key={option.value}
               type="button"
-              aria-label={option.label}
+              aria-label={messages(option.label)}
               aria-pressed={color === option.value}
               className={cn(
                 "flex size-7 items-center justify-center rounded-full border border-transparent focus-visible:outline-2 focus-visible:outline-ring",
@@ -60,7 +71,7 @@ export function BotIconColorPicker({
           ))}
         </div>
         <Button variant="ghost" size="sm" onClick={() => onChange(undefined)} disabled={!color}>
-          Default
+          <T>Default</T>
         </Button>
       </div>
     </div>

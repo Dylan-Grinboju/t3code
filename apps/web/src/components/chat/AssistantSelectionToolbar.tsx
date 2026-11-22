@@ -4,6 +4,7 @@ import {
   type AssistantCitation,
   type ScopedThreadRef,
 } from "@t3tools/contracts";
+import { T, useGT } from "gt-react";
 import { PinIcon, QuoteIcon } from "lucide-react";
 import { use, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -40,6 +41,7 @@ export function AssistantSelectionToolbar({
   const toolbarRef = useRef<HTMLDivElement>(null);
   const actionsRef = useRef<ReturnType<typeof observeSelectionActions> | null>(null);
   const backgroundThread = use(BackgroundThreadContext);
+  const gt = useGT();
 
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- measures the toolbar DOM node and clamps its position inside the window before paint
   useLayoutEffect(() => {
@@ -207,7 +209,7 @@ export function AssistantSelectionToolbar({
     <div
       ref={toolbarRef}
       role="group"
-      aria-label="Selected text actions"
+      aria-label={gt("Selected text actions")}
       className="fixed z-50 flex max-w-[calc(100vw-1rem)] gap-1"
       style={{ left: selection.position.x, top: selection.position.y }}
       onPointerDown={(event) => event.preventDefault()}
@@ -224,21 +226,28 @@ export function AssistantSelectionToolbar({
         size="xs"
         variant="glass"
         disabled={tooLong}
-        aria-label={tooLong ? "Selection is too long to cite" : "Cite selection in composer"}
+        aria-label={
+          tooLong ? gt("Selection is too long to cite") : gt("Cite selection in composer")
+        }
         onClick={cite}
       >
         <QuoteIcon aria-hidden="true" className="size-3.5" />
-        {tooLong ? "Shorten selection" : "Cite"}
+        {tooLong
+          ? gt("Shorten selection")
+          : gt("Cite", { $context: "verb, button that quotes the selected text" })}
       </Button>
       <Button
         type="button"
         size="xs"
         variant="glass"
         disabled={tooLong}
-        aria-label="Pin selection to shelf"
+        aria-label={gt("Pin selection to shelf")}
         onClick={() => {
           if (!useThreadShelfStore.getState().pin(selection.citation)) {
-            toastManager.add({ type: "error", title: "Could not save the shelf on this device" });
+            toastManager.add({
+              type: "error",
+              title: gt("Could not save the shelf on this device"),
+            });
             return;
           }
           window.getSelection()?.removeAllRanges();
@@ -246,7 +255,7 @@ export function AssistantSelectionToolbar({
         }}
       >
         <PinIcon aria-hidden="true" className="size-3.5" />
-        Pin
+        <T>Pin</T>
       </Button>
     </div>,
     document.body,

@@ -1,10 +1,9 @@
+import { msg, T, useMessages } from "gt-react";
+import type { MessageResolver } from "../../i18n/messages";
 import { useAtomValue } from "@effect/atom-react";
 import { refreshUsageLimits } from "@t3tools/client-runtime/state/usage";
-import {
-  collectLimitAccounts,
-  collectLimitPools,
-  formatDuration,
-} from "@t3tools/shared/usageLimits";
+import { collectLimitAccounts, collectLimitPools } from "@t3tools/shared/usageLimits";
+import { formatDuration } from "@t3tools/shared/usageLimitsCopy";
 import { Schema } from "effect";
 import { useEffect, useEffectEvent, type ReactNode } from "react";
 
@@ -77,23 +76,36 @@ function useLimitsAutoRefresh() {
   }, []);
 }
 
-function paceText(row: SidebarUsageRow) {
+function paceText(row: SidebarUsageRow, resolve: MessageResolver) {
   const delta = row.projection?.paceDelta;
   if (delta === undefined) return null;
-  if (Math.abs(delta) < ON_PACE_POINTS) return "On pace";
-  return delta > 0 ? `${delta}% faster than the window` : `${-delta}% slower than the window`;
+  if (Math.abs(delta) < ON_PACE_POINTS) return resolve(msg("On pace"));
+  return delta > 0
+    ? resolve(msg("{percent}% faster than the window", { percent: delta }))
+    : resolve(msg("{percent}% slower than the window", { percent: -delta }));
 }
 
-function projectionText(row: SidebarUsageRow, now: number) {
+function projectionText(row: SidebarUsageRow, now: number, resolve: MessageResolver) {
   const projection = row.projection;
   if (!projection) return null;
   if (projection.runsOutBeforeResetMs !== null) {
     return projection.runsOutBeforeResetMs <= 60_000
-      ? "At this rate it runs out right at the reset."
-      : `At this rate it runs out ${formatDuration(projection.runsOutBeforeResetMs)} before the reset.`;
+      ? resolve(msg("At this rate it runs out right at the reset."))
+      : resolve(
+          msg("At this rate it runs out {duration} before the reset.", {
+            duration: formatDuration(projection.runsOutBeforeResetMs, resolve),
+          }),
+        );
   }
-  const resetsIn = row.resetsAt === null ? "" : ` in ${formatDuration(row.resetsAt - now)}`;
-  return `At this rate ${projection.leftAtReset}% is left when it resets${resetsIn}.`;
+  const percent = projection.leftAtReset;
+  return row.resetsAt === null
+    ? resolve(msg("At this rate {percent}% is left when it resets.", { percent }))
+    : resolve(
+        msg("At this rate {percent}% is left when it resets in {duration}.", {
+          percent,
+          duration: formatDuration(row.resetsAt - now, resolve),
+        }),
+      );
 }
 
 function UsageBarRow({
@@ -149,6 +161,7 @@ export function SidebarUsageBars(props: {
   useLimitsAutoRefresh();
   const [measure] = useUsageBarsMeasure();
   const presentations = useAtomValue(environmentPresentations.presentationsWithProvidersAtom);
+  const messages = useMessages();
   const nowMinute = useNowMinute();
   const now = Date.parse(`${nowMinute}:00Z`);
   const rows = sidebarUsageRows(collectLimitPools(collectLimitAccounts(presentations), now), now);
@@ -171,18 +184,22 @@ export function SidebarUsageBars(props: {
         </TooltipTrigger>
         <TooltipPopup side="top">
           <div className="flex flex-col gap-2">
-            {rows.map((row) => (
-              <div key={row.key} className="flex flex-col gap-0.5">
-                <span className="text-foreground">
-                  {row.label}: {measured(row, measure).percent}% {measured(row, measure).word}
-                  {paceText(row) ? ` · ${paceText(row)}` : ""}
-                </span>
-                {projectionText(row, now) ? (
-                  <span className="text-muted-foreground">{projectionText(row, now)}</span>
-                ) : null}
-              </div>
-            ))}
-            <span className="text-muted-foreground">The line is where even spending would be.</span>
+            {rows.map((row) => {
+              const pace = paceText(row, messages);
+              const projection = projectionText(row, now, messages);
+              return (
+                <div key={row.key} className="flex flex-col gap-0.5">
+                  <span className="text-foreground">
+                    {row.label}: {measured(row, measure).percent}% {measured(row, measure).word}
+                    {pace ? ` · ${pace}` : ""}
+                  </span>
+                  {projection ? <span className="text-muted-foreground">{projection}</span> : null}
+                </div>
+              );
+            })}
+            <span className="text-muted-foreground">
+              <T>The line is where even spending would be.</T>
+            </span>
           </div>
         </TooltipPopup>
       </Tooltip>

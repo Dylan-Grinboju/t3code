@@ -1,3 +1,4 @@
+import { msg, useGT } from "gt-react";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import type { EnvironmentId, ScopedThreadRef, ThreadId } from "@t3tools/contracts";
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon, PaperclipIcon, TicketIcon } from "lucide-react";
@@ -37,6 +38,7 @@ interface ThreadLinksPanelProps {
 
 /** GitHub pull requests and Jira issues mentioned in the thread, one section each. Hidden while there are none. */
 export function ThreadLinksPanel(props: ThreadLinksPanelProps) {
+  const gt = useGT();
   const threadRef = scopeThreadRef(props.environmentId, props.threadId);
   const items = useTimelineVisibleTurnItems(threadRef);
   const links = collectThreadLinks(items);
@@ -46,14 +48,14 @@ export function ThreadLinksPanel(props: ThreadLinksPanelProps) {
       <ThreadLinkGroup
         key={`github:${key}`}
         id="github"
-        title="Pull requests"
+        title={gt("Pull requests")}
         threadRef={threadRef}
         links={links.filter((link) => link.kind === "pull")}
       />
       <ThreadLinkGroup
         key={`jira:${key}`}
         id="jira"
-        title="Jira"
+        title={gt("Jira")}
         threadRef={threadRef}
         links={links.filter((link) => link.kind === "jira")}
       />
@@ -67,6 +69,7 @@ function ThreadLinkGroup(props: {
   readonly threadRef: ScopedThreadRef;
   readonly links: ReadonlyArray<ThreadLink>;
 }) {
+  const gt = useGT();
   const [visibleCount, setVisibleCount] = useState(LINK_PAGE_COUNT);
   const openLink = useOpenLink(props.threadRef);
   const openPrLink = useOpenPrLink(props.threadRef);
@@ -79,7 +82,7 @@ function ThreadLinkGroup(props: {
     event.preventDefault();
     void openLink(link.url, { event }).catch((error: unknown) => {
       console.error(error);
-      toastManager.add({ type: "error", title: "Unable to open link" });
+      toastManager.add({ type: "error", title: gt("Unable to open link") });
     });
   };
 
@@ -146,7 +149,9 @@ function ThreadLinkGroup(props: {
           ) : (
             <ChevronUpIcon aria-hidden className="size-4 shrink-0" />
           )}
-          {hiddenCount > 0 ? `Show ${Math.min(hiddenCount, LINK_PAGE_COUNT)} more` : "Show less"}
+          {hiddenCount > 0
+            ? gt("Show {count} more", { count: Math.min(hiddenCount, LINK_PAGE_COUNT) })
+            : gt("Show less")}
         </ThreadDetailsControl>
       ) : null}
     </ThreadDetailsSection>
@@ -154,9 +159,14 @@ function ThreadLinkGroup(props: {
 }
 
 function ThreadLinkCopyButton(props: { readonly url: string }) {
+  const gt = useGT();
   const ref = useRef<HTMLButtonElement>(null);
   const { copyToClipboard, isCopied } = useCopyToClipboard<void>({
-    target: "link",
+    target: {
+      target: "link",
+      unavailableMessage: msg("Clipboard API is unavailable while copying link."),
+      failureMessage: msg("Failed to copy link to the clipboard."),
+    },
     onError: (error) => showAnchoredCopyErrorToast(ref, error),
     timeout: ANCHORED_COPY_TOAST_TIMEOUT_MS,
   });
@@ -166,8 +176,8 @@ function ThreadLinkCopyButton(props: { readonly url: string }) {
       part="icon"
       variant="ghost"
       tone="muted"
-      aria-label="Copy link"
-      title="Copy link"
+      aria-label={gt("Copy link")}
+      title={gt("Copy link")}
       onClick={() => copyToClipboard(props.url, undefined)}
     >
       {isCopied ? (

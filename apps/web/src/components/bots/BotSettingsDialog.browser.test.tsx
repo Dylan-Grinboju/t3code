@@ -4,7 +4,7 @@ import { page, userEvent } from "vite-plus/test/browser";
 import { AsyncResult, AtomRegistry } from "effect/reactivity";
 import { RegistryContext } from "@effect/atom-react";
 import { DEFAULT_SERVER_SETTINGS, ThreadId } from "@t3tools/contracts";
-import * as Cause from "effect/Cause";
+import * as Effect from "effect/Effect";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { render } from "../../../test/render";
 import { makeThreadFixture } from "../../test-fixtures";
@@ -174,8 +174,8 @@ it("retries a sync command edit after the bot settings were saved", async () => 
   );
   using saveSettings = vi
     .spyOn(serverEnvironment.updateSettings, "run")
-    .mockResolvedValueOnce(AsyncResult.failure(Cause.die(new Error("Disconnected"))))
-    .mockResolvedValueOnce(AsyncResult.success(DEFAULT_SERVER_SETTINGS));
+    .mockReturnValueOnce(Effect.die(new Error("Disconnected")))
+    .mockReturnValueOnce(Effect.succeed(DEFAULT_SERVER_SETTINGS));
   const dialog = page.getByRole("dialog", { name: "Bot settings" });
   const command = dialog.getByRole("textbox", { name: "Background sync command" });
   await expect.element(command).toHaveValue("sync previous");
