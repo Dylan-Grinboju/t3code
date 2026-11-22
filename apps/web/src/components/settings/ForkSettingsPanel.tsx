@@ -42,7 +42,7 @@ const FORK_FEATURES = [
   {
     title: "Task cards in chat",
     description:
-      "Click a front-desk card’s arrow or empty space to see its details and hover linked Jira issues and GitHub pull requests for a preview. Select text to cite it, answer a decision in place, or click Start to launch a work thread and View thread to open it.",
+      "Click a front-desk card’s arrow or empty space to see its details and load previews for the first three Jira links. Hover linked Jira issues and GitHub pull requests to see their previews, select text to cite it, or answer a decision in place. Click Start to launch a work thread and View thread to open it.",
   },
   {
     title: "Native review skills",

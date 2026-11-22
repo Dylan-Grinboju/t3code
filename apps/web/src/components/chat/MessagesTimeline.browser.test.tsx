@@ -63,18 +63,25 @@ import { collectComposerContextReferences } from "@t3tools/shared/composerContex
 const environmentQuery = vi.hoisted(() => ({
   error: "Pull request not found" as string | null,
   data: null as unknown,
+  jiraKeys: new Set<string>(),
 }));
 vi.mock(import("~/state/query"), async (original) => ({
   ...(await original()),
-  useEnvironmentQuery: (() => ({
-    data: environmentQuery.data,
-    dataUpdatedAt: 0,
-    error: environmentQuery.error,
-    failure: null,
-    isPending: false,
-    isSuccess: false,
-    refresh: () => {},
-  })) as never,
+  useEnvironmentQuery: ((atom: Atom.Atom<unknown> | null) => {
+    const key = /^environment-data:jira:preview:.*"key":"([^"]+)"/.exec(
+      atom?.label?.[0] ?? "",
+    )?.[1];
+    if (key) environmentQuery.jiraKeys.add(key);
+    return {
+      data: environmentQuery.data,
+      dataUpdatedAt: 0,
+      error: environmentQuery.error,
+      failure: null,
+      isPending: false,
+      isSuccess: false,
+      refresh: () => {},
+    };
+  }) as never,
 }));
 
 const stubbedAsset = vi.hoisted(() => ({ url: "" }));
@@ -223,6 +230,7 @@ async function click(element: HTMLElement) {
 function setup({ scheduledTasks = [] as ReadonlyArray<{ id: string; title: string }> } = {}) {
   environmentQuery.error = "Pull request not found";
   environmentQuery.data = { tasks: scheduledTasks };
+  environmentQuery.jiraKeys.clear();
 }
 
 const TASK_ID = ScheduledTaskId.make("task-1");
@@ -1209,6 +1217,7 @@ const CITATION_REQUEST = {
 } satisfies NonNullable<TimelineProps["citationRequest"]>;
 
 it("sends an inline card answer with its original question and allows a custom reply after failure", async () => {
+  setup();
   environmentQuery.error = "Jira issue unavailable";
   environmentQuery.data = null;
   const entries = deriveTimelineEntriesFromVisibleTurnItems({
@@ -1220,7 +1229,9 @@ it("sends an inline card answer with its original question and allows a custom r
         output: {
           taskCard: {
             title: "Release",
-            summary: "Checks passed for acme/app#12.",
+            summary: `Checks passed for acme/app#12. ${[2, 3, 4, 5]
+              .map((number) => `https://acme.atlassian.net/browse/REL-${number}`)
+              .join(" ")}`,
             sourceUrl: "https://acme.atlassian.net/browse/REL-1",
             question: "Ship today?",
             suggestedAnswers: ["Ship", "Wait"],
@@ -1236,7 +1247,17 @@ it("sends an inline card answer with its original question and allows a custom r
     canOperateThread: true,
     onSendAppMessage: send,
   });
+  expect(environmentQuery.jiraKeys.size).toBe(0);
   await screen.getByRole("button", { name: "Show details for Release" }).click();
+  expect(environmentQuery.jiraKeys).toEqual(new Set(["REL-1", "REL-2", "REL-3"]));
+  {
+    using _timers = fakeTimers();
+    await userEvent.hover(screen.getByRole("link", { name: "REL-4" }));
+    expect(environmentQuery.jiraKeys.has("REL-4")).toBe(true);
+    await act(() => (screen.getByRole("link", { name: "REL-5" }).element() as HTMLElement).focus());
+    expect(environmentQuery.jiraKeys.has("REL-5")).toBe(true);
+    expect(document.querySelector('[data-slot="preview-card-popup"]')).toBeNull();
+  }
   await expect
     .element(screen.getByRole("link", { name: "acme/app#12" }))
     .toHaveAttribute("href", "https://github.com/acme/app/issues/12");

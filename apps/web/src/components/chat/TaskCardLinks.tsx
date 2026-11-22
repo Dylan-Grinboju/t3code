@@ -14,6 +14,12 @@ import { JiraLinkPreview } from "./JiraLinkPreview";
 import { type TaskCardLink } from "./threadLinks";
 import { TimelineRowCtx } from "./timelineRowContext";
 
+const JIRA_PREFETCH_LIMIT = 3;
+
+function jiraIssueForPreview({ href, preview }: TaskCardLink) {
+  return preview?.kind === "jira" && href.startsWith("https://") ? preview : null;
+}
+
 export function TaskCardLinks({
   links,
   expanded,
@@ -37,10 +43,13 @@ export function TaskCardLinks({
     });
   }
 
+  const jiraPrefetchLinks =
+    expanded && threadRef ? links.filter(jiraIssueForPreview).slice(0, JIRA_PREFETCH_LIMIT) : [];
   return (
     <div className="flex flex-wrap gap-x-3 gap-y-1">
       {links.map((link) => {
         const { href, label, preview, confirmBeforeOpen } = link;
+        const jiraIssue = jiraIssueForPreview(link);
         const Icon =
           preview?.kind === "jira"
             ? TicketIcon
@@ -61,8 +70,13 @@ export function TaskCardLinks({
         );
         return (
           <div key={href} className="flex min-w-0">
-            {expanded && threadRef && preview?.kind === "jira" && href.startsWith("https://") ? (
-              <JiraLinkPreview environmentId={threadRef.environmentId} issue={preview} href={href}>
+            {expanded && threadRef && jiraIssue ? (
+              <JiraLinkPreview
+                environmentId={threadRef.environmentId}
+                issue={jiraIssue}
+                href={href}
+                prefetch={jiraPrefetchLinks.includes(link)}
+              >
                 {anchor}
               </JiraLinkPreview>
             ) : expanded && threadRef && preview?.kind === "pull" ? (
