@@ -1,22 +1,19 @@
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { replaceThreadLinks } from "@t3tools/shared/threadLinks";
 import { MessageId } from "@t3tools/contracts";
-import { ChevronRightIcon, LinkIcon, TicketIcon } from "lucide-react";
-import { use, useId, useState, type MouseEvent } from "react";
-import { useOpenLink } from "../../browser/useOpenLink";
+import { ChevronRightIcon } from "lucide-react";
+import { use, useId, useState } from "react";
 import { cn } from "../../lib/utils";
-import { PullRequestGlyph } from "../pullRequest/pullRequestIcons";
-import { toastManager } from "../ui/toast";
 import { AssistantCitationSource } from "./AssistantCitationSource";
 import { findRevealRef } from "./markdownFindContext";
+import { TaskCardLinks } from "./TaskCardLinks";
 import { TaskCardReply } from "./TaskCardReply";
 import { TaskCardStart } from "./TaskCardStart";
-import { classifyThreadLink } from "./threadLinks";
+import { collectTaskCardLinks } from "./threadLinks";
 import { TimelineRowCtx, type TimelineRow } from "./timelineRowContext";
 
 export function TaskCardTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "task-card" }> }) {
   const ctx = use(TimelineRowCtx);
-  const openLink = useOpenLink(ctx.threadRef);
   const { card } = row;
   const detailsId = useId();
   const citationKey =
@@ -34,27 +31,7 @@ export function TaskCardTimelineRow({ row }: { row: Extract<TimelineRow, { kind:
   )
     .replace(/\s+Earlier thread(?: for context)?:\s*t3-thread:\/\/\S+\s*$/i, "")
     .replace(/t3-thread:\/\/[^\s<>]+/gi, "related conversation");
-  const sourceUrl = card.sourceUrl;
-  const source = sourceUrl ? classifyThreadLink(sourceUrl) : null;
-  const SourceIcon =
-    source?.kind === "pull"
-      ? PullRequestGlyph.pullRequest
-      : source?.kind === "jira"
-        ? TicketIcon
-        : LinkIcon;
-
-  function openSource(event: MouseEvent<HTMLAnchorElement>) {
-    if (!ctx.threadRef || !sourceUrl) return;
-    if (source?.kind === "pull") {
-      ctx.openPullRequest(event, sourceUrl);
-      return;
-    }
-    if (event.button !== 0 || event.metaKey || event.ctrlKey) return;
-    event.preventDefault();
-    void openLink(sourceUrl, { event }).catch(() => {
-      toastManager.add({ type: "error", title: "Unable to open task source" });
-    });
-  }
+  const links = collectTaskCardLinks(card.sourceUrl, headline, card.title, summary);
 
   return (
     <div className="px-1">
@@ -142,18 +119,7 @@ export function TaskCardTimelineRow({ row }: { row: Extract<TimelineRow, { kind:
                       send={ctx.onSendAppMessage}
                     />
                   )}
-                {sourceUrl && (
-                  <a
-                    className="pointer-events-auto inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:underline"
-                    href={sourceUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={openSource}
-                  >
-                    <SourceIcon aria-hidden className="size-3 shrink-0" />
-                    {source?.label ?? new URL(sourceUrl).hostname}
-                  </a>
-                )}
+                {links.length > 0 && <TaskCardLinks links={links} expanded={expanded} />}
               </div>
             </div>
           </div>

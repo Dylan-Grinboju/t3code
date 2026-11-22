@@ -42,7 +42,7 @@ const FORK_FEATURES = [
   {
     title: "Task cards in chat",
     description:
-      "Each front-desk card shows one task or decision on a single line. Click empty space or the arrow for context, select text to cite it, choose or write an answer on a decision card, or click Start to launch a work thread. After launch, View thread takes you there.",
+      "Click a front-desk card’s arrow or empty space to see its details and hover linked Jira issues and GitHub pull requests for a preview. Select text to cite it, answer a decision in place, or click Start to launch a work thread and View thread to open it.",
   },
   {
     title: "Native review skills",

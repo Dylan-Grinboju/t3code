@@ -1,3 +1,4 @@
+import { sourceControlClients } from "@t3tools/client-runtime/source-control-clients";
 import type { OrchestrationV2ProjectedTurnItem } from "@t3tools/contracts";
 
 export type ThreadLinkKind = "pull" | "jira";
@@ -11,6 +12,7 @@ export interface ThreadLink {
 const URL_PATTERN = /https?:\/\/[^\s<>()[\]{}"'`|]+/g;
 const TRAILING_PUNCTUATION = /[.,;:!?*_~]+$/;
 const JIRA_KEY = /^[A-Z][A-Z0-9_]+-\d+$/;
+const QUALIFIED_GITHUB_REFERENCE = /(?<![\w./\\@-])([\w.-]+\/[\w.-]+)#([1-9]\d*)(?!\w)/g;
 
 /** A GitHub pull request or Jira issue link, keyed by a canonical URL so `/pull/1/files` and `/pull/1` are one entry. */
 export function classifyThreadLink(raw: string): ThreadLink | null {
@@ -46,6 +48,47 @@ export function classifyThreadLink(raw: string): ThreadLink | null {
     };
   }
   return null;
+}
+
+export interface TaskCardLink {
+  readonly href: string;
+  readonly label: string;
+  readonly preview: ThreadLink | null;
+  readonly confirmBeforeOpen: boolean;
+}
+
+export function collectTaskCardLinks(
+  sourceUrl: string | undefined,
+  ...text: ReadonlyArray<string>
+): ReadonlyArray<TaskCardLink> {
+  const links = new Map<string, TaskCardLink>();
+  function add(href: string, preview: ThreadLink | null, confirmBeforeOpen = false) {
+    const key = preview?.kind === "pull" ? preview.url.toLowerCase() : (preview?.url ?? href);
+    if (links.has(key)) return;
+    links.set(key, {
+      href,
+      label: preview?.label ?? new URL(href).hostname,
+      preview,
+      confirmBeforeOpen,
+    });
+  }
+
+  if (sourceUrl) add(sourceUrl, classifyThreadLink(sourceUrl));
+  const prose = text.join("\n");
+  for (const raw of prose.match(URL_PATTERN) ?? []) {
+    const href = raw.replace(TRAILING_PUNCTUATION, "");
+    const link = classifyThreadLink(href);
+    if (link) add(href, link);
+  }
+  for (const [, repository, number] of prose
+    .replace(URL_PATTERN, " ")
+    .matchAll(QUALIFIED_GITHUB_REFERENCE)) {
+    const href = `https://github.com/${repository}/issues/${number}`;
+    const target = sourceControlClients.changeRequestUrlFromReferenceAutolink(href);
+    const link = target ? classifyThreadLink(target) : null;
+    if (link) add(href, link, true);
+  }
+  return [...links.values()];
 }
 
 // Settled items keep their identity across updates, so each message is scanned once.

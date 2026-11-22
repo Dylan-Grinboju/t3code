@@ -1209,6 +1209,8 @@ const CITATION_REQUEST = {
 } satisfies NonNullable<TimelineProps["citationRequest"]>;
 
 it("sends an inline card answer with its original question and allows a custom reply after failure", async () => {
+  environmentQuery.error = "Jira issue unavailable";
+  environmentQuery.data = null;
   const entries = deriveTimelineEntriesFromVisibleTurnItems({
     visibleTurnItems: [
       v2Item("dynamic_tool", {
@@ -1218,7 +1220,8 @@ it("sends an inline card answer with its original question and allows a custom r
         output: {
           taskCard: {
             title: "Release",
-            summary: "Checks passed.",
+            summary: "Checks passed for acme/app#12.",
+            sourceUrl: "https://acme.atlassian.net/browse/REL-1",
             question: "Ship today?",
             suggestedAnswers: ["Ship", "Wait"],
           },
@@ -1234,6 +1237,11 @@ it("sends an inline card answer with its original question and allows a custom r
     onSendAppMessage: send,
   });
   await screen.getByRole("button", { name: "Show details for Release" }).click();
+  await expect
+    .element(screen.getByRole("link", { name: "acme/app#12" }))
+    .toHaveAttribute("href", "https://github.com/acme/app/issues/12");
+  await userEvent.hover(screen.getByRole("link", { name: "REL-1" }));
+  await expect.element(page.getByText("https://acme.atlassian.net/browse/REL-1")).toBeVisible();
   await screen.getByRole("button", { name: "Ship", exact: true }).click();
   await expect.element(screen.getByRole("alert")).toHaveTextContent("Offline");
   await userEvent.fill(
