@@ -114,12 +114,14 @@ function DialogPopup({
   bottomStickOnMobile = true,
   variant = "default",
   mediaControlsPlacement = "outside",
+  transitionDurationMs,
   ...props
 }: DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean;
   bottomStickOnMobile?: boolean;
   variant?: "default" | "media";
   mediaControlsPlacement?: "inside" | "outside";
+  transitionDurationMs?: number;
 }) {
   const gt = useGT();
   const { popupRef, initialFocus } = useDialogActionInitialFocus();
@@ -130,6 +132,8 @@ function DialogPopup({
         className={cn(
           variant === "media" ? DIALOG_MEDIA_POPUP_CLASS : DIALOG_POPUP_CLASS,
           "row-start-2 text-popover-foreground",
+          transitionDurationMs !== undefined &&
+            "duration-(--dialog-duration) starting:scale-98 starting:opacity-0",
           variant === "default" && "max-h-full max-w-lg",
           bottomStickOnMobile && DIALOG_MOBILE_SHEET_CLASS,
           className,
@@ -155,9 +159,21 @@ function DialogPopup({
   // macOS has no CSS window-controls overlay, so use the platform titlebar height.
   const nativeTitlebarHeight = useNativeTitlebarHeight();
   return (
-    <DialogPortal>
+    <DialogPortal
+      style={
+        transitionDurationMs === undefined
+          ? undefined
+          : ({ "--dialog-duration": `${transitionDurationMs}ms` } as CSSProperties)
+      }
+    >
       {/* Media opens from inside other overlays (a composer chip, a popover), so it sits above them. */}
-      <DialogBackdrop className={variant === "media" ? "z-[60]" : undefined} variant={variant} />
+      <DialogBackdrop
+        className={cn(
+          variant === "media" && "z-[60]",
+          transitionDurationMs !== undefined && "duration-(--dialog-duration) starting:opacity-0",
+        )}
+        variant={variant}
+      />
       <DialogViewport
         className={cn(
           bottomStickOnMobile && "max-sm:grid-rows-[1fr_auto] max-sm:p-0 max-sm:pt-12",

@@ -12340,5 +12340,6 @@
   "27d76249d09eb69f": "Review-Leitfaden bereit",
   "faa3bb26abb39c93": "Review-Leitfaden fehlgeschlagen",
   "b7df38b7d8792d78": "Leitfaden öffnen",
-  "9e91e9a77b664e4e": "Review-Leitfaden konnte nicht gestartet werden"
+  "9e91e9a77b664e4e": "Review-Leitfaden konnte nicht gestartet werden",
+  "92996a453b14a862": "Lege unter Darstellung fest, wie lange das Öffnen und Schließen von Bot-Einstellungen, Bot-Aufgaben und der Vorschau per Umschaltklick dauert. Für das Ein- und Ausklappen der Details von Aufgabenkarten gilt dieselbe Dauer."
 }

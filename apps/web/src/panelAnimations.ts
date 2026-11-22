@@ -38,6 +38,11 @@ export function usePanelAnimationSettings(): {
   return { active: durationMs > 0 && !prefersReducedMotion && !suppressed, durationMs };
 }
 
+export function usePanelTransitionDurationMs(): number {
+  const { active, durationMs } = usePanelAnimationSettings();
+  return active ? durationMs : 0;
+}
+
 export function usePanelPresence<T>(
   open: boolean,
   value: T | null,

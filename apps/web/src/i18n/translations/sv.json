@@ -12347,5 +12347,6 @@
   "27d76249d09eb69f": "Granskningsguiden är klar",
   "faa3bb26abb39c93": "Granskningsguiden misslyckades",
   "b7df38b7d8792d78": "Öppna guiden",
-  "9e91e9a77b664e4e": "Kunde inte starta en granskningsguide"
+  "9e91e9a77b664e4e": "Kunde inte starta en granskningsguide",
+  "92996a453b14a862": "Under Utseende ställer du in hur lång tid det tar att öppna och stänga botinställningar, botarbete och förhandsgranskning med Skift-klick. Uppgiftskort använder samma tidsinställning när du visar eller döljer detaljerna."
 }

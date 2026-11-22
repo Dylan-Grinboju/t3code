@@ -12349,5 +12349,6 @@
   "27d76249d09eb69f": "Review guide ready",
   "faa3bb26abb39c93": "Review guide failed",
   "b7df38b7d8792d78": "Open guide",
-  "9e91e9a77b664e4e": "Could not start a review guide"
+  "9e91e9a77b664e4e": "Could not start a review guide",
+  "92996a453b14a862": "Under Appearance, set how long Bot settings, Bot work and Shift-click Peek take to open and close. Task cards use the same timing when you expand or collapse their details."
 }

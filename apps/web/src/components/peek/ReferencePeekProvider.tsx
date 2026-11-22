@@ -2,6 +2,7 @@ import { useLocation, useNavigate, useRouter } from "@tanstack/react-router";
 import { ArrowUpRightIcon } from "lucide-react";
 import { lazy, Suspense, useState, type ReactNode } from "react";
 
+import { usePanelTransitionDurationMs } from "../../panelAnimations";
 import { useRightPanelStore } from "../../rightPanelStore";
 import { Button } from "../ui/button";
 import { Dialog, DialogHeader, DialogPopup, DialogTitle } from "../ui/dialog";
@@ -10,6 +11,7 @@ import { ReferencePeekContext, type ReferencePeekTarget } from "./referencePeek"
 const ReferencePeekContent = lazy(() => import("./ReferencePeekContent"));
 
 export function ReferencePeekProvider({ children }: { children: ReactNode }) {
+  const transitionDurationMs = usePanelTransitionDurationMs();
   const pathname = useLocation({ select: (location) => location.pathname });
   const navigate = useNavigate();
   const router = useRouter();
@@ -36,7 +38,11 @@ export function ReferencePeekProvider({ children }: { children: ReactNode }) {
           if (!open) setPeek(null);
         }}
       >
-        <DialogPopup className="max-w-4xl" bottomStickOnMobile={false}>
+        <DialogPopup
+          transitionDurationMs={transitionDurationMs}
+          className="max-w-4xl"
+          bottomStickOnMobile={false}
+        >
           {target ? (
             <>
               <DialogHeader>

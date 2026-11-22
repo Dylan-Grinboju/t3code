@@ -12335,5 +12335,6 @@
   "27d76249d09eb69f": "Guía de revisión lista",
   "faa3bb26abb39c93": "Falló la guía de revisión",
   "b7df38b7d8792d78": "Abrir guía",
-  "9e91e9a77b664e4e": "No se pudo iniciar una guía de revisión"
+  "9e91e9a77b664e4e": "No se pudo iniciar una guía de revisión",
+  "92996a453b14a862": "En Apariencia, ajusta cuánto tardan en abrirse y cerrarse los ajustes del bot, el trabajo del bot y la vista rápida con Mayús + clic. Las tarjetas de tareas usan la misma duración al expandir o contraer sus detalles."
 }

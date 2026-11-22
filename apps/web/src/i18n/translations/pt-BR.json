@@ -12339,5 +12339,6 @@
   "27d76249d09eb69f": "Guia de revisão pronto",
   "faa3bb26abb39c93": "O guia de revisão falhou",
   "b7df38b7d8792d78": "Abrir guia",
-  "9e91e9a77b664e4e": "Não foi possível iniciar um guia de revisão"
+  "9e91e9a77b664e4e": "Não foi possível iniciar um guia de revisão",
+  "92996a453b14a862": "Em Aparência, defina quanto tempo leva para abrir e fechar as configurações do bot, o trabalho do bot e a prévia com Shift + clique. Os cartões de tarefas usam a mesma duração ao expandir ou recolher os detalhes."
 }

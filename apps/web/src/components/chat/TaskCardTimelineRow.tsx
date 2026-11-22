@@ -80,7 +80,7 @@ export function TaskCardTimelineRow({ row }: { row: Extract<TimelineRow, { kind:
             >
               <ChevronRightIcon
                 aria-hidden
-                className="size-4 group-aria-expanded:rotate-90 motion-safe:transition-transform motion-safe:duration-150 motion-safe:ease-out sm:size-3.5"
+                className="size-4 group-aria-expanded:rotate-90 motion-safe:transition-transform duration-0 [[data-panel-animations=true]_&]:duration-(--panel-animation-duration) motion-safe:ease-out sm:size-3.5"
               />
             </button>
             <h4
@@ -113,7 +113,7 @@ export function TaskCardTimelineRow({ row }: { row: Extract<TimelineRow, { kind:
             inert={!expanded}
             aria-hidden={!expanded}
             className={cn(
-              "pointer-events-none relative grid motion-safe:transition-[grid-template-rows,opacity,visibility] motion-safe:duration-150 motion-safe:ease-out",
+              "pointer-events-none relative grid motion-safe:transition-[grid-template-rows,opacity,visibility] duration-0 [[data-panel-animations=true]_&]:duration-(--panel-animation-duration) motion-safe:ease-out",
               expanded
                 ? "grid-rows-[1fr] opacity-100"
                 : "invisible grid-rows-[0fr] select-none opacity-0",
