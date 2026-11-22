@@ -388,6 +388,18 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["sidebar hover left edge peek temporary overlay show"],
   },
   {
+    id: "hide-sidebar-pull-requests",
+    title: msg("Hide Pull requests sidebar icon"),
+    to: "/settings/fork",
+    searchTerms: ["sidebar footer shortcut button pr"],
+  },
+  {
+    id: "hide-sidebar-issues",
+    title: msg("Hide Issues sidebar icon"),
+    to: "/settings/fork",
+    searchTerms: ["sidebar footer shortcut button issues"],
+  },
+  {
     id: "sidebar-usage-bars",
     title: msg("Usage bars"),
     to: "/settings/fork",

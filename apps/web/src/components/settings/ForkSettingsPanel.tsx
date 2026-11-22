@@ -86,6 +86,10 @@ const FORK_FEATURES = [
     ),
   },
   {
+    title: msg("Sidebar shortcuts"),
+    description: msg("Under Sidebar above, hide the Pull requests and Issues icons independently."),
+  },
+  {
     title: msg("Usage bars"),
     description: msg(
       "The sidebar footer shows Codex weekly, Claude session and Claude weekly limits. The bar is what's left (or what's used, set above), the line is where even spending would be, and the number on the right is the bar's percent, amber when you're spending faster than even. Hover for a forecast; click to open Usage.",

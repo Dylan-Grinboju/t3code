@@ -1,4 +1,5 @@
 import { T, useGT } from "gt-react";
+import { useHideSidebarIssues, useHideSidebarPullRequests } from "../../lib/forkSidebarIcons";
 import { useUsageBarsMeasure } from "../sidebar/SidebarUsageBars";
 import { useSidebar } from "../ui/sidebar";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../ui/select";
@@ -17,6 +18,11 @@ export function SidebarDisplaySettings() {
   const setting = useSearchableSetting();
   const { displayMode, setDisplayMode, hoverEnabled, setHoverEnabled } = useSidebar();
   const [usageBarsMeasure, setUsageBarsMeasure] = useUsageBarsMeasure();
+  const [hidePullRequests, setHidePullRequests] = useHideSidebarPullRequests();
+  const [hideIssues, setHideIssues] = useHideSidebarIssues();
+  const pullRequestsSetting = setting("hide-sidebar-pull-requests");
+  const issuesSetting = setting("hide-sidebar-issues");
+  const iconVisibilityDescription = gt("The icon is shown by default when supported.");
 
   return (
     <>
@@ -78,6 +84,44 @@ export function SidebarDisplaySettings() {
             checked={hoverEnabled}
             onCheckedChange={(checked) => setHoverEnabled(Boolean(checked))}
             aria-label={gt("Reveal sidebar on left-edge hover")}
+          />
+        }
+      />
+      <SettingsRow
+        {...pullRequestsSetting}
+        description={iconVisibilityDescription}
+        resetAction={
+          hidePullRequests ? (
+            <SettingResetButton
+              ariaLabel={gt("Reset Pull requests sidebar icon to default")}
+              onClick={() => setHidePullRequests(false)}
+            />
+          ) : null
+        }
+        control={
+          <Switch
+            checked={hidePullRequests}
+            onCheckedChange={setHidePullRequests}
+            aria-label={pullRequestsSetting.title}
+          />
+        }
+      />
+      <SettingsRow
+        {...issuesSetting}
+        description={iconVisibilityDescription}
+        resetAction={
+          hideIssues ? (
+            <SettingResetButton
+              ariaLabel={gt("Reset Issues sidebar icon to default")}
+              onClick={() => setHideIssues(false)}
+            />
+          ) : null
+        }
+        control={
+          <Switch
+            checked={hideIssues}
+            onCheckedChange={setHideIssues}
+            aria-label={issuesSetting.title}
           />
         }
       />

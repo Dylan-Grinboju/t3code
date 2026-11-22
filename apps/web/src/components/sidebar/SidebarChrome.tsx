@@ -13,6 +13,7 @@ import {
   type HistoryDirection,
 } from "../../navigationHistory";
 import { primaryServerKeybindingsAtom } from "../../state/server";
+import { useHideSidebarIssues, useHideSidebarPullRequests } from "../../lib/forkSidebarIcons";
 import { cn } from "../../lib/utils";
 import { useIssuesSupported, usePullRequestsSupported } from "../../state/environments";
 import { T3Wordmark } from "../T3Wordmark";
@@ -238,6 +239,8 @@ const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
   });
   const pullRequestsSupported = usePullRequestsSupported();
   const issuesSupported = useIssuesSupported();
+  const [hidePullRequests] = useHideSidebarPullRequests();
+  const [hideIssues] = useHideSidebarIssues();
   const closeMobileSidebar = () => {
     if (isMobile) {
       setOpenMobile(false);
@@ -293,14 +296,14 @@ const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
             label={gt("Settings")}
             onClick={handleSettingsClick}
           />
-          {pullRequestsSupported ? (
+          {pullRequestsSupported && !hidePullRequests ? (
             <SidebarUtilityItem
               icon={<PullRequestGlyph.pullRequest />}
               label={gt("Pull requests")}
               onClick={handlePullRequestsClick}
             />
           ) : null}
-          {issuesSupported ? (
+          {issuesSupported && !hideIssues ? (
             <SidebarUtilityItem
               icon={<IssueGlyph.issue />}
               label={gt("Issues", { $context: "sidebar link to the list of issues" })}
