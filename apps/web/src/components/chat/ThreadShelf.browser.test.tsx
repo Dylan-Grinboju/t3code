@@ -16,7 +16,16 @@ function setup(shellExists = true) {
 }
 
 vi.mock("../../state/entities", () => ({
-  useQuietThreadShell: () => (entities.shellExists ? {} : null),
+  useQuietThreadShell: () =>
+    entities.shellExists
+      ? {
+          lineage: {
+            parentThreadId: null,
+            relationshipToParent: null,
+            rootThreadId: threadRef.threadId,
+          },
+        }
+      : null,
   resolveThreadDetailRef: (ref: unknown, options: { shellExists: boolean }) =>
     options.shellExists ? ref : null,
   useTimelineVisibleTurnItems: (ref: unknown) => {
