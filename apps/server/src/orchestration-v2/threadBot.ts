@@ -15,6 +15,7 @@ export function botNeedsFreshContext(
   turnItems: ReadonlyArray<OrchestrationV2TurnItem>,
   contextBoundary: number,
 ): boolean {
+  if (bot.freshAfterTurns === 0) return false;
   if (runs.some((run) => !TERMINAL_RUN_STATUSES.includes(run.status))) return false;
   const interactiveMessageIds = new Set(
     turnItems.flatMap((item) =>
@@ -43,7 +44,7 @@ export function botTurnContext(bot: ThreadBot | null | undefined): string {
     "This is a persistent bot conversation. Its standing objective is:",
     bot.objective,
     `Its skill is at ${bot.skillPath}. If you have not read it since this session's context began, read it now. Otherwise follow the copy already in your context and do not read it again.`,
-    `Its durable work state is at ${bot.statePath}. Access it the way the skill describes, and only as far as this turn needs. Sessions are periodically replaced with fresh context, so keep anything that must outlast this conversation there. Never silently replace missing or unreadable state with empty state.`,
+    `Its durable work state is at ${bot.statePath}. Access it the way the skill describes, and only as far as this turn needs. Keep anything that must outlast the current session there. Never silently replace missing or unreadable state with empty state.`,
     "The standing objective does not authorize external writes or new execution. Follow the user's authorization and applicable permission rules.",
   ].join("\n\n");
 }

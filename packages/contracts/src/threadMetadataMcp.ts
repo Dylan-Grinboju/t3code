@@ -7,7 +7,7 @@ import {
   ThreadId,
   TrimmedNonEmptyString,
 } from "./baseSchemas.ts";
-import { ThreadBot } from "./threadBot.ts";
+import { DEFAULT_BOT_FRESH_AFTER_TURNS, ThreadBot } from "./threadBot.ts";
 import { ThreadLinkedPullRequest } from "./threadPullRequest.ts";
 import { ThreadTitleRegeneration } from "./threadTitle.ts";
 
@@ -47,8 +47,7 @@ const ThreadMetadataBot = Schema.Struct({
   statePath: ThreadBot.fields.statePath,
   freshAfterTurns: Schema.optional(ThreadBot.fields.freshAfterTurns),
 }).annotate({
-  description:
-    "For set_bot only: its standing `objective`, `skillPath` to its SKILL.md, `statePath` for durable work state, and `freshAfterTurns` before a fresh session (default 12).",
+  description: `For set_bot: standing \`objective\`, \`skillPath\` to SKILL.md, \`statePath\` for durable state, and \`freshAfterTurns\` (default ${DEFAULT_BOT_FRESH_AFTER_TURNS} disables turn-based restarts).`,
 });
 
 export const ThreadMetadataMcpAction = Schema.Literals([

@@ -315,7 +315,7 @@ export function BotSettingsDialog({
                 <Input
                   name="freshAfterTurns"
                   type="number"
-                  min={1}
+                  min={0}
                   max={100}
                   required
                   defaultValue={bot?.freshAfterTurns ?? DEFAULT_BOT_FRESH_AFTER_TURNS}
@@ -323,10 +323,11 @@ export function BotSettingsDialog({
               </label>
               <p className="text-xs text-muted-foreground">
                 <T>
-                  Fresh sessions reload the skill and work state. After editing the skill, Reload
-                  skill starts one with your next message. History stays searchable. Use this
-                  thread’s Automations to schedule checks in fresh sessions; bot settings do not
-                  start a schedule.
+                  Set the turn limit to 0 to disable automatic restarts after completed turns. Fresh
+                  sessions reload the skill and work state. After editing the skill, Reload skill
+                  starts one with your next message. History stays searchable. Use this thread’s
+                  Automations to schedule checks in fresh sessions; bot settings do not start a
+                  schedule.
                 </T>
               </p>
               {error && (

@@ -60,6 +60,9 @@ const FORK_FEATURES = [
     description: msg(
       "Right-click a chat in the sidebar or open its title menu to make it a bot, then search skills by name. Its skill governs delegation, conversation handoffs and reporting, and is read once per session; after editing it, use Reload skill in Bot settings to start a fresh session with your next message. You can also ask an agent to make a chat a bot for you. Only persistent bots appear above the other sidebar threads. In Quiet, open Work to see background workers or conversations that need your input. You can keep chatting while background workers run, and open a worker as a normal conversation even after it finishes. Compact bot rows show live status and expand when they need you. Use Bot settings to change the objective, pick an icon and color, review the suggested per-bot state path or switch to Activity for tool details and integration cards. When the skill file changes after your last message, click Reload in the chat header. Use thread Automations to schedule checks.",
     ),
+    details: msg(
+      "The completed-turn limit in Bot settings defaults to 0, which disables turn-based restarts.",
+    ),
   },
   {
     title: msg("CLI permissions for integrations"),
@@ -383,7 +386,11 @@ export function ForkSettingsPanel() {
             <SettingsRow
               key={feature.title}
               title={messages(feature.title)}
-              description={messages(feature.description)}
+              description={
+                "details" in feature
+                  ? `${messages(feature.description)} ${messages(feature.details)}`
+                  : messages(feature.description)
+              }
             />
           ))}
         </AdvancedSettings>

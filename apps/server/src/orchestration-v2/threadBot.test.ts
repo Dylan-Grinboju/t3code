@@ -34,6 +34,9 @@ describe("bot context", () => {
   it("rotates only at idle boundaries after the configured completed turns", () => {
     expect(botNeedsFreshContext(bot, [run(1)], items(1), 0)).toBe(false);
     expect(botNeedsFreshContext(bot, [run(1), run(2)], items(2), 0)).toBe(true);
+    expect(
+      botNeedsFreshContext({ ...bot, freshAfterTurns: 0 }, [run(1), run(2)], items(2), 0),
+    ).toBe(false);
     expect(botNeedsFreshContext(bot, [run(1), run(2), run(3, "waiting")], items(3), 0)).toBe(false);
     expect(botNeedsFreshContext(bot, [run(1), run(2), run(3, "queued")], items(3), 0)).toBe(false);
     expect(botNeedsFreshContext(bot, [run(1), run(2), run(3)], items(3), 3)).toBe(false);
