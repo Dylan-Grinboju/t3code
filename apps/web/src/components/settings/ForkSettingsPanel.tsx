@@ -30,6 +30,11 @@ const FORK_REPOSITORY_URL = "https://github.com/Dylan-Grinboju/t3code";
 
 const FORK_FEATURES = [
   {
+    title: "Panel animations",
+    description:
+      "Under Appearance, set how long Bot settings, Bot work and Shift-click Peek take to open and close. Task cards use the same timing when you expand or collapse their details.",
+  },
+  {
     title: "Manual bot sync",
     description:
       "Set a background sync command in Bot settings. Click Sync now in that bot’s header to run the command on its host. The header shows when it finishes and lets you retry a failed sync.",

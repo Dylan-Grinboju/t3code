@@ -12,6 +12,7 @@ import {
 } from "@t3tools/contracts";
 import * as Equal from "effect/Equal";
 import { useState } from "react";
+import { usePanelTransitionDurationMs } from "../../panelAnimations";
 import { appAtomRegistry } from "../../rpc/atomRegistry";
 import { normalizeProjectPathForComparison, isHostPath } from "@t3tools/shared/path";
 import { useQuietThreadShells, useQuietThreadShell } from "../../state/entities";
@@ -55,6 +56,8 @@ export function BotSettingsDialog({
   threadRef: ScopedThreadRef;
   onClose: () => void;
 }) {
+  const [open, setOpen] = useState(true);
+  const transitionDurationMs = usePanelTransitionDurationMs();
   const [{ activity, history }, setView] = useBotView(threadRef);
   const shell = useQuietThreadShell(threadRef);
   const bot = shell?.bot;
@@ -130,21 +133,27 @@ export function BotSettingsDialog({
     if (message) setError(message);
     else {
       if (reload) armFreshSession(scopedThreadKey(threadRef));
-      onClose();
+      setOpen(false);
     }
   };
   if (!shell) return null;
   return (
     <Dialog
-      open
+      open={open}
+      onOpenChangeComplete={(isOpen) => {
+        if (!isOpen) onClose();
+      }}
       onOpenChange={(open) => {
         if (!open && !saving) {
           if (confirmingDisable) setConfirmingDisable(false);
-          else onClose();
+          else setOpen(false);
         }
       }}
     >
-      <DialogPopup role={confirmingDisable ? "alertdialog" : "dialog"}>
+      <DialogPopup
+        transitionDurationMs={transitionDurationMs}
+        role={confirmingDisable ? "alertdialog" : "dialog"}
+      >
         <DialogHeader>
           <DialogTitle>
             {confirmingDisable ? "Disable bot?" : bot ? "Bot settings" : "Make this a bot"}
@@ -302,7 +311,7 @@ export function BotSettingsDialog({
                       Save and reload on next message
                     </Button>
                   )}
-                <Button variant="ghost" onClick={onClose}>
+                <Button variant="ghost" onClick={() => setOpen(false)}>
                   Cancel
                 </Button>
                 {bot &&
@@ -314,7 +323,7 @@ export function BotSettingsDialog({
                       disabled={saving}
                       onClick={() => {
                         armFreshSession(scopedThreadKey(threadRef));
-                        onClose();
+                        setOpen(false);
                       }}
                     >
                       Reload skill

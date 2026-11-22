@@ -1,5 +1,6 @@
 import type { ScopedThreadRef } from "@t3tools/contracts";
 import { ListTodoIcon, Settings2Icon } from "lucide-react";
+import { usePanelTransitionDurationMs } from "../../panelAnimations";
 import { useQuietThreadShell } from "../../state/entities";
 import { Button } from "../ui/button";
 import { Popover, PopoverPopup, PopoverTrigger } from "../ui/popover";
@@ -12,6 +13,7 @@ import { openBotSettings } from "./botSettingsState";
 
 export function BotHeaderActions({ threadRef }: { threadRef: ScopedThreadRef }) {
   const shell = useQuietThreadShell(threadRef);
+  const transitionDurationMs = usePanelTransitionDurationMs();
   if (!shell?.bot) return null;
   return (
     <div className="flex shrink-0 items-center gap-1">
@@ -30,7 +32,13 @@ export function BotHeaderActions({ threadRef }: { threadRef: ScopedThreadRef }) 
         >
           <ListTodoIcon aria-hidden />
         </PopoverTrigger>
-        <PopoverPopup align="end" width="lg" padding="none" aria-label="Bot work">
+        <PopoverPopup
+          style={{ transitionDuration: `${transitionDurationMs}ms` }}
+          align="end"
+          width="lg"
+          padding="none"
+          aria-label="Bot work"
+        >
           <BotWorkPanel threadRef={threadRef} />
         </PopoverPopup>
       </Popover>
