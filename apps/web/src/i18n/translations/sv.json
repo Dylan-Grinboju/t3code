@@ -8531,7 +8531,7 @@
   "f077d27ea074a31a": "Manual bot sync",
   "697dbdc561f100a6": "Set a background sync command in Bot settings. Click Sync now in that bot’s header to run the command on its host. The header shows when it finishes and lets you retry a failed sync.",
   "47f94b9ed670b6c8": "Task cards in chat",
-  "6d6056c645d0a6ff": "Klicka på pilen eller ett tomt område på ett frontdesk-kort för att se detaljerna. Håll pekaren över länkade Jira-ärenden och pull requests på GitHub för att se en förhandsvisning. Markera text för att citera den, svara på ett beslut direkt på kortet eller klicka på ”Starta” för att skapa en arbetstråd och ”Visa tråd” för att öppna den.",
+  "9cdbbd0c7abb98e1": "Expandera ett kort i front desk för att läsa in förhandsvisningar för de tre första Jira-länkarna. Håll muspekaren över en Jira-länk eller pull request för att se förhandsvisningen. Markera text för att citera den, svara på ett beslut direkt i kortet eller klicka på ”Starta” för att starta en arbetstråd och på ”Visa tråd” för att öppna den.",
   "13b74f8e488390a4": "Native review skills",
   "efe5bc54965c9a7a": "Granskningsfärdigheter kan köra sina egna inbyggda granskare från en chatt eller bot utan att skapa extra T3-projekt. Öppna ”Arbete” i granskningsinkorgen eller följ granskningslänken för att läsa den tillhörande konversationen. Den förblir dold i sidofältet även efter att arbetet har avslutats.",
   "32d1988030707182": "Persistent bots",

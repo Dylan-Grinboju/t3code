@@ -42,16 +42,20 @@ export function JiraLinkPreview({
   issue,
   href,
   children,
+  prefetch = false,
 }: {
   environmentId: EnvironmentId;
   issue: ThreadLink;
   href: string;
   children: ReactElement;
+  prefetch?: boolean;
 }) {
   const gt = useGT();
   const [open, setOpen] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
   const preview = useEnvironmentQuery(
-    open
+    prefetch || hovered || focused || open
       ? jiraPreview({
           environmentId,
           input: { origin: new URL(issue.url).origin, key: issue.label },
@@ -63,7 +67,17 @@ export function JiraLinkPreview({
   const Icon = Object.hasOwn(issueIcons, issueType) ? issueIcons[issueType]! : TicketIcon;
   return (
     <PreviewCard open={open} onOpenChange={setOpen}>
-      <PreviewCardTrigger render={children} delay={350} closeDelay={120} />
+      <PreviewCardTrigger
+        render={children}
+        delay={350}
+        closeDelay={120}
+        onPointerEnter={(event) => {
+          if (event.pointerType !== "touch") setHovered(true);
+        }}
+        onPointerLeave={() => setHovered(false)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+      />
       <PreviewCardPopup align="center" className="w-80 max-w-[calc(100vw-2rem)]">
         <div className="p-3">
           <div className="flex items-center gap-1.5 text-2xs text-muted-foreground">

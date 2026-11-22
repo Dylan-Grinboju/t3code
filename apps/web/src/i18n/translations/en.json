@@ -8533,7 +8533,7 @@
   "f077d27ea074a31a": "Manual bot sync",
   "697dbdc561f100a6": "Set a background sync command in Bot settings. Click Sync now in that bot’s header to run the command on its host. The header shows when it finishes and lets you retry a failed sync.",
   "47f94b9ed670b6c8": "Task cards in chat",
-  "6d6056c645d0a6ff": "Click a front-desk card’s arrow or empty space to see its details and hover linked Jira issues and GitHub pull requests for a preview. Select text to cite it, answer a decision in place, or click Start to launch a work thread and View thread to open it.",
+  "9cdbbd0c7abb98e1": "Expand a front-desk card to load previews for its first three Jira links. Hover a Jira link or pull request to see its preview. Select text to cite it, answer a decision in place, or click Start to launch a work thread and View thread to open it.",
   "13b74f8e488390a4": "Native review skills",
   "efe5bc54965c9a7a": "Review skills can run their own native reviewers from a chat or bot without creating extra T3 projects. In Review Inbox, open Work or follow the review link to read its dedicated conversation. It stays out of the sidebar, including after settlement.",
   "32d1988030707182": "Persistent bots",

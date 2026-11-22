@@ -8541,7 +8541,7 @@
   "f077d27ea074a31a": "Manual bot sync",
   "697dbdc561f100a6": "Set a background sync command in Bot settings. Click Sync now in that bot’s header to run the command on its host. The header shows when it finishes and lets you retry a failed sync.",
   "47f94b9ed670b6c8": "Task cards in chat",
-  "6d6056c645d0a6ff": "点击前台卡片的箭头或空白处可查看详情。将鼠标悬停在关联的 Jira 事项或 GitHub 拉取请求上可查看预览。选中文字即可引用，也可直接在卡片上回答决策问题，或点击「开始」创建工作会话，再点击「查看会话」打开它。",
+  "9cdbbd0c7abb98e1": "展开前台卡片，即可加载其中前三个 Jira 链接的预览。将鼠标悬停在 Jira 链接或拉取请求上即可查看预览。你可以选中文本进行引用、直接在卡片中回答待决事项，或点击“开始”启动工作对话，再点击“查看对话”将其打开。",
   "13b74f8e488390a4": "Native review skills",
   "efe5bc54965c9a7a": "审查技能可在聊天或机器人中运行自己的原生审查代理，无需创建额外的 T3 项目。在审查收件箱中打开「工作」或点击审查链接，即可阅读专用会话。会话完成后仍不会显示在侧边栏中。",
   "32d1988030707182": "Persistent bots",

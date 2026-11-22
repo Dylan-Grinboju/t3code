@@ -8525,7 +8525,7 @@
   "f077d27ea074a31a": "Manual bot sync",
   "697dbdc561f100a6": "Set a background sync command in Bot settings. Click Sync now in that bot’s header to run the command on its host. The header shows when it finishes and lets you retry a failed sync.",
   "47f94b9ed670b6c8": "Task cards in chat",
-  "6d6056c645d0a6ff": "Klicke auf den Pfeil oder einen freien Bereich einer Frontdesk-Karte, um die Details zu sehen. Bewege den Mauszeiger über verknüpfte Jira-Vorgänge und GitHub-Pull-Requests, um eine Vorschau zu sehen. Markiere Text, um ihn zu zitieren, beantworte eine Entscheidung direkt auf der Karte oder klicke auf „Starten“, um einen Arbeitsthread zu starten, und dann auf „Thread anzeigen“, um ihn zu öffnen.",
+  "9cdbbd0c7abb98e1": "Klappe eine Frontdesk-Karte auf, um Vorschauen für ihre ersten drei Jira-Links zu laden. Bewege den Mauszeiger über einen Jira-Link oder Pull Request, um die Vorschau zu sehen. Wähle Text aus, um ihn zu zitieren, beantworte eine Entscheidung direkt auf der Karte oder klicke auf „Starten“, um einen Arbeits-Thread zu starten, und auf „Thread anzeigen“, um ihn zu öffnen.",
   "13b74f8e488390a4": "Native review skills",
   "efe5bc54965c9a7a": "Review-Skills können ihre eigenen nativen Reviewer aus einem Chat oder Bot aufrufen, ohne zusätzliche T3-Projekte anzulegen. Öffne im Review-Posteingang „Arbeit“ oder folge dem Review-Link, um die zugehörige Unterhaltung zu lesen. Sie bleibt auch nach dem Abschluss in der Seitenleiste ausgeblendet.",
   "32d1988030707182": "Persistent bots",

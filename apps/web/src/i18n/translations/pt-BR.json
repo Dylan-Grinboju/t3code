@@ -8523,7 +8523,7 @@
   "f077d27ea074a31a": "Manual bot sync",
   "697dbdc561f100a6": "Set a background sync command in Bot settings. Click Sync now in that bot’s header to run the command on its host. The header shows when it finishes and lets you retry a failed sync.",
   "47f94b9ed670b6c8": "Task cards in chat",
-  "6d6056c645d0a6ff": "Clique na seta ou em um espaço vazio de um cartão da central de atendimento para ver os detalhes. Passe o cursor sobre as issues do Jira e os pull requests do GitHub vinculados para ver uma prévia. Selecione o texto para citá-lo, responda a uma decisão no próprio cartão ou clique em «Iniciar» para criar uma conversa de trabalho e em «Ver conversa» para abri-la.",
+  "9cdbbd0c7abb98e1": "Expanda um cartão da central para carregar as prévias dos três primeiros links do Jira. Passe o mouse sobre um link do Jira ou um pull request para ver a prévia. Selecione um texto para citá-lo, responda a uma decisão no próprio cartão ou clique em “Iniciar” para iniciar uma conversa de trabalho e em “Ver conversa” para abri-la.",
   "13b74f8e488390a4": "Native review skills",
   "efe5bc54965c9a7a": "As habilidades de revisão podem executar seus próprios revisores nativos em um chat ou bot sem criar mais projetos no T3. Na caixa de entrada de revisões, abra «Trabalho» ou siga o link da revisão para ler a conversa dedicada. Ela continua oculta na barra lateral mesmo depois de concluída.",
   "32d1988030707182": "Persistent bots",

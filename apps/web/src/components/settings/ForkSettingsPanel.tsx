@@ -46,7 +46,7 @@ const FORK_FEATURES = [
   {
     title: msg("Task cards in chat"),
     description: msg(
-      "Click a front-desk card’s arrow or empty space to see its details and hover linked Jira issues and GitHub pull requests for a preview. Select text to cite it, answer a decision in place, or click Start to launch a work thread and View thread to open it.",
+      "Expand a front-desk card to load previews for its first three Jira links. Hover a Jira link or pull request to see its preview. Select text to cite it, answer a decision in place, or click Start to launch a work thread and View thread to open it.",
     ),
   },
   {

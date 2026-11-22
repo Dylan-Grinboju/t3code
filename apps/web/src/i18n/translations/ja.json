@@ -8481,7 +8481,7 @@
   "f077d27ea074a31a": "Manual bot sync",
   "697dbdc561f100a6": "Set a background sync command in Bot settings. Click Sync now in that bot’s header to run the command on its host. The header shows when it finishes and lets you retry a failed sync.",
   "47f94b9ed670b6c8": "Task cards in chat",
-  "6d6056c645d0a6ff": "フロントデスクカードの矢印または空白部分をクリックすると詳細が表示されます。リンクされた Jira 課題や GitHub プルリクエストにカーソルを合わせると、プレビューが表示されます。テキストを選択して引用したり、カードで決定事項に直接回答したりできます。「開始」で作業スレッドを作成し、「スレッドを表示」で開けます。",
+  "9cdbbd0c7abb98e1": "フロントデスクカードを展開すると、最初の 3 件の Jira リンクのプレビューが読み込まれます。Jira リンクやプルリクエストにカーソルを合わせると、プレビューが表示されます。テキストを選択して引用したり、カードで決定事項に直接回答したりできます。「開始」で作業スレッドを作成し、「スレッドを表示」で開けます。",
   "13b74f8e488390a4": "Native review skills",
   "efe5bc54965c9a7a": "レビュースキルは、追加の T3 プロジェクトを作成せずに、チャットやボットからネイティブのレビューエージェントを実行できます。レビュー受信トレイの「作業」を開くか、レビューリンクをたどると、専用の会話を読めます。会話は完了後もサイドバーには表示されません。",
   "32d1988030707182": "Persistent bots",
