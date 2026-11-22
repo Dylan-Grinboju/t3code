@@ -17,6 +17,7 @@ import {
   ANCHORED_COPY_TOAST_TIMEOUT_MS,
   showAnchoredCopyErrorToast,
 } from "../ui/anchoredCopyToast";
+import { threadDetailPullRequestUrlKey } from "./visibleThreadDetailPullRequests";
 import { JiraLinkPreview } from "./JiraLinkPreview";
 import { collectThreadLinks, type ThreadLink, type ThreadLinkKind } from "./threadLinks";
 import {
@@ -34,6 +35,7 @@ const LINK_ICONS: Record<ThreadLinkKind, typeof TicketIcon> = {
 interface ThreadLinksPanelProps {
   readonly environmentId: EnvironmentId;
   readonly threadId: ThreadId;
+  readonly visiblePullRequests: ReadonlySet<string>;
 }
 
 /** GitHub pull requests and Jira issues mentioned in the thread, one section each. Hidden while there are none. */
@@ -50,7 +52,11 @@ export function ThreadLinksPanel(props: ThreadLinksPanelProps) {
         id="github"
         title={gt("Pull requests")}
         threadRef={threadRef}
-        links={links.filter((link) => link.kind === "pull")}
+        links={links.filter((link) => {
+          if (link.kind !== "pull") return false;
+          const key = threadDetailPullRequestUrlKey(link.url);
+          return key === undefined || !props.visiblePullRequests.has(key);
+        })}
       />
       <ThreadLinkGroup
         key={`jira:${key}`}

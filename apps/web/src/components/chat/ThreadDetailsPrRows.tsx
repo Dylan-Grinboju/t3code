@@ -69,6 +69,7 @@ function ThreadDetailsPrLinkRow({
       pr={pr}
       number={link.number}
       reference={link}
+      linkUrl={link.url}
       status={prStatusIndicator(pr, linked?.sourceControlProvider, m)}
       project={project}
       label={`#${link.number}${link.snapshot === null ? "" : `: ${link.snapshot.title}`}`}
@@ -193,6 +194,7 @@ export function ThreadDetailsThreadPrRows({
       pr={pr}
       number={number}
       reference={currentLink}
+      linkUrl={url}
       status={displayed.status}
       project={rowProject}
       label={`#${number}${pr?.title.trim() ? `: ${pr.title}` : ""}`}

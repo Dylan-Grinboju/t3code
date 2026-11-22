@@ -1,13 +1,16 @@
 import {
+  DEFAULT_CLIENT_SETTINGS,
   EnvironmentId,
+  MessageId,
   ProjectId,
   ThreadId,
+  type OrchestrationV2ProjectedTurnItem,
   type ScopedThreadRef,
   type ThreadPullRequestLink,
 } from "@t3tools/contracts";
 import { AsyncResult, Atom } from "effect/reactivity";
 import { expect, it, vi } from "vite-plus/test";
-import { page } from "vite-plus/test/browser";
+import { page, userEvent } from "vite-plus/test/browser";
 
 const SCRATCH_ROOT = "/home/user/.t3/scratch";
 
@@ -16,6 +19,7 @@ const state = vi.hoisted(() => ({
   folder: "",
   pullRequests: [] as unknown[],
   configLoaded: true,
+  items: [] as OrchestrationV2ProjectedTurnItem[],
 }));
 
 vi.mock(import("~/state/entities"), async (importOriginal) => ({
@@ -31,6 +35,7 @@ vi.mock(import("~/state/entities"), async (importOriginal) => ({
           scripts: [],
         }) as never,
   useProjects: (() => []) as never,
+  useTimelineVisibleTurnItems: () => state.items,
   useQuietThreadShell: ((ref: unknown) =>
     ref === null
       ? null
@@ -81,7 +86,9 @@ vi.mock(import("~/state/vcs"), async (importOriginal) => {
   };
 });
 
-import { render } from "../../../test/render";
+import { act, render } from "../../../test/render";
+import { __setClientSettingsForTests, updateClientSettings } from "../../hooks/useSettings";
+import { makeStreamingTimelineFixture } from "../../test-fixtures";
 import { useRightPanelStore } from "../../rightPanelStore";
 import { PopoverCreateHandle } from "../ui/popover";
 import { ChatCanvasContext } from "./ChatCanvasContext";
@@ -93,7 +100,7 @@ const threadRef: ScopedThreadRef = {
   threadId: ThreadId.make("thread"),
 };
 const container = { width: 1200, height: 800 };
-const placement = { x: 908, y: 0, right: 12, width: 280, height: 400 } as const;
+const placement = { x: 908, y: 0, right: 12, width: 280, height: 760 } as const;
 const linkedPullRequest: ThreadPullRequestLink = {
   host: "github.com",
   repository: "pingdotgg/t3code",
@@ -110,18 +117,45 @@ function setup(input: {
   folder: string;
   pullRequests?: ThreadPullRequestLink[];
   configLoaded?: boolean;
+  message?: string;
 }) {
   state.configLoaded = input.configLoaded ?? true;
   state.workspaceRoot = input.workspaceRoot;
   state.folder = input.folder;
   state.pullRequests = input.pullRequests ?? [];
+  const { base, runId } = makeStreamingTimelineFixture();
+  const item = {
+    ...base("message", runId, 0),
+    type: "user_message" as const,
+    messageId: MessageId.make("message"),
+    text: input.message ?? "",
+    attachments: [],
+    inputIntent: "turn_start" as const,
+    createdBy: "user" as const,
+    creationSource: "web" as const,
+  };
+  state.items = input.message
+    ? [
+        {
+          item,
+          sourceThreadId: threadRef.threadId,
+          sourceItemId: item.id,
+          position: 0,
+          visibility: "local",
+        },
+      ]
+    : [];
+  __setClientSettingsForTests(DEFAULT_CLIENT_SETTINGS);
   useRightPanelStore.setState({ threadPanelVisibilityByThreadKey: {} });
   const anchor = document.createElement("div");
   document.body.append(anchor);
   return {
     anchor: { current: anchor },
     handle: PopoverCreateHandle(),
-    [Symbol.dispose]: () => anchor.remove(),
+    [Symbol.dispose]: () => {
+      anchor.remove();
+      __setClientSettingsForTests(DEFAULT_CLIENT_SETTINGS);
+    },
   };
 }
 
@@ -214,4 +248,58 @@ it("offers no Initialize Git before the server config says where No project live
   await expect
     .element(page.getByRole("button", { name: "Initialize Git" }))
     .not.toBeInTheDocument();
+});
+
+it("shows chat-derived PRs only when their matching richer rows are not displayed", async () => {
+  using fixture = setup({
+    workspaceRoot: "/work/plain",
+    folder: "/work/plain",
+    pullRequests: [
+      linkedPullRequest,
+      {
+        ...linkedPullRequest,
+        number: 27512,
+        linkedAt: "2026-10-29T00:00:00.000Z",
+        url: "https://github.com/pingdotgg/t3code/pull/27512",
+      },
+      {
+        ...linkedPullRequest,
+        host: "git.example.com",
+        url: "https://git.example.com/pingdotgg/t3code/pull/27513",
+        linkedAt: "2026-10-28T00:00:00.000Z",
+      },
+    ],
+    message: [
+      "https://www.github.com/PINGDOTGG/T3Code/pull/27513/files",
+      "https://github.com/pingdotgg/t3code/pull/27512",
+      "https://github.com/other/t3code/pull/27513",
+      "https://example.atlassian.net/browse/WORK-123",
+    ].join(" "),
+  });
+  await using _screen = await render(<Panel fixture={fixture} />);
+  const current = page.getByText("PINGDOTGG/T3Code#27513", { exact: true });
+  const extra = page.getByText("pingdotgg/t3code#27512", { exact: true });
+  const chatOnly = page.getByText("other/t3code#27513", { exact: true });
+  const jira = page.getByText("WORK-123", { exact: true });
+  await expect.element(page.getByText("#27513", { exact: true })).toBeVisible();
+  await expect.element(current).not.toBeInTheDocument();
+  await expect.element(extra).toBeVisible();
+  await expect.element(chatOnly).toBeVisible();
+  await expect.element(jira).toBeVisible();
+  await userEvent.click(page.getByRole("button", { name: "Show 2 more" }));
+  await expect.element(page.getByText("#27512", { exact: true })).toBeVisible();
+  await expect.element(extra).not.toBeInTheDocument();
+  await userEvent.click(page.getByRole("button", { name: "Show less" }));
+  await expect.element(extra).toBeVisible();
+  await act(() => updateClientSettings({ threadDetailsItems: { branch: false } }));
+  await expect.element(page.getByText("#27513", { exact: true })).not.toBeInTheDocument();
+  await expect.element(current).toBeVisible();
+  await expect.element(extra).toBeVisible();
+  await expect.element(chatOnly).toBeVisible();
+  await expect.element(jira).toBeVisible();
+  await act(() => updateClientSettings({ threadDetailsItems: { branch: true, links: false } }));
+  await expect.element(page.getByText("#27513", { exact: true })).toBeVisible();
+  await expect.element(current).not.toBeInTheDocument();
+  await expect.element(chatOnly).not.toBeInTheDocument();
+  await expect.element(jira).not.toBeInTheDocument();
 });

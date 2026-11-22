@@ -8405,7 +8405,7 @@
   "dab9abc0891cf8fc": "Machines in the new thread picker",
   "132780952936e56c": "Hide a connected machine's projects from New thread in… until you type. In the picker, Ctrl+Tab (or the footer button) steps through one machine at a time.",
   "5c4683aaf69c8802": "Thread links",
-  "64f42d262523d2c0": "Thread details list the GitHub pull requests and Jira issues mentioned in the thread, newest first. Hide them from the card's right-click menu. Hover a Jira link in chat or thread details to see its status, summary, assignee and last update using the environment’s signed-in Atlassian CLI.",
+  "4c24bc1a998bb3cc": "Os detalhes da conversa listam os pull requests do GitHub e os itens do Jira mencionados, dos mais recentes aos mais antigos. Um pull request vinculado visível substitui o link correspondente do chat. Oculte links pelo menu de contexto do cartão. Passe o mouse sobre um link do Jira no chat ou nos detalhes da conversa para ver status, resumo, responsável e última atualização pela CLI da Atlassian autenticada no ambiente.",
   "1aa608da89f2e56e": "Shelf and Peek",
   "dedfe6b849aaec6d": "The shelf below thread details keeps screenshots and text you pin beside Cite. Select a text pin to return to its source. Pins stay on this device. Shift-click a file or thread reference to peek without leaving your conversation; Escape returns, and Open keeps it open.",
   "f35b7c35b5a1478d": "Full screen right panel",

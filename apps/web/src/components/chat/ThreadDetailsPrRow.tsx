@@ -1,3 +1,4 @@
+import { useVisibleThreadDetailPullRequest } from "./visibleThreadDetailPullRequests";
 import { resolvePullRequestDetailChecks } from "@t3tools/client-runtime/pull-request-checks";
 import { sourceControlClients } from "@t3tools/client-runtime/source-control-clients";
 import { changeRequestTermKind } from "../pullRequest/changeRequestTerm";
@@ -90,6 +91,7 @@ export function ThreadDetailsPrRow({
   pr,
   number,
   reference: linkedReference,
+  linkUrl,
   status,
   project,
   label,
@@ -102,6 +104,7 @@ export function ThreadDetailsPrRow({
   pr: ThreadPr;
   number: number;
   reference?: Pick<PullRequestRef, "host" | "repository" | "number"> | null;
+  linkUrl?: string;
   status: PrStatusIndicator | null;
   project: EnvironmentProject | null;
   label: string;
@@ -111,6 +114,7 @@ export function ThreadDetailsPrRow({
   /** Fix and Resolve write here instead of checking the pull request out in a new thread. */
   composerTarget?: ComposerThreadTarget | undefined;
 }) {
+  const markVisible = useVisibleThreadDetailPullRequest(linkUrl);
   const gt = useGT();
   const m = useMessages();
   const serverConfigs = useServerConfigs();
@@ -498,6 +502,8 @@ export function ThreadDetailsPrRow({
       <TooltipTrigger
         render={
           <ThreadDetailsControl
+            key={linkUrl}
+            ref={markVisible}
             type="button"
             variant="ghost"
             size="sm"
