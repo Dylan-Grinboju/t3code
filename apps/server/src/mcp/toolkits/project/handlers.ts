@@ -108,7 +108,7 @@ const access = Effect.gen(function* () {
 });
 export const layer = McpToolAccess.toLayer(ProjectToolkit, {
   t3_thread_launch: McpToolAccess.startsThreads(
-    (input) => input,
+    (input) => ({ ...input, localThreadOnly: input.attachToCaller === true }),
     (input, { runtimeMode, interactionMode, linkOrigin }) =>
       Effect.gen(function* () {
         const scope = yield* McpInvocationContext.McpInvocationContext;
@@ -270,6 +270,7 @@ export const layer = McpToolAccess.toLayer(ProjectToolkit, {
           threadId,
           projectId,
           title: input.title,
+          ...(input.attachToCaller && caller ? { attachedParentId: caller.id } : {}),
           modelSelection,
           runtimeMode: startedRuntimeMode,
           interactionMode,

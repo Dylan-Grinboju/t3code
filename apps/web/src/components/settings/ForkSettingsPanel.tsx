@@ -47,7 +47,7 @@ const FORK_FEATURES = [
   {
     title: "Native review skills",
     description:
-      "Review skills can run their own native reviewers from a chat or bot without creating extra T3 projects. The skill controls the review workflow under normal permissions.",
+      "Review skills can run their own native reviewers from a chat or bot without creating extra T3 projects. In Review Inbox, open Work or follow the review link to read its dedicated conversation. It stays out of the sidebar, including after settlement.",
   },
   {
     title: "Persistent bots",

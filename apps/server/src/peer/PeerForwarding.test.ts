@@ -538,6 +538,8 @@ it.effect("launches in a linked environment with the caller's modes, retry-safe"
       expect(failureOf(escalated)).toMatchObject({ code: "interaction_mode_escalation_denied" });
       // A pending upload lives here, so it cannot go along.
       yield* Ref.set(b.bearers, []);
+      const attached = yield* launch("thread:laptop-full", { attachToCaller: true });
+      expect(failureOf(attached)).toMatchObject({ code: "invalid_request" });
       const withUpload = yield* launch("thread:laptop-full", {
         clientRequestId: "launch-2",
         attachments: [

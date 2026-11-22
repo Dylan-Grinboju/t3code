@@ -101,17 +101,22 @@ describe("v2 thread shell lists", () => {
       id: ThreadId.make("fork"),
       lineage: { ...child.lineage, relationshipToParent: "fork" as const },
     };
-    const snapshot = { ...v2ShellSnapshot, threads: [root, child, fork] };
+    const review = {
+      ...root,
+      id: ThreadId.make("review"),
+      lineage: { ...root.lineage, parentThreadId: root.id, attached: true },
+    };
+    const snapshot = { ...v2ShellSnapshot, threads: [root, child, fork, review] };
     registry.set(snapshotAtom(environmentId), snapshot);
     const dispose = registry.mount(threads.navigationThreadShellsAtom);
     const before = registry.get(threads.navigationThreadShellsAtom);
     expect(before.map((thread) => thread.id)).toEqual([root.id, fork.id]);
     registry.set(snapshotAtom(environmentId), {
       ...snapshot,
-      threads: [root, { ...child, title: "Child streaming" }, fork],
+      threads: [root, { ...child, title: "Child streaming" }, fork, review],
     });
     expect(registry.get(threads.navigationThreadShellsAtom)).toBe(before);
-    expect(registry.get(threads.threadShellsAtom)).toHaveLength(3);
+    expect(registry.get(threads.threadShellsAtom)).toHaveLength(4);
     dispose();
     registry.dispose();
   });
@@ -249,6 +254,21 @@ describe("v2 thread shell lists", () => {
     withRequest("command");
     expect(registry.get(parent)?.pendingSubagentRequest).toBe("approval");
     expect(childThreadInputsTitle(registry.get(inputs))).toBe("Side chat needs approval");
+
+    registry.set(snapshotAtom(environmentId), {
+      ...v2ShellSnapshot,
+      threads: [
+        root,
+        {
+          ...sideChat,
+          id: ThreadId.make("attached-review"),
+          lineage: { ...root.lineage, parentThreadId: root.id, attached: true },
+          pendingRuntimeRequest: { ...request, kind: "command" },
+        },
+      ],
+    });
+    expect(registry.get(parent)?.pendingSubagentRequest).toBe("approval");
+    expect(childThreadInputsTitle(registry.get(inputs))).toBe("Thread needs approval");
 
     const helper = {
       ...sideChat,

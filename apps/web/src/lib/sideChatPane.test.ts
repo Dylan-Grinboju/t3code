@@ -11,6 +11,20 @@ const sideChatRef = scopeThreadRef(environmentId, ThreadId.make("side-chat"));
 
 it("routes a side chat to its parent with the side chat tab active", () => {
   useRightPanelStore.setState(useRightPanelStore.getInitialState());
+  const review = scopeThreadRef(environmentId, ThreadId.make("review"));
+  expect(
+    resolveThreadOpenRoute(review, {
+      lineage: {
+        attached: true,
+        parentThreadId: mainRef.threadId,
+        rootThreadId: mainRef.threadId,
+        relationshipToParent: null,
+      },
+    }),
+  ).toEqual(review);
+  expect(
+    selectActiveRightPanelSurface(useRightPanelStore.getState().byThreadKey, mainRef),
+  ).toBeNull();
   const route = resolveThreadOpenRoute(sideChatRef, {
     lineage: { sideChat: true, parentThreadId: mainRef.threadId } as never,
   });

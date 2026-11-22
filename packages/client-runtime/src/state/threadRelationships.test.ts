@@ -59,7 +59,7 @@ describe("thread relationships", () => {
     ).toBeNull();
   });
 
-  it.each(["fork", "subagent"] as const)(
+  it.each(["fork", "subagent", "parent"] as const)(
     "keeps the parent edge of an opened %s omitted from the shell",
     (relationshipToParent) => {
       const parent = ThreadId.make("parent");
@@ -71,7 +71,12 @@ describe("thread relationships", () => {
             relationshipToParent === "fork"
               ? { type: "run", threadId: parent, runId: "source-run" }
               : null,
-          lineage: { rootThreadId: parent, parentThreadId: parent, relationshipToParent },
+          lineage: {
+            rootThreadId: parent,
+            parentThreadId: parent,
+            relationshipToParent: relationshipToParent === "parent" ? null : relationshipToParent,
+            attached: relationshipToParent === "parent",
+          },
         },
         subagents: [],
         contextTransfers: [],

@@ -199,6 +199,9 @@ describe("newSubagentParentId", () => {
   it("names the parent of a subagent started within the last minute only", () => {
     const parent = ThreadId.make("main");
     expect(
+      newSubagentParentId(shell("review", { parentThreadId: parent, attached: true }), now),
+    ).toBeNull();
+    expect(
       newSubagentParentId(
         shell("child", { parentThreadId: parent, relationshipToParent: "subagent" }),
         now,

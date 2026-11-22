@@ -65,9 +65,11 @@ export function childInputNowItem(input: {
       <MessageCircleIcon className="text-info-foreground" />
     ),
     title: childThreadInputsTitle(childThreadInputs),
-    waitingLabel: childThreadInputs.every((child) => child.lineage.sideChat === true)
-      ? "Side chat waiting"
-      : "Subagent waiting",
+    waitingLabel: childThreadInputs.some((child) => child.lineage.attached)
+      ? "Thread waiting"
+      : childThreadInputs.every((child) => child.lineage.sideChat === true)
+        ? "Side chat waiting"
+        : "Subagent waiting",
     description: childThreadInputs.map((child, index) => (
       <Fragment key={child.id}>
         {index > 0 ? " " : null}
