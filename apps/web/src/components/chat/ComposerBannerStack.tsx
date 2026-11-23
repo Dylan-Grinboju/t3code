@@ -2,6 +2,7 @@ import { useGT } from "gt-react";
 import { InfoIcon } from "lucide-react";
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
+import { Collapsible, CollapsiblePanel, CollapsibleTrigger } from "../ui/collapsible";
 import { Button } from "../ui/button";
 import { Popover, PopoverPopup, PopoverTrigger } from "../ui/popover";
 import { ComposerBanner, type ComposerBannerVariant } from "./ComposerBanner";
@@ -21,6 +22,7 @@ export interface ComposerBannerStackItem {
   readonly title: ReactNode;
   readonly description?: ReactNode;
   readonly children?: ReactNode;
+  readonly disclosure?: { expanded: boolean; onOpenChange: (open: boolean) => void };
   readonly actions?: ReactNode;
   readonly dismissLabel?: string;
   readonly onDismiss?: () => void;
@@ -172,7 +174,6 @@ function NoticeCard({
   readonly item: ComposerBannerStackItem;
   readonly detached?: boolean;
 }) {
-  const gt = useGT();
   return (
     <ComposerBanner.Root
       role={item.variant === "error" || item.variant === "warning" ? "alert" : undefined}
@@ -181,6 +182,32 @@ function NoticeCard({
       density="comfortable"
       data-chat-composer-collapsed-controls="true"
     >
+      {item.disclosure ? (
+        <Collapsible open={item.disclosure.expanded} onOpenChange={item.disclosure.onOpenChange}>
+          <CollapsibleTrigger render={<ComposerBanner.Row render={<button type="button" />} />}>
+            <ComposerBanner.Icon>{item.icon}</ComposerBanner.Icon>
+            <ComposerBanner.Content>
+              <span className="truncate font-medium leading-7 sm:leading-6">{item.title}</span>
+            </ComposerBanner.Content>
+            <ComposerBanner.Actions>
+              <ComposerBanner.ToggleIcon expanded={item.disclosure.expanded} animate />
+            </ComposerBanner.Actions>
+          </CollapsibleTrigger>
+          <CollapsiblePanel animate="panel">
+            <ComposerBanner.Children>{item.children}</ComposerBanner.Children>
+          </CollapsiblePanel>
+        </Collapsible>
+      ) : (
+        <NoticeContents item={item} />
+      )}
+    </ComposerBanner.Root>
+  );
+}
+
+function NoticeContents({ item }: { item: ComposerBannerStackItem }) {
+  const gt = useGT();
+  return (
+    <>
       <ComposerBanner.Row layout="wrap-actions">
         <ComposerBanner.Icon className="h-(--composer-banner-icon-column) self-start">
           {item.icon}
@@ -222,6 +249,6 @@ function NoticeCard({
         ) : null}
       </ComposerBanner.Row>
       {item.children ? <ComposerBanner.Children>{item.children}</ComposerBanner.Children> : null}
-    </ComposerBanner.Root>
+    </>
   );
 }

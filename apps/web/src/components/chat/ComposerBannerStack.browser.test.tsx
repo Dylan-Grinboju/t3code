@@ -1,5 +1,5 @@
 import { InfoIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { expect, it, vi } from "vite-plus/test";
 import { page, userEvent } from "vite-plus/test/browser";
 
@@ -23,6 +23,34 @@ it("puts machine notices first, whatever order the notices arrive in", async () 
   );
 
   expect(screen.container.textContent).toBe("OfflineBranch changed");
+});
+
+it("toggles a composer disclosure from its title and keeps its actions independent", async () => {
+  function ReviewStrip() {
+    const [expanded, onOpenChange] = useState(false);
+    return (
+      <ComposerBannerStack
+        items={[
+          {
+            ...notice("Waiting reviews (1)"),
+            disclosure: { expanded, onOpenChange },
+            children: <button type="button">Draft</button>,
+          },
+        ]}
+      />
+    );
+  }
+  await using screen = await render(<ReviewStrip />);
+  const title = screen.getByText("Waiting reviews (1)");
+  const header = screen.getByRole("button", { name: "Waiting reviews (1)" });
+  await title.click();
+  await expect.element(header).toHaveAttribute("aria-expanded", "true");
+  await screen.getByRole("button", { name: "Draft" }).click();
+  await expect.element(header).toHaveAttribute("aria-expanded", "true");
+  await title.click();
+  await expect.element(header).toHaveAttribute("aria-expanded", "false");
+  await userEvent.keyboard("{Enter}");
+  await expect.element(header).toHaveAttribute("aria-expanded", "true");
 });
 
 it("leaves the next attachment its own top edge when there are no notices", async () => {

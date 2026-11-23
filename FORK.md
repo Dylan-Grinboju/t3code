@@ -71,6 +71,12 @@ Upstream moves fast, and every line changed in an upstream file can conflict on 
 - Do not edit `AGENTS.md` beyond the pointer at its top. Fork rules live here.
 - Prefer the Fork settings page over upstream user docs in `docs/user/` for explaining fork features.
 
+## Expandable panels
+
+- Make the full header row one keyboard-accessible toggle, including its title, empty space, and chevron. Keep actions such as Draft outside that button.
+- Match the direction to the surface. A strip above the composer points up when collapsed and down when expanded. An ordinary downward-opening section points right when collapsed and down when expanded.
+- Animate both opening and closing at the duration selected in Settings > Appearance. The panel and chevron use the same timing. At zero duration or with reduced motion enabled, both change immediately.
+
 ## Bot product rules
 
 - A bot is a persistent user-facing responsibility with its own objective, skill and durable state.

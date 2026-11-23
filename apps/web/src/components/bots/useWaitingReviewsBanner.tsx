@@ -1,7 +1,6 @@
 import type { WaitingReview } from "@t3tools/contracts";
 import * as Schema from "effect/Schema";
 import { useGT } from "gt-react";
-import { ChevronDownIcon, ChevronUpIcon } from "lucide-react";
 
 import { useLocalStorage } from "~/hooks/useLocalStorage";
 import type { ComposerBannerStackItem } from "../chat/ComposerBannerStack";
@@ -25,18 +24,8 @@ export function useWaitingReviewsBanner(
     variant: "default",
     icon: <span className="size-1.5 rounded-full bg-warning" />,
     title,
-    actions: (
-      <Button
-        variant="ghost-muted"
-        size="icon-xs"
-        aria-label={title}
-        aria-expanded={expanded}
-        onClick={() => setExpanded(!expanded)}
-      >
-        {expanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
-      </Button>
-    ),
-    children: expanded && (
+    disclosure: { expanded, onOpenChange: setExpanded },
+    children: (
       <ul className="max-h-[min(12rem,25dvh)] overflow-y-auto">
         {reviews.map((review) => (
           <li

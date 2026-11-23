@@ -284,7 +284,7 @@ function Dot({ className, ...props }: ComponentProps<"span">) {
   );
 }
 
-function ToggleIcon({ expanded }: { expanded: boolean }) {
+function ToggleIcon({ expanded, animate = false }: { expanded: boolean; animate?: boolean }) {
   return (
     <Button
       render={<span aria-hidden />}
@@ -293,7 +293,14 @@ function ToggleIcon({ expanded }: { expanded: boolean }) {
       tabIndex={-1}
       className="pointer-events-none"
     >
-      <ChevronDownIcon className={cn("size-3.5", !expanded && "rotate-180")} />
+      <ChevronDownIcon
+        className={cn(
+          "size-3.5",
+          !expanded && "rotate-180",
+          animate &&
+            "motion-safe:transition-transform duration-0 [[data-panel-animations=true]_&]:duration-(--panel-animation-duration)",
+        )}
+      />
     </Button>
   );
 }
