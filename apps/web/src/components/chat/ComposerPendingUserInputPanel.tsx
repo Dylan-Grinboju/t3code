@@ -238,7 +238,7 @@ const ComposerPendingUserInputCard = memo(function ComposerPendingUserInputCard(
               {questionIndex + 1}/{prompt.questions.length}
             </ComposerBanner.Count>
           ) : null}
-          <ComposerBanner.ToggleIcon expanded={!isCollapsed} />
+          <ComposerBanner.ToggleIcon expanded={!isCollapsed} animate />
           {prompt.dismissible ? (
             <ComposerBanner.Dismiss
               render={<span role="button" tabIndex={0} />}
@@ -261,7 +261,7 @@ const ComposerPendingUserInputCard = memo(function ComposerPendingUserInputCard(
           ) : null}
         </ComposerBanner.Actions>
       </CollapsibleTrigger>
-      <CollapsiblePanel>
+      <CollapsiblePanel animate="panel">
         <ComposerBanner.Scroll>
           <ComposerBanner.Body className="ps-6 pe-4 pb-1 wrap-anywhere sm:ps-5.5">
             <ChatMarkdown
