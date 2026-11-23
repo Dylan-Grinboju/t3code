@@ -17,6 +17,7 @@ import {
   OrchestrationV2DispatchCommandResult,
   ThreadId,
   RunId,
+  ReviewMarkerChange,
   NonNegativeInt,
   ProjectId,
   clampedPositiveInt,
@@ -75,6 +76,17 @@ const commandTool = {
     SecureRandom.SecureRandom,
   ],
 };
+const BotReviewMarkerTool = Tool.make("t3_bot_review_marker", {
+  ...commandTool,
+  description:
+    "Quietly update a bot’s waiting reviews. Target the inbox with threadId (and environmentId if linked). After saving a verified decision, raise its canonical PR URL, full reviewed head SHA and short title. Clear the matching URL and head when the decision is resolved, deferred or stale. Neither action sends a message.",
+  parameters: Schema.Struct({
+    threadId: Schema.optional(ThreadId),
+    environmentId: OrchestratorMcpEnvironmentTarget,
+    review: ReviewMarkerChange,
+  }),
+});
+
 const queueEntry = Schema.Struct({
   queuedRunId: RunId,
   text: Schema.String,
@@ -242,6 +254,7 @@ const ScheduledTaskRunTool = Tool.make("run_scheduled_task_now", {
   .annotate(Tool.OpenWorld, true);
 
 export const ThreadToolkit = Toolkit.make(
+  BotReviewMarkerTool,
   ScheduledTaskRunTool,
   ThreadSearchTool,
   ThreadConfigureTool,

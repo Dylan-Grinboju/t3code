@@ -171,6 +171,15 @@ it("opens an idle child from Lineage when its shell has not been loaded", async 
   const environmentId = EnvironmentId.make("local");
   state.projection = {
     ...projection,
+    thread: {
+      ...projection.thread,
+      bot: {
+        objective: "Triage reviews",
+        skillPath: "/review/SKILL.md",
+        statePath: "/review",
+        freshAfterTurns: 0,
+      },
+    },
     subagents: [
       {
         id: NodeId.make("agent"),
@@ -196,6 +205,18 @@ it("opens an idle child from Lineage when its shell has not been loaded", async 
     ],
   };
   await using screen = await render(
+    <ThreadRelationshipsPanel
+      environmentId={environmentId}
+      threadId={projection.thread.id}
+      showLineage
+      showSideChats
+      omitBotWorkers
+    />,
+  );
+  await expect
+    .element(screen.getByRole("button", { name: /Previous agents/ }))
+    .not.toBeInTheDocument();
+  await screen.rerender(
     <ThreadRelationshipsPanel
       environmentId={environmentId}
       threadId={projection.thread.id}

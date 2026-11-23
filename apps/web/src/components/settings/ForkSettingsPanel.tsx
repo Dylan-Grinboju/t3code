@@ -38,6 +38,12 @@ const FORK_FEATURES = [
     ),
   },
   {
+    title: msg("Waiting reviews"),
+    description: msg(
+      "See how many reviews need you beside the bot’s name. Expand the strip above the composer to draft an update request.",
+    ),
+  },
+  {
     title: msg("Manual bot sync"),
     description: msg(
       "Set a background sync command in Bot settings. Click Sync now in that bot’s header to run the command on its host. The header shows when it finishes and lets you retry a failed sync.",

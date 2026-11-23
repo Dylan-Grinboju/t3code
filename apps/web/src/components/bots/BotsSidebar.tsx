@@ -138,7 +138,17 @@ function BotRow({ bot, ...props }: BotRowProps & { bot: EnvironmentThreadShell }
         compact={!status.needsYou}
       />
       <span className={cn("min-w-0 flex-1", !status.needsYou && "flex items-center gap-2")}>
-        <span className="block min-w-0 flex-1 truncate text-xs font-medium">{bot.title}</span>
+        <span className="flex min-w-0 flex-1 items-center gap-1.5 text-xs font-medium">
+          <span className="truncate">{bot.title}</span>
+          {!!bot.waitingReviews?.length && (
+            <span
+              className="shrink-0 rounded-full bg-warning-surface px-1.5 text-2xs text-warning-foreground tabular-nums"
+              aria-label={gt("Waiting reviews ({count})", { count: bot.waitingReviews.length })}
+            >
+              {bot.waitingReviews.length}
+            </span>
+          )}
+        </span>
         {statusLine}
       </span>
       {jumpLabel ? (

@@ -1,4 +1,4 @@
-import { botNeedsFreshContext } from "./threadBot.ts";
+import { applyReviewMarker, botNeedsFreshContext } from "./threadBot.ts";
 import type {
   OrchestrationV2ThreadLinkMetadata,
   GuestShareId,
@@ -29,6 +29,7 @@ import {
   CommandId,
   type GuestMessageId,
   isCompactionCommandMessage,
+  isListedThreadLineage,
   isOrchestrationV2WorkActive,
   isProviderNativeSubagentThread,
   MessageId,
@@ -4467,6 +4468,20 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
         cause: `Thread ${command.threadId} branch changed before the metadata update could be applied.`,
       });
     }
+    if (
+      command.type === "thread.metadata.update" &&
+      command.reviewMarker &&
+      (!thread.bot ||
+        thread.archivedAt !== null ||
+        thread.delegatedFrom ||
+        !isListedThreadLineage(thread.lineage))
+    ) {
+      return yield* new OrchestratorDispatchError({
+        commandId: command.commandId,
+        commandType: command.type,
+        cause: "Review markers belong to an active bot.",
+      });
+    }
     if (command.type === "thread.metadata.update" && command.expectedEmpty === true) {
       const records = yield* projectionStore
         .getThreadRecords(command.threadId, ["runs"])
@@ -5079,6 +5094,16 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
             ...thread,
             ...(command.title === undefined ? {} : { title: command.title, titleRenamed: true }),
             ...(command.bot === undefined ? {} : { bot: command.bot }),
+            ...(command.bot === null && thread.waitingReviews?.length
+              ? { waitingReviews: [] }
+              : command.reviewMarker
+                ? {
+                    waitingReviews: applyReviewMarker(
+                      thread.waitingReviews ?? [],
+                      command.reviewMarker,
+                    ),
+                  }
+                : {}),
             ...(command.limitRecovery === undefined ? {} : { limitRecovery }),
             ...(command.limitRecovery !== undefined &&
             limitRecovery?.snooze === true &&

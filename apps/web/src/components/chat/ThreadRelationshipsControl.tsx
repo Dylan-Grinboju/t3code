@@ -29,6 +29,7 @@ import {
   resolveLatestMergeBackRun,
 } from "@t3tools/client-runtime/state/thread-workflows";
 import {
+  isListedThreadLineage,
   isOrchestrationV2WorkActive,
   isProviderNativeSubagentThread,
   NodeId,
@@ -474,6 +475,7 @@ function DelegatedFromRow(props: {
 export function ThreadRelationshipsPanel(props: {
   readonly environmentId: EnvironmentId;
   readonly threadId: ThreadId;
+  readonly omitBotWorkers?: boolean;
   readonly showLineage: boolean;
   readonly showSideChats: boolean;
   readonly labels?: ThreadRelationshipLabels;
@@ -576,6 +578,11 @@ export function ThreadRelationshipsPanel(props: {
   const currentProject = projects.find((project) => project.id === currentThread?.projectId);
   const latestMergeBackRun = projection === null ? null : resolveLatestMergeBackRun(projection);
   const mergeTargetThreadId = resolveMergeBackTargetThreadId(projection);
+  const omitWorkers =
+    props.omitBotWorkers &&
+    currentThread?.bot != null &&
+    !currentThread.delegatedFrom &&
+    isListedThreadLineage(currentThread.lineage);
   const relationshipRows = orderWebThreadLineageRows({
     graph,
     rows: immediateThreadRelationships(graph, props.threadId),
@@ -584,6 +591,12 @@ export function ThreadRelationshipsPanel(props: {
   })
     // The graph rebuilds missing parents from lineage, so filter the rows it returns.
     .filter((row) => !isHiddenRelation(row.threadId) && !isHiddenUnloadedRelation(row))
+    .filter(
+      ({ edge }) =>
+        !omitWorkers ||
+        edge.sourceThreadId !== props.threadId ||
+        (edge.kind !== "subagent" && edge.kind !== "parent"),
+    )
     .map((row) => {
       const agent =
         row.edge.kind === "subagent" && !isParentThreadRelationship(row.edge, props.threadId)
@@ -635,7 +648,7 @@ export function ThreadRelationshipsPanel(props: {
     return isFinishedAgentStatus(edge.status) ? "previous" : "active";
   });
   const { remoteActive = [], remotePrevious = [] } = groupBy(
-    (projection?.subagents ?? [])
+    (omitWorkers ? [] : (projection?.subagents ?? []))
       .filter((agent): agent is RemoteSubagent => agent.remoteChild !== undefined)
       .map((remote) => ({ remote })),
     ({ remote }) => (isFinishedAgentStatus(remote.status) ? "remotePrevious" : "remoteActive"),
@@ -660,10 +673,11 @@ export function ThreadRelationshipsPanel(props: {
       expanded: false,
     },
   ];
-  const runningCount =
-    (projection?.subagents.filter(
-      (agent) => agent.childThreadId === null && agent.status === "running",
-    ).length ?? 0) + active.filter(({ edge }) => edge.status === "running").length;
+  const runningCount = omitWorkers
+    ? 0
+    : (projection?.subagents.filter(
+        (agent) => agent.childThreadId === null && agent.status === "running",
+      ).length ?? 0) + active.filter(({ edge }) => edge.status === "running").length;
 
   // A linked environment's agent may have delegated this thread from there.
   const delegatedFrom = currentThread?.delegatedFrom;

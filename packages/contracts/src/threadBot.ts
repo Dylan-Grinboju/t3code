@@ -2,6 +2,26 @@ import * as Schema from "effect/Schema";
 import { ThreadId, TrimmedNonEmptyString } from "./baseSchemas.ts";
 import { ProjectIconColor } from "./project.ts";
 
+export const WaitingReview = Schema.Struct({
+  url: TrimmedNonEmptyString.check(
+    Schema.isMaxLength(2048),
+    Schema.isPattern(/^https?:\/\/[^\s?#]+$/),
+  ),
+  head: TrimmedNonEmptyString.check(Schema.isPattern(/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/)),
+  title: TrimmedNonEmptyString.check(Schema.isMaxLength(256)),
+});
+export type WaitingReview = typeof WaitingReview.Type;
+
+export const ReviewMarkerChange = Schema.Union([
+  Schema.Struct({ action: Schema.Literal("raise"), ...WaitingReview.fields }),
+  Schema.Struct({
+    action: Schema.Literal("clear"),
+    url: WaitingReview.fields.url,
+    head: WaitingReview.fields.head,
+  }),
+]);
+export type ReviewMarkerChange = typeof ReviewMarkerChange.Type;
+
 export const BotGlyph = Schema.Literals([
   "lighthouse",
   "inbox",

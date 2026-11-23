@@ -3,7 +3,23 @@ import {
   type OrchestrationV2Run,
   type OrchestrationV2TurnItem,
   type ThreadBot,
+  type ReviewMarkerChange,
+  type WaitingReview,
 } from "@t3tools/contracts";
+
+export function applyReviewMarker(
+  reviews: ReadonlyArray<WaitingReview>,
+  change: ReviewMarkerChange,
+) {
+  if (change.action === "clear") {
+    return reviews.filter((review) => review.url !== change.url || review.head !== change.head);
+  }
+  const { url, head, title } = change;
+  const updated = { url, head, title };
+  return reviews.some((review) => review.url === url)
+    ? reviews.map((review) => (review.url === url ? updated : review))
+    : [...reviews, updated];
+}
 
 const TERMINAL_RUN_STATUSES = ["completed", "failed", "cancelled", "interrupted", "rolled_back"];
 

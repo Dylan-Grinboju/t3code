@@ -1,3 +1,4 @@
+import { useWaitingReviewsBanner } from "./bots/useWaitingReviewsBanner";
 import { BotHeaderActions } from "./bots/BotHeaderActions";
 import { m } from "../i18n/messages";
 import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
@@ -2695,6 +2696,26 @@ export default function ChatView(props: ChatViewProps) {
           messages,
         )
       : null;
+  const waitingReviewsBanner = useWaitingReviewsBanner(
+    activeThreadShell?.bot && activePendingApproval === null && pendingUserInputs.length === 0
+      ? activeThreadShell.waitingReviews
+      : undefined,
+    (url) => {
+      if (
+        composerRef.current?.insertTextAtEnd(gt("Update me on {url}", { url }), {
+          ensureLeadingBoundary: true,
+        })
+      ) {
+        scheduleComposerFocusStable();
+      } else {
+        toastManager.add({
+          type: "error",
+          title: gt("Unable to add to chat"),
+          description: gt("The composer is busy; try again once it is ready."),
+        });
+      }
+    },
+  );
   const composerBannerItems = (() => {
     const fallbackSelection = draftFallback?.selection;
     const defaultSelection =
@@ -2744,6 +2765,7 @@ export default function ChatView(props: ChatViewProps) {
             ),
           ]
         : [];
+    const reviewItems = waitingReviewsBanner ? [waitingReviewsBanner] : [];
     const limitRecoveryItems = limitRecoveryBanner === null ? [] : [limitRecoveryBanner];
     const extensionStatusBanner = extensionStatusBannerItem(
       deriveProviderExtensionStatuses(serverProjection),
@@ -2765,6 +2787,7 @@ export default function ChatView(props: ChatViewProps) {
         ...usageLimitsItems,
         ...projectCloneItems,
         ...freshSessionItems,
+        ...reviewItems,
         ...systemComposerBannerItems,
       ];
     }
@@ -2776,6 +2799,7 @@ export default function ChatView(props: ChatViewProps) {
       ...usageLimitsItems,
       ...projectCloneItems,
       ...freshSessionItems,
+      ...reviewItems,
       ...systemComposerBannerItems,
       branchMismatchBannerItem(
         {

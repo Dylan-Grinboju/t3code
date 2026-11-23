@@ -3276,6 +3276,34 @@ it.effect(
       });
       assert.deepEqual((yield* projections.getThreadProjection(threadId)).thread.bot, bot);
       assert.deepEqual((yield* projections.getThreadShell(threadId))?.bot, bot);
+      const review = {
+        url: "https://github.com/acme/app/pull/1",
+        head: "a".repeat(40),
+        title: "Fix webhook validation",
+      };
+      const mark = (id: string, change: typeof review | { url: string; head: string }) =>
+        orchestrator.dispatch({
+          type: "thread.metadata.update",
+          commandId: CommandId.make(id),
+          threadId,
+          reviewMarker:
+            "title" in change ? { action: "raise", ...change } : { action: "clear", ...change },
+        });
+      const other = { ...review, url: "https://github.com/acme/app/pull/2" };
+      const updated = { ...review, head: "b".repeat(40) };
+      yield* mark("raise", review);
+      yield* mark("another", other);
+      yield* mark("replace", updated);
+      yield* mark("retry", updated);
+      yield* mark("clear-old", { url: review.url, head: review.head });
+      assert.deepEqual((yield* projections.getThreadShell(threadId))?.waitingReviews, [
+        updated,
+        other,
+      ]);
+      yield* mark("clear-current", { url: updated.url, head: updated.head });
+      assert.deepEqual((yield* projections.getThreadProjection(threadId)).thread.waitingReviews, [
+        other,
+      ]);
       const coloredBot = { ...bot, iconColor: "purple" as const };
       yield* orchestrator.dispatch({
         type: "thread.metadata.update",

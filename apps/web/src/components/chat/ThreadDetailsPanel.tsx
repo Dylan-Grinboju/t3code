@@ -306,6 +306,7 @@ export function ThreadDetailsPanel(props: ThreadDetailsPanelProps) {
                 <ThreadRelationshipsPanel
                   environmentId={props.environmentId}
                   threadId={props.threadId}
+                  omitBotWorkers
                   showLineage={visible.lineage}
                   showSideChats={visible.sideChats}
                 />
