@@ -4595,8 +4595,12 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
         });
       }
     }
-    if (command.type === "thread.settle") {
+    if (
+      command.type === "thread.settle" ||
+      (command.type === "thread.archive" && command.expectedLatestRunId !== undefined)
+    ) {
       const projection = yield* loadProjectionForCommand(command, ["runs", "runtimeRequests"]);
+      const action = command.type === "thread.archive" ? "archiving" : "settling";
       if (
         command.expectedLatestRunId !== undefined &&
         projection.runs.reduce<OrchestrationV2Run | undefined>(
@@ -4607,7 +4611,10 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
         return yield* new OrchestratorDispatchError({
           commandId: command.commandId,
           commandType: command.type,
-          cause: "The thread received another run before settlement.",
+          cause:
+            command.type === "thread.archive"
+              ? "The thread received another run before archiving."
+              : "The thread received another run before settlement.",
         });
       }
       const queuedMessages = yield* projectionStore
@@ -4644,11 +4651,11 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
         (request) => request.kind !== "user_input" || request.responseCapability.type !== "message",
       );
       const blocker = blockingRequestExists
-        ? "is waiting on an approval or question. Answer it before settling."
+        ? `is waiting on an approval or question. Answer it before ${action}.`
         : runningRunExists
-          ? "is still running. Stop it before settling."
+          ? `is still running. Stop it before ${action}.`
           : queuedMessageExists
-            ? "has a queued message. Send it or remove it from the queue before settling."
+            ? `has a queued message. Send it or remove it from the queue before ${action}.`
             : null;
       if (blocker !== null) {
         return yield* new OrchestratorDispatchError({
@@ -4658,30 +4665,32 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
         });
       }
 
-      for (const request of pendingRequests) {
-        yield* dispatchRuntimeRequestRespond(
-          {
-            type: "runtime-request.respond",
-            commandId: command.commandId,
-            threadId: command.threadId,
-            requestId: request.id,
-            decision: "cancel",
-          },
-          events,
-          effects,
-        );
-      }
-      for (const run of automaticQueuedRuns) {
-        yield* dispatchQueuedRunCancel(
-          {
-            type: "queued-run.cancel",
-            commandId: command.commandId,
-            threadId: command.threadId,
-            runId: run.id,
-          },
-          events,
-          "cohort",
-        );
+      if (command.type === "thread.settle") {
+        for (const request of pendingRequests) {
+          yield* dispatchRuntimeRequestRespond(
+            {
+              type: "runtime-request.respond",
+              commandId: command.commandId,
+              threadId: command.threadId,
+              requestId: request.id,
+              decision: "cancel",
+            },
+            events,
+            effects,
+          );
+        }
+        for (const run of automaticQueuedRuns) {
+          yield* dispatchQueuedRunCancel(
+            {
+              type: "queued-run.cancel",
+              commandId: command.commandId,
+              threadId: command.threadId,
+              runId: run.id,
+            },
+            events,
+            "cohort",
+          );
+        }
       }
     }
 

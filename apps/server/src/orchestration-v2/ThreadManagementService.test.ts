@@ -807,7 +807,7 @@ it.effect.each([
       Effect.provide(layerTest),
     );
     const fiber = yield* service
-      .settleAfterRun({ projectId, threadId, runId })
+      .organizeAfterRun({ action: "settle", projectId, threadId, runId })
       .pipe(Effect.forkChild);
     if (followUp !== "none") {
       yield* Deferred.await(subscribed);

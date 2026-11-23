@@ -478,19 +478,21 @@ export interface ThreadManagementServiceShape {
   readonly waitForThread: (
     input: ThreadManagementWaitInput,
   ) => Effect.Effect<ThreadManagementWaitResult, ThreadManagementError>;
-  /** Waits for the agent's run and automatic follow-ups before settling.
-   * A new user turn or an unsuccessful ending leaves the thread active. */
-  readonly settleAfterRun: (input: {
+  readonly organizeAfterRun: (input: {
+    readonly action: "settle" | "archive";
     readonly projectId: ProjectId;
     readonly threadId: ThreadId;
     readonly runId: RunId;
   }) => Effect.Effect<void, ThreadManagementFailure>;
-  readonly settleThread: (input: {
+  readonly organizeThread: (input: {
+    readonly action: "settle" | "archive";
     readonly threadId: ThreadId;
     readonly commandId: CommandId;
     readonly byOwnAgent: boolean;
   }) => Effect.Effect<
-    { readonly sequence: number } | { readonly settlesWhenTurnEnds: true },
+    | { readonly sequence: number }
+    | { readonly settlesWhenTurnEnds: true }
+    | { readonly archivesWhenTurnEnds: true },
     Orchestrator.OrchestratorV2Error | ThreadManagementProviderInstanceDisabledError
   >;
   readonly interruptThread: (
@@ -1129,16 +1131,17 @@ const make = Effect.gen(function* () {
     return settledResult(yield* evaluate((yield* getProjectThreadRecords(input, ["runs"])).runs));
   });
 
-  const settleAfterRun: ThreadManagementServiceShape["settleAfterRun"] = Effect.fn(
-    "orchestrationV2.threadManagement.settleAfterRun",
+  const organizeAfterRun: ThreadManagementServiceShape["organizeAfterRun"] = Effect.fn(
+    "orchestrationV2.threadManagement.organizeAfterRun",
   )(function* (input) {
     const requestedAt = yield* DateTime.now;
     const { run } = yield* waitForThread({ ...input, timeoutMs: SETTLE_AFTER_RUN_WAIT_MS });
     if (run?.status !== "completed") return;
     const afterSequence = yield* orchestrator.getThreadEventSequence(input.threadId);
-    const trySettle = Effect.gen(function* () {
+    const tryOrganize = Effect.gen(function* () {
       const sequence = yield* orchestrator.getThreadEventSequence(input.threadId);
       const records = yield* getProjectThreadRecords(input, ["runs"]);
+      if (records.thread.archivedAt != null) return true;
       // Settling ends every watch; one the agent started after asking to settle must outlive it.
       if (
         threadPullRequestsOf(records.thread).some(
@@ -1207,8 +1210,8 @@ const make = Effect.gen(function* () {
       const latest = latestRun(records);
       if (latest === undefined) return true;
       return yield* dispatch({
-        type: "thread.settle",
-        commandId: CommandId.make(`server:settle-after-run:${input.runId}:${sequence}`),
+        type: `thread.${input.action}`,
+        commandId: CommandId.make(`server:${input.action}-after-run:${input.runId}:${sequence}`),
         threadId: input.threadId,
         expectedLatestRunId: latest.id,
       }).pipe(
@@ -1220,7 +1223,7 @@ const make = Effect.gen(function* () {
         }),
       );
     });
-    yield* Stream.fromEffect(trySettle).pipe(
+    yield* Stream.fromEffect(tryOrganize).pipe(
       Stream.concat(
         orchestrator
           .streamStoredEventsFrom({
@@ -1228,7 +1231,7 @@ const make = Effect.gen(function* () {
             afterSequence,
             eventType: "run.updated",
           })
-          .pipe(Stream.mapEffect(() => trySettle)),
+          .pipe(Stream.mapEffect(() => tryOrganize)),
       ),
       Stream.filter((done) => done),
       Stream.runHead,
@@ -1236,20 +1239,23 @@ const make = Effect.gen(function* () {
     );
   });
 
-  const settleThread: ThreadManagementServiceShape["settleThread"] = Effect.fn(
-    "orchestrationV2.threadManagement.settleThread",
+  const organizeThread: ThreadManagementServiceShape["organizeThread"] = Effect.fn(
+    "orchestrationV2.threadManagement.organizeThread",
   )(function* (input) {
     const shell = input.byOwnAgent ? yield* orchestrator.getThreadShell(input.threadId) : null;
     if (shell != null && shell.activeRunId !== null) {
-      yield* settleAfterRun({
+      yield* organizeAfterRun({
+        action: input.action,
         projectId: shell.projectId,
         threadId: shell.id,
         runId: shell.activeRunId,
       }).pipe(Effect.ignoreCause({ log: true }), Effect.forkIn(layerScope));
-      return { settlesWhenTurnEnds: true } as const;
+      return input.action === "archive"
+        ? ({ archivesWhenTurnEnds: true } as const)
+        : ({ settlesWhenTurnEnds: true } as const);
     }
     const result = yield* dispatch({
-      type: "thread.settle",
+      type: `thread.${input.action}`,
       commandId: input.commandId,
       threadId: input.threadId,
     });
@@ -1783,8 +1789,8 @@ const make = Effect.gen(function* () {
     isProviderInstanceEnabledForProject,
     hasReceipt,
     waitForThread,
-    settleAfterRun,
-    settleThread,
+    organizeAfterRun,
+    organizeThread,
     interruptThread,
     stopDelegatedTasks,
     stopWorkflow,

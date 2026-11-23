@@ -638,6 +638,42 @@ it.effect("rejects an unknown organize target instead of archiving the calling t
   );
 });
 
+it.effect("defers an archive requested by the thread's own agent", () =>
+  Effect.gen(function* () {
+    const server = yield* McpServer.McpServer;
+    const result = yield* server
+      .callTool({ name: "t3_thread_organize", arguments: { action: "archive" } })
+      .pipe(
+        Effect.provideService(McpInvocationContext.McpInvocationContext, scope),
+        Effect.provideService(McpSchema.McpServerClient, client),
+      );
+    expect(result.structuredContent).toEqual({ archivesWhenTurnEnds: true });
+  }).pipe(
+    Effect.provide(
+      layerThreadToolkit.pipe(
+        Layer.provideMerge(McpHttpServer.layerInProcessMcpServer),
+        Layer.provide(NodeCrypto.layer),
+        Layer.provide(
+          Layer.mock(ThreadManagement.ThreadManagementService)({
+            getThreadShell: (id) => Effect.succeed(McpToolAccessTestkit.liveThreadShell(id)),
+            getProjectThreadRecords: ({ threadId: id }) =>
+              Effect.succeed(
+                McpToolAccessTestkit.idleThreadProjection(McpToolAccessTestkit.liveThreadShell(id)),
+              ),
+            dispatch: () => Effect.succeed({ sequence: 1, storedEvents: [] }),
+            organizeThread: ({ action, byOwnAgent }) =>
+              Effect.succeed(
+                action === "archive" && byOwnAgent
+                  ? { archivesWhenTurnEnds: true }
+                  : { sequence: 1 },
+              ),
+          }),
+        ),
+      ),
+    ),
+  ),
+);
+
 it.effect("keeps unexpected handler defects private through the production registration", () =>
   Effect.gen(function* () {
     const server = yield* McpServer.McpServer;

@@ -385,9 +385,10 @@ export const layer = McpToolAccess.toLayer(ThreadToolkit, {
     Effect.gen(function* () {
       const { threads, projection, caller } = yield* readThread(input.threadId);
       const common = { commandId: yield* newCommandId(), threadId: projection.thread.id };
-      if (input.action === "settle") {
+      const byOwnAgent = caller?.id === projection.thread.id;
+      if (input.action === "settle" || (input.action === "archive" && byOwnAgent)) {
         return yield* threads
-          .settleThread({ ...common, byOwnAgent: caller?.id === projection.thread.id })
+          .organizeThread({ ...common, action: input.action, byOwnAgent })
           .pipe(Effect.mapError(dispatchFailure));
       }
       let command: OrchestrationV2Command;

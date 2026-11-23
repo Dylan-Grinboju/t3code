@@ -583,7 +583,8 @@ it.effect(
         commandId: CommandId.make("link-review"),
         ...link,
       });
-      const settle = threads.settleThread({
+      const settle = threads.organizeThread({
+        action: "settle",
         threadId: review.threadId,
         commandId: CommandId.make("settle-review"),
         byOwnAgent: false,
@@ -608,7 +609,8 @@ it.effect(
       });
       assert.equal(notice.delivery, "queued");
       assert.equal(notice.message.senderThreadId, review.threadId);
-      yield* threads.settleThread({
+      yield* threads.organizeThread({
+        action: "settle",
         threadId: review.threadId,
         commandId: CommandId.make("settle-finished-review"),
         byOwnAgent: false,
