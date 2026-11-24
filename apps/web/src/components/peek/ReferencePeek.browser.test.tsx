@@ -5,6 +5,8 @@ import { page, userEvent } from "vite-plus/test/browser";
 import { render } from "../../../test/render";
 import { useRightPanelStore } from "../../rightPanelStore";
 import { MarkdownFileLink } from "../chat/MarkdownFileLink";
+import { writeLocalStorageValue } from "../../hooks/useLocalStorage";
+import { Schema } from "effect";
 import { ThreadContextChip } from "../ThreadContextChip";
 import { ReferencePeekProvider } from "./ReferencePeekProvider";
 import { useReferencePeek } from "./referencePeek";
@@ -102,6 +104,22 @@ it("peeks on Shift-click without opening a panel, dismisses on Escape, and promo
   await userEvent.click(file);
   expect(openFile).toHaveBeenCalledWith(threadRef, "sample.ts", 2);
   await expect.element(page.getByRole("dialog")).not.toBeInTheDocument();
+  const preference = "t3code:fork-peek-files-by-default";
+  writeLocalStorageValue(preference, true, false, Schema.Boolean);
+  try {
+    openFile.mockClear();
+    await userEvent.click(file);
+    await expect.element(page.getByRole("dialog", { name: "Peek: sample.ts" })).toBeVisible();
+    expect(openFile).not.toHaveBeenCalled();
+    await userEvent.keyboard("{Escape}");
+    await userEvent.keyboard("{Shift>}");
+    await userEvent.click(file);
+    await userEvent.keyboard("{/Shift}");
+    expect(openFile).toHaveBeenCalledWith(threadRef, "sample.ts", 2);
+    await expect.element(page.getByRole("dialog")).not.toBeInTheDocument();
+  } finally {
+    writeLocalStorageValue(preference, false, false, Schema.Boolean);
+  }
 });
 
 it("reads a referenced thread without navigating until Open thread is pressed", async () => {

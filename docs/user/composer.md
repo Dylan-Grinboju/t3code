@@ -341,7 +341,9 @@ Unsent images stay with their draft; sent images remain available from the threa
 **Shift-click** a file or thread reference to peek at it without leaving the current
 conversation. Press **Escape** to return, or choose **Open in panel** or **Open thread**
 to keep the destination open. File peeks show an excerpt around the referenced line;
-thread peeks show recent messages.
+thread peeks show recent messages. To use a plain click for file peeks, turn on
+**Settings → Dylan’s fork → Chat → Peek files by default**. Shift-click then opens the
+file in the panel at the referenced line.
 
 ## Context in your message
 

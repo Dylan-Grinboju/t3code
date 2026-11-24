@@ -7,12 +7,17 @@ import { usePanelTransitionDurationMs } from "../../panelAnimations";
 import { useRightPanelStore } from "../../rightPanelStore";
 import { Button } from "../ui/button";
 import { Dialog, DialogHeader, DialogPopup, DialogTitle } from "../ui/dialog";
-import { ReferencePeekContext, type ReferencePeekTarget } from "./referencePeek";
+import {
+  ReferencePeekContext,
+  usePeekFilesByDefault,
+  type ReferencePeekTarget,
+} from "./referencePeek";
 
 const ReferencePeekContent = lazy(() => import("./ReferencePeekContent"));
 
 export function ReferencePeekProvider({ children }: { children: ReactNode }) {
   const gt = useGT();
+  const [peekFilesByDefault] = usePeekFilesByDefault();
   const transitionDurationMs = usePanelTransitionDurationMs();
   const pathname = useLocation({ select: (location) => location.pathname });
   const navigate = useNavigate();
@@ -38,7 +43,7 @@ export function ReferencePeekProvider({ children }: { children: ReactNode }) {
       void navigate(destination);
   };
   return (
-    <ReferencePeekContext value={open}>
+    <ReferencePeekContext value={{ open, peekFilesByDefault }}>
       {children}
       <Dialog
         open={target !== null}

@@ -10,6 +10,7 @@ import {
   useForkReleaseStatus,
   type ForkUpdateAction,
 } from "../../lib/forkRelease";
+import { PeekFilesByDefaultSetting } from "./PeekFilesByDefaultSetting";
 import { useTypeToCite } from "../../lib/forkTypeToCite";
 import { ensureLocalApi } from "../../localApi";
 import { Button } from "../ui/button";
@@ -131,7 +132,7 @@ const FORK_FEATURES = [
   {
     title: msg("Shelf and Peek"),
     description: msg(
-      "The shelf below thread details keeps screenshots and text you pin beside Cite. Select a text pin to return to its source. Pins stay on this device. Shift-click a file or thread reference to peek without leaving your conversation; Escape returns, and Open keeps it open.",
+      "The shelf below thread details keeps screenshots and text you pin beside Cite. Select a text pin to return to its source. Pins stay on this device. Shift-click a file or thread reference to peek. Under Chat, turn on Peek files by default to swap click and Shift-click for files.",
     ),
   },
   {
@@ -384,6 +385,7 @@ export function ForkSettingsPanel() {
       </SettingsSection>
       <SettingsSection id="fork-chat" title={gt("Chat")}>
         <TypeToCiteSetting />
+        <PeekFilesByDefaultSetting />
       </SettingsSection>
       <SettingsSection id="fork-browser" title={gt("Browser")}>
         <SettingsUnavailableGroup

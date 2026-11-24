@@ -9,6 +9,7 @@ import {
 import type { ContextMenuSource, EnvironmentId, ScopedThreadRef } from "@t3tools/contracts";
 import {
   memo,
+  use,
   useState,
   type MouseEvent as ReactMouseEvent,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -33,7 +34,7 @@ import {
 } from "./MarkdownFileLink.logic";
 import { reportMarkdownActionFailure } from "./markdownActionFailure";
 import { WorkspaceEntryTooltip } from "./WorkspaceEntryIcon";
-import { isPeekClick } from "../peek/referencePeek";
+import { isPeekClick, ReferencePeekContext } from "../peek/referencePeek";
 
 interface MarkdownFileLinkProps {
   environmentId: EnvironmentId | null;
@@ -87,6 +88,7 @@ export const MarkdownFileLink = memo(function MarkdownFileLink({
   resolveDragPath,
 }: MarkdownFileLinkProps) {
   const gt = useGT();
+  const peekByDefault = use(ReferencePeekContext)?.peekFilesByDefault ?? false;
   const nativeDrag = useNativeFileDrag(environmentId, resolveDragPath);
   const handleOpenInEditor = () => {
     if (!onOpen) {
@@ -362,7 +364,7 @@ export const MarkdownFileLink = memo(function MarkdownFileLink({
               onClick={(event) => {
                 event.preventDefault();
                 event.stopPropagation();
-                if (onPeek && isPeekClick(event)) {
+                if (onPeek && isPeekClick(event, peekByDefault)) {
                   onPeek(event.currentTarget);
                   return;
                 }
@@ -424,7 +426,11 @@ export const MarkdownFileLink = memo(function MarkdownFileLink({
         <WorkspaceEntryTooltip path={iconPath} label={targetPath} environmentId={environmentId} />
         {onPeek ? (
           <div>
-            <T>Shift-click to peek</T>
+            {peekByDefault ? (
+              <T>Click to peek · Shift-click to open file</T>
+            ) : (
+              <T>Shift-click to peek</T>
+            )}
           </div>
         ) : null}
       </TooltipPopup>

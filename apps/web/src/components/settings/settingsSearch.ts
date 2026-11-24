@@ -418,6 +418,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["hide machine computer environment remote projects new thread picker ctrl tab"],
   },
   {
+    id: "fork-peek-files-by-default",
+    title: msg("Peek files by default"),
+    to: "/settings/fork",
+    searchTerms: ["file reference preview peek click shift open panel"],
+  },
+  {
     id: "fork-type-to-cite",
     title: msg("Type to cite"),
     to: "/settings/fork",
