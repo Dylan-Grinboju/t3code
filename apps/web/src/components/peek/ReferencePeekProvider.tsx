@@ -1,7 +1,7 @@
 import { T, useGT } from "gt-react";
 import { useLocation, useNavigate, useRouter } from "@tanstack/react-router";
 import { ArrowUpRightIcon } from "lucide-react";
-import { lazy, Suspense, useState, type ReactNode } from "react";
+import { lazy, Suspense, useRef, useState, type ReactNode } from "react";
 
 import { usePanelTransitionDurationMs } from "../../panelAnimations";
 import { useRightPanelStore } from "../../rightPanelStore";
@@ -20,7 +20,13 @@ export function ReferencePeekProvider({ children }: { children: ReactNode }) {
   const [peek, setPeek] = useState<{ pathname: string; target: ReferencePeekTarget } | null>(null);
   if (peek !== null && peek.pathname !== pathname) setPeek(null);
   const target = peek?.pathname === pathname ? peek.target : null;
-  const open = (target: ReferencePeekTarget) => setPeek({ pathname, target });
+  const originRef = useRef<HTMLElement | null>(null);
+  const returnRef = useRef<HTMLElement | null>(null);
+  const open = (target: ReferencePeekTarget, origin: HTMLElement) => {
+    originRef.current = origin;
+    returnRef.current = null;
+    setPeek({ pathname, target });
+  };
   const promote = () => {
     if (!target) return;
     setPeek(null);
@@ -36,8 +42,28 @@ export function ReferencePeekProvider({ children }: { children: ReactNode }) {
       {children}
       <Dialog
         open={target !== null}
-        onOpenChange={(open) => {
-          if (!open) setPeek(null);
+        onOpenChange={(open, details) => {
+          if (open) return;
+          if (details.reason === "escape-key") returnRef.current = originRef.current;
+          setPeek(null);
+        }}
+        onOpenChangeComplete={(open) => {
+          if (open) return;
+          const origin = returnRef.current;
+          originRef.current = null;
+          returnRef.current = null;
+          if (!origin?.isConnected) return;
+          const outline = { outline: "2px solid currentColor", outlineOffset: "2px" };
+          origin.animate(
+            matchMedia("(prefers-reduced-motion: reduce)").matches
+              ? [outline, outline]
+              : [
+                  outline,
+                  { ...outline, offset: 0.45 },
+                  { ...outline, outlineColor: "transparent" },
+                ],
+            700,
+          );
         }}
       >
         <DialogPopup

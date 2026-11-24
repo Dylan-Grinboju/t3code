@@ -23,6 +23,7 @@ import {
   assistantCitationNavigation,
   assistantCitationRoute,
 } from "../../lib/assistantCitationNavigation";
+import { animateCitationLanding } from "~/lib/forkCitationLanding";
 import { cn } from "~/lib/utils";
 import { useQuietThreadShell } from "~/state/entities";
 import { ContextChip, ContextChipAction, ContextChipLabel } from "../ContextChip";
@@ -270,6 +271,7 @@ export function AssistantCitationChip({
   );
   return (
     <ContextChip
+      ref={(chip) => animateCitationLanding(chip, sourceAnchor)}
       kind="citation"
       contentEditable={false}
       data-assistant-citation-chip="true"

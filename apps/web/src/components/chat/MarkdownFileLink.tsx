@@ -50,7 +50,7 @@ interface MarkdownFileLinkProps {
   threadRef?: ScopedThreadRef | undefined;
   onOpen?: (() => Promise<AtomCommandResult<unknown, unknown>>) | undefined;
   onOpenInPanel: (panelPath: string, line: number | undefined) => void;
-  onPeek?: (() => void) | undefined;
+  onPeek?: ((origin: HTMLElement) => void) | undefined;
   resolveDragPath: () => Promise<string>;
   resolveCopyPaths: () => Promise<ReturnType<typeof markdownFileCopyPaths>>;
   openInEditorMenuLabel: string;
@@ -258,6 +258,7 @@ export const MarkdownFileLink = memo(function MarkdownFileLink({
   const showFileContextMenu = async (
     position: { x: number; y: number },
     source: ContextMenuSource,
+    origin: HTMLElement,
   ) => {
     const api = readLocalApi();
     if (!api) return;
@@ -287,7 +288,7 @@ export const MarkdownFileLink = memo(function MarkdownFileLink({
       );
 
       if (clicked === "peek") {
-        onPeek?.();
+        onPeek?.(origin);
         return;
       }
       if (clicked === "preview-media") {
@@ -327,7 +328,7 @@ export const MarkdownFileLink = memo(function MarkdownFileLink({
     event: ReactMouseEvent<HTMLElement> | ReactKeyboardEvent<HTMLElement>,
   ) => {
     const trigger = contextMenuTriggerOf(event);
-    if (trigger) void showFileContextMenu(trigger.position, trigger.source);
+    if (trigger) void showFileContextMenu(trigger.position, trigger.source, event.currentTarget);
   };
 
   const canOpenInEditor = onOpen !== undefined;
@@ -362,7 +363,7 @@ export const MarkdownFileLink = memo(function MarkdownFileLink({
                 event.preventDefault();
                 event.stopPropagation();
                 if (onPeek && isPeekClick(event)) {
-                  onPeek();
+                  onPeek(event.currentTarget);
                   return;
                 }
                 if (onOpen && shouldOpenMarkdownFileLinkInEditor(event)) {

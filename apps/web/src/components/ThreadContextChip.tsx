@@ -70,7 +70,10 @@ export function ThreadContextChip(props: {
               if (!peek || !isPeekClick(event)) return;
               event.preventDefault();
               event.stopPropagation();
-              peek({ kind: "thread", threadRef: { environmentId, threadId }, title });
+              peek(
+                { kind: "thread", threadRef: { environmentId, threadId }, title },
+                event.currentTarget,
+              );
             }}
           >
             {project ? (

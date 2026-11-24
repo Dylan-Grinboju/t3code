@@ -969,16 +969,19 @@ function useChatMarkdownState({
         panelPath={isAppBundle ? null : panelPath}
         onPeek={
           peek && threadRef && cwd && panelPath && !canPreviewMedia && !isAppBundle
-            ? () =>
+            ? (origin) =>
                 openFileReference(fileLinkMeta, panelPath, (path) =>
-                  peek({
-                    kind: "file",
-                    threadRef,
-                    cwd,
-                    path,
-                    title: fileLinkMeta.basename,
-                    ...(fileLinkMeta.line !== undefined ? { line: fileLinkMeta.line } : {}),
-                  }),
+                  peek(
+                    {
+                      kind: "file",
+                      threadRef,
+                      cwd,
+                      path,
+                      title: fileLinkMeta.basename,
+                      ...(fileLinkMeta.line !== undefined ? { line: fileLinkMeta.line } : {}),
+                    },
+                    origin,
+                  ),
                 )
             : undefined
         }

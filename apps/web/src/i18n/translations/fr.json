@@ -8574,6 +8574,8 @@
   "9cc007d9d880b467": "In a pull request's Code tab, markdown files have a Preview button in their header that shows the file as rendered at the pull request's latest version.",
   "d99d6a322803f5fe": "Right Arrow accepts prompt suggestions",
   "bd12ce7b8bcfef2c": "When the empty composer shows a suggested prompt, Right Arrow fills it in, the same as Tab.",
+  "102fbcfedb767e8e": "Repères visuels pour les citations et Peek",
+  "398b1539b6fa6330": "Citez un passage pour voir où il apparaît dans la zone de saisie. Appuyez sur Échap dans Peek pour encadrer brièvement la référence que vous avez ouverte.",
   "8c22081381d2f2fd": "Type to cite",
   "51a10d4ba819eb94": "With Type to cite on under Chat above, select text in a response and start typing: it cites the selection, the same as Cite, and what you type becomes the citation's comment.",
   "74569d79fb6a3c04": "Thread groups",

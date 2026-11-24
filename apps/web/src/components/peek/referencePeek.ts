@@ -12,9 +12,9 @@ export type ReferencePeekTarget =
     }
   | { kind: "thread"; threadRef: ScopedThreadRef; title: string };
 
-export const ReferencePeekContext = createContext<((target: ReferencePeekTarget) => void) | null>(
-  null,
-);
+export const ReferencePeekContext = createContext<
+  ((target: ReferencePeekTarget, origin: HTMLElement) => void) | null
+>(null);
 
 export function useReferencePeek() {
   return use(ReferencePeekContext);

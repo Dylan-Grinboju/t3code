@@ -57,15 +57,18 @@ function FileReference({ source = threadRef }: { source?: typeof threadRef }) {
       onOpenInPanel={(path, line) => useRightPanelStore.getState().openFile(threadRef, path, line)}
       resolveCopyPaths={async () => ({ relativePath: "sample.ts", fullPath: "/repo/sample.ts" })}
       resolveDragPath={async () => "/repo/sample.ts"}
-      onPeek={() =>
-        peek?.({
-          kind: "file",
-          threadRef: source,
-          cwd: "/repo",
-          path: "sample.ts",
-          line: 2,
-          title: "sample.ts",
-        })
+      onPeek={(origin) =>
+        peek?.(
+          {
+            kind: "file",
+            threadRef: source,
+            cwd: "/repo",
+            path: "sample.ts",
+            line: 2,
+            title: "sample.ts",
+          },
+          origin,
+        )
       }
     />
   );

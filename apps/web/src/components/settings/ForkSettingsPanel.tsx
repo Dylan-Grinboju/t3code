@@ -183,6 +183,12 @@ const FORK_FEATURES = [
     ),
   },
   {
+    title: msg("Citation and Peek cues"),
+    description: msg(
+      "Cite a passage to see it land in the composer. Press Escape in Peek to briefly outline the reference you opened.",
+    ),
+  },
+  {
     title: msg("Type to cite"),
     description: msg(
       "With Type to cite on under Chat above, select text in a response and start typing: it cites the selection, the same as Cite, and what you type becomes the citation's comment.",
