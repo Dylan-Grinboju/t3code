@@ -116,8 +116,9 @@ export function collectThreadLinks(
     const links = itemLinks(items[index]!.item);
     for (let linkIndex = links.length - 1; linkIndex >= 0; linkIndex--) {
       const link = links[linkIndex]!;
-      if (seen.has(link.url)) continue;
-      seen.add(link.url);
+      const key = link.kind === "pull" ? link.url.toLowerCase() : link.url;
+      if (seen.has(key)) continue;
+      seen.add(key);
       result.push(link);
     }
   }

@@ -281,7 +281,10 @@ it("shows chat-derived PRs only when their matching richer rows are not displaye
   const extra = page.getByText("pingdotgg/t3code#27512", { exact: true });
   const chatOnly = page.getByText("other/t3code#27513", { exact: true });
   const jira = page.getByText("WORK-123", { exact: true });
-  await expect.element(page.getByText("#27513", { exact: true })).toBeVisible();
+  const pullRequests = page.getByRole("region", { name: "Pull requests" });
+  await expect.element(pullRequests.getByText("#27513", { exact: true })).toBeVisible();
+  await expect.element(pullRequests.getByText("other/t3code#27513", { exact: true })).toBeVisible();
+  await expect.element(page.getByText("#27513", { exact: true })).toHaveLength(1);
   await expect.element(current).not.toBeInTheDocument();
   await expect.element(extra).toBeVisible();
   await expect.element(chatOnly).toBeVisible();

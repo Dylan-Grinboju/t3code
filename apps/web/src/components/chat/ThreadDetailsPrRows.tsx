@@ -14,7 +14,8 @@ import {
   visibleThreadPullRequests,
 } from "@t3tools/client-runtime/thread-pull-requests";
 import { useMessages } from "gt-react";
-import { useState, type ComponentProps, type MouseEvent as ReactMouseEvent } from "react";
+import { use, useState, type ComponentProps, type MouseEvent as ReactMouseEvent } from "react";
+import { createPortal } from "react-dom";
 
 import { sourceControlClients } from "@t3tools/client-runtime/source-control-clients";
 import {
@@ -35,6 +36,7 @@ import {
 } from "../ThreadStatusIndicators";
 
 import { ThreadDetailsPrRow } from "./ThreadDetailsPrRow";
+import { ThreadDetailPullRequestSlot } from "./visibleThreadDetailPullRequests";
 
 function ThreadDetailsPrLinkRow({
   environmentId,
@@ -161,6 +163,7 @@ export function ThreadDetailsThreadPrRows({
   onActed?: () => void;
   composerTarget?: ComposerThreadTarget | undefined;
 }) {
+  const slot = use(ThreadDetailPullRequestSlot);
   const thread = useQuietThreadShell(threadRef);
   const displayed = useThreadDisplayedPullRequest(
     threadRef.environmentId,
@@ -184,7 +187,7 @@ export function ThreadDetailsThreadPrRows({
           parsed,
         ) ?? project);
   if (number === undefined || url === undefined) return null;
-  return (
+  const rows = (
     <ThreadDetailsPrRows
       threadRef={threadRef}
       links={thread?.pullRequests ?? []}
@@ -203,4 +206,5 @@ export function ThreadDetailsThreadPrRows({
       {...(onActed ? { onActed } : {})}
     />
   );
+  return slot === null ? rows : createPortal(rows, slot);
 }

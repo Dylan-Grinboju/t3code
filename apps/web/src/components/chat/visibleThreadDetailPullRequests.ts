@@ -8,6 +8,8 @@ export const VisibleThreadDetailPullRequests = createContext<Dispatch<
   SetStateAction<ReadonlySet<string>>
 > | null>(null);
 
+export const ThreadDetailPullRequestSlot = createContext<HTMLDivElement | null>(null);
+
 export function threadDetailPullRequestUrlKey(url: string): string | undefined {
   const parsed = sourceControlClients.parseChangeRequestUrl(url)?.link;
   return parsed === undefined ? undefined : threadPullRequestKeyOf(parsed);

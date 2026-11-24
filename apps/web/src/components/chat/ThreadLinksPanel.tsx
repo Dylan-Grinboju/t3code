@@ -2,7 +2,7 @@ import { msg, useGT } from "gt-react";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import type { EnvironmentId, ScopedThreadRef, ThreadId } from "@t3tools/contracts";
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon, PaperclipIcon, TicketIcon } from "lucide-react";
-import { type MouseEvent, useRef, useState } from "react";
+import { type MouseEvent, type ReactNode, type RefCallback, useRef, useState } from "react";
 
 import { useOpenLink } from "~/browser/useOpenLink";
 import { useCopyToClipboard } from "~/hooks/useCopyToClipboard";
@@ -36,26 +36,33 @@ interface ThreadLinksPanelProps {
   readonly environmentId: EnvironmentId;
   readonly threadId: ThreadId;
   readonly visiblePullRequests: ReadonlySet<string>;
+  readonly pullRequestSlotRef: RefCallback<HTMLDivElement>;
 }
 
 /** GitHub pull requests and Jira issues mentioned in the thread, one section each. Hidden while there are none. */
-export function ThreadLinksPanel(props: ThreadLinksPanelProps) {
+export function ThreadLinksPanel({
+  environmentId,
+  threadId,
+  visiblePullRequests,
+  pullRequestSlotRef,
+}: ThreadLinksPanelProps) {
   const gt = useGT();
-  const threadRef = scopeThreadRef(props.environmentId, props.threadId);
+  const threadRef = scopeThreadRef(environmentId, threadId);
   const items = useTimelineVisibleTurnItems(threadRef);
   const links = collectThreadLinks(items);
-  const key = `${props.environmentId}:${props.threadId}`;
+  const key = `${environmentId}:${threadId}`;
   return (
     <>
       <ThreadLinkGroup
         key={`github:${key}`}
         id="github"
+        linkedRows={<div ref={pullRequestSlotRef} className="flex flex-col" />}
         title={gt("Pull requests")}
         threadRef={threadRef}
         links={links.filter((link) => {
           if (link.kind !== "pull") return false;
           const key = threadDetailPullRequestUrlKey(link.url);
-          return key === undefined || !props.visiblePullRequests.has(key);
+          return key === undefined || !visiblePullRequests.has(key);
         })}
       />
       <ThreadLinkGroup
@@ -74,6 +81,7 @@ function ThreadLinkGroup(props: {
   readonly title: string;
   readonly threadRef: ScopedThreadRef;
   readonly links: ReadonlyArray<ThreadLink>;
+  readonly linkedRows?: ReactNode;
 }) {
   const gt = useGT();
   const [visibleCount, setVisibleCount] = useState(LINK_PAGE_COUNT);
@@ -92,7 +100,7 @@ function ThreadLinkGroup(props: {
     });
   };
 
-  if (props.links.length === 0) return null;
+  if (props.links.length === 0 && !props.linkedRows) return null;
   const hiddenCount = Math.max(0, props.links.length - visibleCount);
 
   return (
@@ -100,45 +108,48 @@ function ThreadLinkGroup(props: {
       headingId={`thread-details-links-${props.id}-heading`}
       title={props.title}
     >
-      <ul className="m-0 list-none p-0">
-        {props.links.slice(0, visibleCount).map((link) => {
-          const Icon = LINK_ICONS[link.kind];
-          const hasPreview = link.kind === "jira" && link.url.startsWith("https://");
-          const control = (
-            <ThreadDetailsControl
-              size="sm"
-              variant="ghost"
-              part="row"
-              type="button"
-              className="flex-1"
-              title={hasPreview ? undefined : link.url}
-              onClick={(event) => open(link, event)}
-              onAuxClick={(event) => open(link, event)}
-            >
-              <Icon aria-hidden className={THREAD_DETAILS_PANEL_ICON_CLASS} />
-              <span className={`min-w-0 truncate ${THREAD_DETAILS_PANEL_LABEL_CLASS}`}>
-                {link.label}
-              </span>
-            </ThreadDetailsControl>
-          );
-          return (
-            <li key={link.url} className="flex items-center gap-0.5">
-              <ThreadLinkCopyButton url={link.url} />
-              {hasPreview ? (
-                <JiraLinkPreview
-                  environmentId={props.threadRef.environmentId}
-                  issue={link}
-                  href={link.url}
-                >
-                  {control}
-                </JiraLinkPreview>
-              ) : (
-                control
-              )}
-            </li>
-          );
-        })}
-      </ul>
+      {props.linkedRows}
+      {props.links.length > 0 && (
+        <ul className="m-0 list-none p-0">
+          {props.links.slice(0, visibleCount).map((link) => {
+            const Icon = LINK_ICONS[link.kind];
+            const hasPreview = link.kind === "jira" && link.url.startsWith("https://");
+            const control = (
+              <ThreadDetailsControl
+                size="sm"
+                variant="ghost"
+                part="row"
+                type="button"
+                className="flex-1"
+                title={hasPreview ? undefined : link.url}
+                onClick={(event) => open(link, event)}
+                onAuxClick={(event) => open(link, event)}
+              >
+                <Icon aria-hidden className={THREAD_DETAILS_PANEL_ICON_CLASS} />
+                <span className={`min-w-0 truncate ${THREAD_DETAILS_PANEL_LABEL_CLASS}`}>
+                  {link.label}
+                </span>
+              </ThreadDetailsControl>
+            );
+            return (
+              <li key={link.url} className="flex items-center gap-0.5">
+                <ThreadLinkCopyButton url={link.url} />
+                {hasPreview ? (
+                  <JiraLinkPreview
+                    environmentId={props.threadRef.environmentId}
+                    issue={link}
+                    href={link.url}
+                  >
+                    {control}
+                  </JiraLinkPreview>
+                ) : (
+                  control
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
       {props.links.length > LINK_PAGE_COUNT ? (
         <ThreadDetailsControl
           variant="ghost"

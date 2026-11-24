@@ -52,7 +52,7 @@ describe("thread links", () => {
       row({
         type: "assistant_message",
         streaming: false,
-        text: "Opened [the PR](https://github.com/acme/app/pull/3) for LIM-1.",
+        text: "Opened [the PR](https://github.com/Acme/App/pull/3) for LIM-1.",
       }),
       row({ type: "user_message", text: "See https://github.com/acme/app/pull/3/files" }),
       row({

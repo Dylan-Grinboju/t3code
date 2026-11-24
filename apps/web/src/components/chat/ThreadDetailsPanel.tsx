@@ -28,7 +28,10 @@ import { ThreadAutomationsPanel } from "./ThreadAutomationsPanel";
 import { ThreadRelationshipsPanel } from "./ThreadRelationshipsControl";
 import { ThreadServersPanel } from "./ThreadServersPanel";
 import { ThreadLinksPanel } from "./ThreadLinksPanel";
-import { VisibleThreadDetailPullRequests } from "./visibleThreadDetailPullRequests";
+import {
+  ThreadDetailPullRequestSlot,
+  VisibleThreadDetailPullRequests,
+} from "./visibleThreadDetailPullRequests";
 import { ThreadShelf } from "./ThreadShelf";
 import {
   ThreadDetailsContext,
@@ -98,6 +101,7 @@ interface ThreadDetailsPanelProps extends Pick<
 export function ThreadDetailsPanel(props: ThreadDetailsPanelProps) {
   const visible = useClientSettings(resolveThreadDetailsVisibility);
   const gt = useGT();
+  const [pullRequestSlot, setPullRequestSlot] = useState<HTMLDivElement | null>(null);
   const [visiblePullRequests, setVisiblePullRequests] = useState<ReadonlySet<string>>(
     () => new Set(),
   );
@@ -251,22 +255,24 @@ export function ThreadDetailsPanel(props: ThreadDetailsPanelProps) {
                   separated={density === "full"}
                 >
                   <div className="flex flex-col">
-                    <VisibleThreadDetailPullRequests value={setVisiblePullRequests}>
-                      {show.branch ? (
-                        <BranchToolbar
-                          layout="panel"
-                          panelSection="branch"
-                          {...branchToolbarProps}
-                        />
-                      ) : null}
-                      {show.pullRequests ? (
-                        <ThreadDetailsThreadPrRows
-                          threadRef={activeThreadRef}
-                          project={project}
-                          composerTarget={props.composerDraftTarget}
-                        />
-                      ) : null}
-                    </VisibleThreadDetailPullRequests>
+                    <ThreadDetailPullRequestSlot value={pullRequestSlot}>
+                      <VisibleThreadDetailPullRequests value={setVisiblePullRequests}>
+                        {show.branch ? (
+                          <BranchToolbar
+                            layout="panel"
+                            panelSection="branch"
+                            {...branchToolbarProps}
+                          />
+                        ) : null}
+                        {show.pullRequests ? (
+                          <ThreadDetailsThreadPrRows
+                            threadRef={activeThreadRef}
+                            project={project}
+                            composerTarget={props.composerDraftTarget}
+                          />
+                        ) : null}
+                      </VisibleThreadDetailPullRequests>
+                    </ThreadDetailPullRequestSlot>
                     {show.git && props.gitCwd ? (
                       <GitActionsControl
                         compact={density !== "full"}
@@ -292,6 +298,7 @@ export function ThreadDetailsPanel(props: ThreadDetailsPanelProps) {
                   environmentId={props.environmentId}
                   threadId={props.threadId}
                   visiblePullRequests={visiblePullRequests}
+                  pullRequestSlotRef={setPullRequestSlot}
                 />
               ) : null}
 
