@@ -14,6 +14,7 @@ import {
 } from "../../navigationHistory";
 import { primaryServerKeybindingsAtom } from "../../state/server";
 import { useHideSidebarIssues, useHideSidebarPullRequests } from "../../lib/forkSidebarIcons";
+import { useHideSidebarToolbar } from "../../lib/forkSidebarToolbar";
 import { cn } from "../../lib/utils";
 import { useIssuesSupported, usePullRequestsSupported } from "../../state/environments";
 import { T3Wordmark } from "../T3Wordmark";
@@ -49,8 +50,10 @@ import { observeResize } from "~/lib/observeResize";
 
 export const SidebarChromeHeader = memo(function SidebarChromeHeader({
   isElectron,
+  actions,
 }: {
   isElectron: boolean;
+  actions?: ReactNode;
 }) {
   const stageLabel = useEnvironmentStageLabel();
   const environmentIdentificationMode = useEnvironmentIdentificationMode();
@@ -88,6 +91,7 @@ export const SidebarChromeHeader = memo(function SidebarChromeHeader({
               <HistoryNavigationButton direction="forward" onBackdrop={backdropVariant !== null} />
             </div>
           ) : null}
+          {actions}
         </div>
         {pillLabel ? (
           <div className="ml-1 flex h-7 items-center">
@@ -108,6 +112,7 @@ export function SidebarBrandWidthProbe({
   isElectron: boolean;
   onWidthChange: (width: number) => void;
 }) {
+  const [hideToolbar] = useHideSidebarToolbar();
   const observeWidth = (probe: HTMLDivElement) => {
     return observeResize(probe, ([entry]) => {
       if (entry) onWidthChange(entry.borderBoxSize[0]?.inlineSize ?? probe.offsetWidth);
@@ -123,6 +128,7 @@ export function SidebarBrandWidthProbe({
       <div className="ml-[var(--workspace-titlebar-content-left)] flex gap-1">
         <SidebarBrandMark onBackdrop={false} />
         {isElectron ? <div className="w-[calc(2*var(--workspace-titlebar-control-size))]" /> : null}
+        {hideToolbar ? <div className="w-14" /> : null}
       </div>
     </div>
   );

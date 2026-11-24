@@ -95,6 +95,12 @@ const FORK_FEATURES = [
     ),
   },
   {
+    title: msg("Hide sidebar toolbar"),
+    description: msg(
+      "Under Sidebar above, hide the row above the bots and use the Search and project filter icons at the top of the sidebar.",
+    ),
+  },
+  {
     title: msg("Sidebar shortcuts"),
     description: msg("Under Sidebar above, hide the Pull requests and Issues icons independently."),
   },

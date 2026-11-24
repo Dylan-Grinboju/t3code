@@ -1,5 +1,6 @@
 import { T, useGT } from "gt-react";
 import { useHideSidebarIssues, useHideSidebarPullRequests } from "../../lib/forkSidebarIcons";
+import { useHideSidebarToolbar } from "../../lib/forkSidebarToolbar";
 import { useUsageBarsMeasure } from "../sidebar/SidebarUsageBars";
 import { useSidebar } from "../ui/sidebar";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../ui/select";
@@ -18,10 +19,12 @@ export function SidebarDisplaySettings() {
   const setting = useSearchableSetting();
   const { displayMode, setDisplayMode, hoverEnabled, setHoverEnabled } = useSidebar();
   const [usageBarsMeasure, setUsageBarsMeasure] = useUsageBarsMeasure();
+  const [hideToolbar, setHideToolbar] = useHideSidebarToolbar();
   const [hidePullRequests, setHidePullRequests] = useHideSidebarPullRequests();
   const [hideIssues, setHideIssues] = useHideSidebarIssues();
   const pullRequestsSetting = setting("hide-sidebar-pull-requests");
   const issuesSetting = setting("hide-sidebar-issues");
+  const toolbarSetting = setting("hide-sidebar-toolbar");
   const iconVisibilityDescription = gt("The icon is shown by default when supported.");
 
   return (
@@ -84,6 +87,27 @@ export function SidebarDisplaySettings() {
             checked={hoverEnabled}
             onCheckedChange={(checked) => setHoverEnabled(Boolean(checked))}
             aria-label={gt("Reveal sidebar on left-edge hover")}
+          />
+        }
+      />
+      <SettingsRow
+        {...toolbarSetting}
+        description={gt(
+          "The toolbar is shown by default. Hide it to move Search and the project filter to the top of the sidebar.",
+        )}
+        resetAction={
+          hideToolbar ? (
+            <SettingResetButton
+              ariaLabel={gt("Reset sidebar toolbar to default")}
+              onClick={() => setHideToolbar(false)}
+            />
+          ) : null
+        }
+        control={
+          <Switch
+            checked={hideToolbar}
+            onCheckedChange={setHideToolbar}
+            aria-label={toolbarSetting.title}
           />
         }
       />

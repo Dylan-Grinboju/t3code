@@ -61,10 +61,14 @@ vi.mock("../commandPaletteBus", () => ({
   openCommandPalette: vi.fn(),
   isCommandPaletteOpen: () => false,
 }));
-vi.mock("./sidebar/SidebarChrome", () => ({
-  SidebarChromeHeader: () => null,
-  SidebarChromeFooter: () => null,
-}));
+vi.mock("./sidebar/SidebarChrome", async (original) => {
+  const { SidebarChromeHeader } = await original<typeof import("./sidebar/SidebarChrome")>();
+  return {
+    SidebarChromeHeader: (props: React.ComponentProps<typeof SidebarChromeHeader>) =>
+      props.actions ? <SidebarChromeHeader {...props} isElectron /> : null,
+    SidebarChromeFooter: () => null,
+  };
+});
 
 function project(id: string): Project {
   return {
@@ -172,64 +176,95 @@ it("keeps the hover sidebar open over the part of the project filter outside it"
   await expect.element(option).not.toBeInTheDocument();
 });
 
-it("filters sidebar threads and search by the selected environment", async () => {
-  using cleanup = new DisposableStack();
-  cleanup.defer(() => localStorage.removeItem("fork.sidebarEnvironmentId"));
-  const localProject = project("Local project");
-  const remoteProject = {
-    ...project("Remote project"),
-    environmentId: EnvironmentId.make("remote"),
-  };
-  const projects = [localProject, remoteProject];
-  const threads = projects.map((project, index) => ({
-    ...threadShell(project.id, index),
-    environmentId: project.environmentId,
-  }));
-  const identities = vi.mocked(useEnvironmentIdentities).mockReturnValue([
-    { environmentId: localProject.environmentId, label: "Laptop" },
-    { environmentId: remoteProject.environmentId, label: "Workstation" },
-  ]);
-  cleanup.defer(() => identities.mockReset());
-  vi.mocked(useProjects).mockReturnValue(projects);
-  vi.mocked(useQuietThreadShells).mockReturnValue(threads);
-  await using screen = await render(
-    <SidebarProvider>
-      <Sidebar routeReveal={{ observedKey: null, pendingKey: null }} />
-    </SidebarProvider>,
-  );
+it.each([{ hideToolbar: false }, { hideToolbar: true }])(
+  "filters sidebar threads and search by the selected environment with hideToolbar=$hideToolbar",
+  async ({ hideToolbar }) => {
+    using cleanup = new DisposableStack();
+    cleanup.defer(() => localStorage.removeItem("fork.sidebarEnvironmentId"));
+    if (hideToolbar) {
+      localStorage.setItem("t3code:fork-hide-sidebar-toolbar", "true");
+      cleanup.defer(() => localStorage.removeItem("t3code:fork-hide-sidebar-toolbar"));
+    }
+    const localProject = project("Local project");
+    const remoteProject = {
+      ...project("Remote project"),
+      environmentId: EnvironmentId.make("remote"),
+    };
+    const projects = [localProject, remoteProject];
+    const threads = projects.map((project, index) => ({
+      ...threadShell(project.id, index),
+      environmentId: project.environmentId,
+    }));
+    const identities = vi.mocked(useEnvironmentIdentities).mockReturnValue([
+      { environmentId: localProject.environmentId, label: "Laptop" },
+      { environmentId: remoteProject.environmentId, label: "Workstation" },
+    ]);
+    cleanup.defer(() => identities.mockReset());
+    vi.mocked(useProjects).mockReturnValue(projects);
+    vi.mocked(useQuietThreadShells).mockReturnValue(threads);
+    await using screen = await render(
+      <SidebarProvider>
+        <style>{appCss}</style>
+        <Sidebar routeReveal={{ observedKey: null, pendingKey: null }} />
+      </SidebarProvider>,
+    );
 
-  const filter = screen.getByRole("combobox", { name: /Filter threads by environment/ });
-  await expect.element(screen.getByText("Thread 0", { exact: true })).toBeVisible();
-  await userEvent.click(filter);
-  await userEvent.fill(
-    page.getByRole("combobox", { name: "Search environments and projects" }),
-    "workstation",
-  );
-  await userEvent.click(page.getByRole("option", { name: "Workstation" }));
-  await expect.element(screen.getByText("Thread 0", { exact: true })).not.toBeInTheDocument();
-  await expect.element(screen.getByText("Thread 1", { exact: true })).toBeVisible();
+    const filter = screen.getByRole("combobox", { name: /Filter threads by environment/ });
+    await expect.element(screen.getByText("Thread 0", { exact: true })).toBeVisible();
+    await userEvent.click(filter);
+    await userEvent.fill(
+      page.getByRole("combobox", { name: "Search environments and projects" }),
+      "workstation",
+    );
+    await userEvent.click(page.getByRole("option", { name: "Workstation" }));
+    await expect.element(screen.getByText("Thread 0", { exact: true })).not.toBeInTheDocument();
+    await expect.element(screen.getByText("Thread 1", { exact: true })).toBeVisible();
 
-  await userEvent.fill(screen.getByRole("combobox", { name: "Search threads" }), "Thread");
-  const results = screen.getByRole("listbox", { name: "Thread search results" });
-  await expect.element(results.getByRole("option", { name: /Thread 1/ })).toBeVisible();
-  await expect.element(results.getByRole("option", { name: /Thread 0/ })).not.toBeInTheDocument();
+    const search = screen.getByRole("combobox", { name: "Search threads" });
+    const searchButton = screen.getByRole("button", { name: "Search threads" });
+    if (hideToolbar) {
+      const forward = screen.getByRole("button", { name: "Go forward" }).element();
+      expect(searchButton.element().getBoundingClientRect().left).toBeGreaterThanOrEqual(
+        forward.getBoundingClientRect().right,
+      );
+      expect(filter.element().getBoundingClientRect().left).toBeGreaterThanOrEqual(
+        searchButton.element().getBoundingClientRect().right,
+      );
+      await expect.element(search).not.toBeInTheDocument();
+      await expect
+        .element(screen.getByRole("button", { name: "Add project" }))
+        .not.toBeInTheDocument();
+      await userEvent.click(searchButton);
+      await expect.element(search).toHaveFocus();
+    }
+    await userEvent.fill(search, "Thread");
+    const results = screen.getByRole("listbox", { name: "Thread search results" });
+    await expect.element(results.getByRole("option", { name: /Thread 1/ })).toBeVisible();
+    await expect.element(results.getByRole("option", { name: /Thread 0/ })).not.toBeInTheDocument();
 
-  await userEvent.click(filter);
-  await userEvent.click(page.getByRole("option", { name: "All environments" }));
-  await expect.element(results.getByRole("option", { name: /Thread 0/ })).toBeVisible();
-  await expect.element(results.getByRole("option", { name: /Thread 1/ })).toBeVisible();
+    await userEvent.click(filter);
+    await userEvent.click(page.getByRole("option", { name: "All environments" }));
+    await expect.element(results.getByRole("option", { name: /Thread 0/ })).toBeVisible();
+    await expect.element(results.getByRole("option", { name: /Thread 1/ })).toBeVisible();
 
-  await userEvent.click(filter);
-  await userEvent.click(page.getByRole("option", { name: /^Remote project/ }));
-  await userEvent.click(filter);
-  await userEvent.click(page.getByRole("option", { name: "Laptop" }));
-  await expect.element(screen.getByText("No threads found", { exact: true })).toBeVisible();
+    await userEvent.click(filter);
+    await userEvent.click(page.getByRole("option", { name: /^Remote project/ }));
+    await userEvent.click(filter);
+    await userEvent.click(page.getByRole("option", { name: "Laptop" }));
+    await expect.element(screen.getByText("No threads found", { exact: true })).toBeVisible();
 
-  await userEvent.click(filter);
-  await userEvent.click(page.getByRole("option", { name: "All projects" }));
-  await expect.element(results.getByRole("option", { name: /Thread 0/ })).toBeVisible();
-  await expect.element(results.getByRole("option", { name: /Thread 1/ })).not.toBeInTheDocument();
-});
+    await userEvent.click(filter);
+    await userEvent.click(page.getByRole("option", { name: "All projects" }));
+    await expect.element(results.getByRole("option", { name: /Thread 0/ })).toBeVisible();
+    await expect.element(results.getByRole("option", { name: /Thread 1/ })).not.toBeInTheDocument();
+    if (hideToolbar) {
+      await userEvent.click(search);
+      await userEvent.keyboard("{Escape}");
+      await expect.element(search).not.toBeInTheDocument();
+      await expect.element(searchButton).toHaveFocus();
+    }
+  },
+);
 
 describe("sidebar render isolation", () => {
   // regression: #33100 Cmd+J re-rendered every sidebar row, which took hundreds of ms with many threads
