@@ -476,6 +476,7 @@ export function ThreadRelationshipsPanel(props: {
   readonly environmentId: EnvironmentId;
   readonly threadId: ThreadId;
   readonly omitBotWorkers?: boolean;
+  readonly omittedThreadKeys?: ReadonlySet<string>;
   readonly showLineage: boolean;
   readonly showSideChats: boolean;
   readonly labels?: ThreadRelationshipLabels;
@@ -567,8 +568,10 @@ export function ThreadRelationshipsPanel(props: {
     ...(archivedShells ?? []),
   ];
   const graph = deriveThreadRelationshipGraph({ threads: shells, projection });
-  const isHiddenRelation = (threadId: ThreadId) =>
-    hiddenKeys.has(threadKey({ environmentId: props.environmentId, threadId }));
+  const isHiddenRelation = (threadId: ThreadId) => {
+    const key = threadKey({ environmentId: props.environmentId, threadId });
+    return hiddenKeys.has(key) || props.omittedThreadKeys?.has(key) === true;
+  };
   // While hiding, an unloaded parent, fork or transfer may be hidden; unloaded subagent
   // children (idle, left out of the shell) follow this visible thread, so they stay.
   const isHiddenUnloadedRelation = (row: { threadId: ThreadId; edge: ThreadRelationshipEdge }) =>
@@ -650,6 +653,7 @@ export function ThreadRelationshipsPanel(props: {
   const { remoteActive = [], remotePrevious = [] } = groupBy(
     (omitWorkers ? [] : (projection?.subagents ?? []))
       .filter((agent): agent is RemoteSubagent => agent.remoteChild !== undefined)
+      .filter(({ remoteChild }) => !props.omittedThreadKeys?.has(threadKey(remoteChild)))
       .map((remote) => ({ remote })),
     ({ remote }) => (isFinishedAgentStatus(remote.status) ? "remotePrevious" : "remoteActive"),
   );

@@ -33,6 +33,7 @@ it("does not expose an archived snapshot failure message", () => {
 
   expect(registry.get(snapshotsAtom(makeArchivedThreadsEnvironmentKey([environmentId])))).toEqual({
     snapshots: [],
+    unfilteredSnapshots: [],
     error: "Failed to load archived threads.",
     isLoading: false,
   });
@@ -94,7 +95,7 @@ describe("archived delegated tasks follow their parent on another machine", () =
       labelPrefix: "test:archived-thread-snapshots",
     });
     const registry = AtomRegistry.make();
-    const { snapshots } = registry.get(
+    const { snapshots, unfilteredSnapshots } = registry.get(
       snapshotsAtom(
         makeArchivedThreadsEnvironmentKey(
           parentPage === undefined ? [taskEnvironmentId] : [parentEnvironmentId, taskEnvironmentId],
@@ -103,6 +104,9 @@ describe("archived delegated tasks follow their parent on another machine", () =
     );
     const taskSnapshot = snapshots.find((entry) => entry.environmentId === taskEnvironmentId);
     expect(taskSnapshot?.snapshot.threads.length).toBe(tasks);
+    expect(
+      unfilteredSnapshots.find((entry) => entry.environmentId === taskEnvironmentId)?.snapshot,
+    ).toEqual(taskPage);
     registry.dispose();
   });
 });

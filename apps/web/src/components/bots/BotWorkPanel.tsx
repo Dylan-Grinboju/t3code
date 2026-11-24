@@ -2,15 +2,17 @@ import { T, useGT, useMessages } from "gt-react";
 import { ArrowUpRightIcon, MessagesSquareIcon, WorkflowIcon } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { Link } from "@tanstack/react-router";
-import { scopeThreadRef, scopedThreadKey } from "@t3tools/client-runtime/environment";
-import { isListedThreadLineage, type ScopedThreadRef } from "@t3tools/contracts";
+import { scopeThreadRef } from "@t3tools/client-runtime/environment";
+import { threadKey } from "@t3tools/client-runtime/state/entities";
+import { isListedThreadLineage, type ScopedThreadRef, type ThreadId } from "@t3tools/contracts";
 import {
-  useEnvironmentThreadRefs,
   useHiddenThreadKeys,
   useQuietThreadProjection,
   useQuietThreadShell,
+  useThreadRefs,
 } from "../../state/entities";
 import { buildThreadRouteParams } from "../../threadRoutes";
+import { useArchivedThreadSnapshots } from "../../lib/archivedThreadsState";
 import { ThreadRelationshipsPanel } from "../chat/ThreadRelationshipsControl";
 import { BOT_RELATIONSHIP_LABELS, botCreatedConversations, botStatus } from "./botPresentation";
 
@@ -63,13 +65,27 @@ export function BotWorkPanel({ threadRef }: { threadRef: ScopedThreadRef }) {
   const messages = useMessages();
   const projection = useQuietThreadProjection(threadRef)?.projection ?? null;
   const hidden = useHiddenThreadKeys();
-  const refs = useEnvironmentThreadRefs(threadRef.environmentId);
-  const conversations = botCreatedConversations(
-    projection,
-    new Set(refs.map((ref) => ref.threadId)),
-  ).filter(
-    ({ threadId }) =>
-      !hidden.has(scopedThreadKey(scopeThreadRef(threadRef.environmentId, threadId))),
+  const refs = useThreadRefs();
+  const archiveEnvironments = new Set([threadRef.environmentId]);
+  for (const { remoteChild } of projection?.subagents ?? []) {
+    if (remoteChild) archiveEnvironments.add(remoteChild.environmentId);
+  }
+  const { unfilteredSnapshots } = useArchivedThreadSnapshots([...archiveEnvironments]);
+  const archivedThreadKeys = new Set(
+    unfilteredSnapshots.flatMap(({ environmentId, snapshot }) =>
+      snapshot.threads.map(({ id }) => threadKey(scopeThreadRef(environmentId, id))),
+    ),
+  );
+  const listedThreadIds = new Set<ThreadId>();
+  for (const ref of refs) {
+    archivedThreadKeys.delete(threadKey(ref));
+    if (ref.environmentId === threadRef.environmentId) listedThreadIds.add(ref.threadId);
+  }
+  const conversations = botCreatedConversations(projection, listedThreadIds).filter(
+    ({ threadId }) => {
+      const key = threadKey(scopeThreadRef(threadRef.environmentId, threadId));
+      return !hidden.has(key) && !archivedThreadKeys.has(key);
+    },
   );
   return (
     <section
@@ -111,6 +127,7 @@ export function BotWorkPanel({ threadRef }: { threadRef: ScopedThreadRef }) {
       <ThreadRelationshipsPanel
         environmentId={threadRef.environmentId}
         threadId={threadRef.threadId}
+        omittedThreadKeys={archivedThreadKeys}
         showLineage
         showSideChats
         labels={{

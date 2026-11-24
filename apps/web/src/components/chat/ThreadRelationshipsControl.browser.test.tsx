@@ -12,8 +12,10 @@ const state = vi.hoisted(() => ({
   projection: null as unknown,
   commandSucceeds: false,
   relatedShells: [] as unknown[],
+  liveThreadRefs: [] as unknown[],
   threadTitles: {} as Record<string, string>,
   archivedThreads: [] as unknown[],
+  remoteArchivedThreads: [] as unknown[],
 }));
 
 vi.mock(import("../../state/query"), async (original) => ({
@@ -31,6 +33,7 @@ vi.mock(import("@effect/atom-react"), async (original) => ({
 
 vi.mock(import("../../state/entities"), () => ({
   useQuietThreadShell: (() => null) as never,
+  useThreadRefs: (() => state.liveThreadRefs) as never,
   useQuietThreadProjection: ((ref: unknown) =>
     ref === null ? null : { projection: state.projection }) as never,
   useThreadRelationshipShells: (() =>
@@ -46,9 +49,20 @@ vi.mock(import("../../state/environments"), () => ({
   useEnvironmentProviders: (() => new Map()) as never,
 }));
 vi.mock(import("../../lib/archivedThreadsState"), () => ({
-  useArchivedThreadSnapshots: (() => ({
-    snapshots: [{ environmentId: "environment", snapshot: { threads: state.archivedThreads } }],
-  })) as never,
+  useArchivedThreadSnapshots: ((environments: string[]) => {
+    const snapshots = [
+      { environmentId: "environment", snapshot: { threads: state.archivedThreads } },
+    ];
+    return {
+      snapshots,
+      unfilteredSnapshots: environments.includes("remote-env")
+        ? [
+            ...snapshots,
+            { environmentId: "remote-env", snapshot: { threads: state.remoteArchivedThreads } },
+          ]
+        : snapshots,
+    };
+  }) as never,
 }));
 vi.mock(import("../../state/use-atom-command"), () => ({
   useAtomCommand: (() => async () =>
@@ -59,6 +73,7 @@ vi.mock(import("../../state/use-atom-command"), () => ({
 
 import { render } from "../../../test/render";
 import { makeThreadProjectionFixture } from "../../test-fixtures";
+import { BotWorkPanel } from "../bots/BotWorkPanel";
 import { ScrollArea } from "../ui/scroll-area";
 import { ToastProvider } from "../ui/toast";
 import { ThreadRelationshipsPanel } from "./ThreadRelationshipsControl";
@@ -69,8 +84,10 @@ const threadId = ThreadId.make("fork");
 function setup() {
   state.commandSucceeds = false;
   state.relatedShells = [];
+  state.liveThreadRefs = [];
   state.threadTitles = { source: "Source" };
   state.archivedThreads = [];
+  state.remoteArchivedThreads = [];
   state.projection = {
     thread: {
       id: threadId,
@@ -357,6 +374,16 @@ it("shows a remote subagent's full title in its tooltip even when its environmen
 
   await row.click({ force: true });
   expect(screen.router?.state.location.pathname).toBe("/environment/fork");
+
+  const threadRef = { environmentId, threadId };
+  await screen.rerender(<BotWorkPanel threadRef={threadRef} />);
+  await expect.element(screen.getByRole("button", { name: /Finished workers/ })).toBeVisible();
+
+  state.remoteArchivedThreads = [{ id: remoteThreadId }];
+  await screen.rerender(<BotWorkPanel threadRef={threadRef} />);
+  await expect
+    .element(screen.getByRole("button", { name: /Finished workers/ }))
+    .not.toBeInTheDocument();
 });
 
 it("explains why Merge back is unavailable before the fork completes a run", async () => {
@@ -422,21 +449,38 @@ it("shows a delegated-from thread's full title in its tooltip even when its envi
   expect(screen.router?.state.location.pathname).toBe("/environment/fork");
 });
 
-it("hides a deleted fork and keeps unloaded and archived forks with their current titles", async () => {
+it("keeps archived relationships in Lineage and hides them in Bot work", async () => {
   setup();
   const projection = makeThreadProjectionFixture();
+  const archivedForkId = ThreadId.make("archived-fork");
   state.threadTitles = { "unloaded-fork": "Unloaded fork", "archived-fork": "Archived fork" };
+  const archivedFork = {
+    ...projection.thread,
+    id: archivedForkId,
+    title: "Old archived title",
+    archivedAt: projection.thread.updatedAt,
+    lineage: { parentThreadId: projection.thread.id, relationshipToParent: "fork" },
+  };
+  const finishedWorker = {
+    ...projection.thread,
+    id: ThreadId.make("finished-worker"),
+    title: "Finished worker chat",
+    activityRunStatus: "completed",
+    lineage: { parentThreadId: projection.thread.id, relationshipToParent: "subagent" },
+  };
   state.archivedThreads = [
+    archivedFork,
     {
-      ...projection.thread,
-      id: ThreadId.make("archived-fork"),
-      title: "Old archived title",
+      ...finishedWorker,
+      id: ThreadId.make("archived-worker"),
+      title: "Archived worker chat",
       archivedAt: projection.thread.updatedAt,
-      lineage: { parentThreadId: projection.thread.id, relationshipToParent: "fork" },
     },
   ];
+  state.relatedShells = [finishedWorker];
   state.projection = {
     ...projection,
+    turnItems: [{ type: "thread_created", targetThreadId: archivedForkId, title: "Archived fork" }],
     contextTransfers: ["deleted-fork", "unloaded-fork", "archived-fork"].map((id) => ({
       sourceThreadId: projection.thread.id,
       targetThreadId: ThreadId.make(id),
@@ -454,6 +498,24 @@ it("hides a deleted fork and keeps unloaded and archived forks with their curren
   await expect.element(screen.getByText("Unloaded fork", { exact: true })).toBeVisible();
   await expect.element(screen.getByText("Archived fork", { exact: true })).toBeVisible();
   await expect.element(screen.getByText("deleted-fork", { exact: true })).not.toBeInTheDocument();
+
+  const threadRef = { environmentId, threadId: projection.thread.id };
+  await screen.rerender(<BotWorkPanel threadRef={threadRef} />);
+  await expect.element(screen.getByRole("link", { name: /Archived fork/ })).not.toBeInTheDocument();
+  await expect
+    .element(screen.getByRole("button", { name: /Archived fork/ }))
+    .not.toBeInTheDocument();
+  await expect.element(screen.getByText("Unloaded fork", { exact: true })).toBeVisible();
+  await screen.getByRole("button", { name: /Finished workers/ }).click();
+  await expect.element(screen.getByText("Finished worker chat", { exact: true })).toBeVisible();
+  await expect
+    .element(screen.getByText("Archived worker chat", { exact: true }))
+    .not.toBeInTheDocument();
+
+  state.liveThreadRefs = [{ environmentId, threadId: archivedForkId }];
+  state.relatedShells = [...state.relatedShells, { ...archivedFork, archivedAt: null }];
+  await screen.rerender(<BotWorkPanel threadRef={threadRef} />);
+  await expect.element(screen.getByRole("link", { name: /Archived fork/ })).toBeVisible();
 });
 
 it.each([1, 18])("continues scrolling the panel past a list of %i subagents", async (count) => {

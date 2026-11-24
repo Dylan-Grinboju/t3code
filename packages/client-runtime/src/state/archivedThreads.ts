@@ -18,6 +18,7 @@ export interface ArchivedSnapshotEntry {
 
 export interface ArchivedThreadSnapshotsState {
   readonly snapshots: ReadonlyArray<ArchivedSnapshotEntry>;
+  readonly unfilteredSnapshots: ReadonlyArray<ArchivedSnapshotEntry>;
   readonly error: string | null;
   readonly isLoading: boolean;
 }
@@ -94,8 +95,9 @@ export function createArchivedThreadSnapshotsAtomFamily<E>(options: {
         hidingAnywhere ? new Set(get(options.liveThreadRefsAtom).map(threadKey)) : undefined,
         hidingAnywhere,
       );
-      if (hidden.size === 0) return { snapshots, error, isLoading };
+      if (hidden.size === 0) return { snapshots, unfilteredSnapshots: snapshots, error, isLoading };
       return {
+        unfilteredSnapshots: snapshots,
         snapshots: snapshots.map(({ environmentId, snapshot }) => ({
           environmentId,
           snapshot: {
