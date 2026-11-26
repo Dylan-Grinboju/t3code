@@ -32,7 +32,6 @@ import {
   isThreadRouteSnapshotAuthoritative,
   resolveThreadRouteRenderState,
 } from "../../threadRoutes";
-import { useOpenThreadFamily } from "../ThreadRouteView";
 import { useAtomCommand } from "../../state/use-atom-command";
 import ChatView from "../ChatView";
 import { Button } from "../ui/button";
@@ -78,7 +77,6 @@ export default function SideThreadPane(props: {
     shell === null ? parentRef.environmentId : null,
     shell === null ? threadId : null,
   );
-  useOpenThreadFamily(threadRef, bootstrapComplete && shell === null);
   const renderState = resolveThreadRouteRenderState({
     bootstrapComplete,
     serverThreadExists: shell !== null,

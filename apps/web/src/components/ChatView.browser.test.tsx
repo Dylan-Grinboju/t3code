@@ -607,7 +607,7 @@ it("a file picked after the phone composer collapses still attaches", async () =
   input!.files = files.files;
   input!.dispatchEvent(new Event("change", { bubbles: true }));
 
-  await expect.element(page.getByRole("img", { name: "picked.png" })).toBeVisible();
+  await expect.element(page.getByLabelText("Preview picked.png").getByRole("img")).toBeVisible();
 });
 
 it("opens the thread actions menu for an older settled thread the shell leaves out", async () => {

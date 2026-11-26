@@ -1,5 +1,6 @@
 import { T, msg, useGT, useMessages } from "gt-react";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
+import { sideThreadKindOf } from "@t3tools/client-runtime/side-thread";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
@@ -27,12 +28,13 @@ import {
   waitForThreadShell,
 } from "../../state/entities";
 import { useEnvironmentScope } from "../../state/session";
-import { useEnvironmentShellHasSnapshot } from "../../state/shell";
+import { useEnvironmentShellHasSnapshot, useEnvironmentShellStatus } from "../../state/shell";
 import { threadEnvironment } from "../../state/threads";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { useOrchestrationCommand } from "../../state/use-orchestration-command";
-import { buildThreadRouteParams } from "../../threadRoutes";
+import { buildThreadRouteParams, isThreadRouteSnapshotAuthoritative } from "../../threadRoutes";
 import ChatView from "../ChatView";
+import { useOpenThreadFamily } from "../ThreadRouteView";
 import { Button } from "../ui/button";
 import { Menu, MenuPopup, MenuRadioGroup, MenuRadioItem, MenuTrigger } from "../ui/menu";
 import { toastManager } from "../ui/toast";
@@ -48,15 +50,23 @@ interface PaneProps {
   readonly onClose: () => void;
 }
 
-/** A side chat of the host keeps its own pane; any other thread opens as a thread tab. */
 export default function ThreadSurfacePane(
   props: Omit<PaneProps, "threadId"> & {
     readonly surface: ThreadSurface;
   },
 ) {
   const { surface, ...pane } = props;
-  const shell = useQuietThreadShell(scopeThreadRef(pane.parentRef.environmentId, surface.threadId));
-  if (shell === null || isSideChatOf(shell, pane.parentRef)) return <SideThreadPane {...props} />;
+  const threadRef = scopeThreadRef(pane.parentRef.environmentId, surface.threadId);
+  const shell = useQuietThreadShell(threadRef);
+  const shellStatus = useEnvironmentShellStatus(threadRef.environmentId);
+  useOpenThreadFamily(threadRef, shell === null && isThreadRouteSnapshotAuthoritative(shellStatus));
+  if (
+    shell === null ||
+    isSideChatOf(shell, pane.parentRef) ||
+    sideThreadKindOf(shell.source) === "provider-subagent"
+  ) {
+    return <SideThreadPane {...props} />;
+  }
   return <ThreadTabPane {...pane} threadId={surface.threadId} />;
 }
 

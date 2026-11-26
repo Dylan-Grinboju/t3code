@@ -7759,26 +7759,43 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
     ) {
       dispatchMode = { type: "start_immediately" };
     }
-    let botRotation =
-      projection.thread.bot != null &&
+    const bot = projection.thread.bot;
+    let botRotation = false;
+    if (
+      bot != null &&
+      bot.freshAfterTurns > 0 &&
       command.freshContext !== true &&
       command.createdBy === "user" &&
-      !command.text.trimStart().startsWith("/") &&
-      botNeedsFreshContext(
-        projection.thread.bot,
-        projection.runs,
-        projection.turnItems,
-        contextBoundaryOrdinal(projection),
-      ) &&
-      pendingForkTransferForThread(projection) === undefined &&
-      pendingMergeBackTransfersForThread(projection).length === 0 &&
-      derivePendingBackgroundWork({
-        latestRun: projection.runs.findLast((run) => run.status !== "queued"),
-        providerThreads: projection.providerThreads,
-        turnItems: projection.turnItems,
-        activeProviderThreadId: projection.thread.activeProviderThreadId,
-        runs: projection.runs,
-      }).length === 0;
+      !command.text.trimStart().startsWith("/")
+    ) {
+      const latest = latestStartedRun(projection.runs);
+      const persistedRun =
+        latest?.status === "waiting"
+          ? yield* projectionStore
+              .getRun(command.threadId, latest.id)
+              .pipe(mapDispatchError(command))
+          : undefined;
+      const runs =
+        persistedRun?.status === "completed"
+          ? projection.runs.map((run) => (run.id === persistedRun.id ? persistedRun : run))
+          : projection.runs;
+      botRotation =
+        botNeedsFreshContext(
+          bot,
+          runs,
+          projection.turnItems,
+          contextBoundaryOrdinal({ ...projection, runs }),
+        ) &&
+        pendingForkTransferForThread(projection) === undefined &&
+        pendingMergeBackTransfersForThread(projection).length === 0 &&
+        derivePendingBackgroundWork({
+          latestRun: projection.runs.findLast((run) => run.status !== "queued"),
+          providerThreads: projection.providerThreads,
+          turnItems: projection.turnItems,
+          activeProviderThreadId: projection.thread.activeProviderThreadId,
+          runs: projection.runs,
+        }).length === 0;
+    }
     for (const session of botRotation
       ? sessionsReleasedByFreshContext(projection, dispatchProviderThread(projection, {}, true))
       : []) {
