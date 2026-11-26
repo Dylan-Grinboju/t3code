@@ -9,6 +9,7 @@ import * as HttpClientResponse from "effect/http/HttpClientResponse";
 
 import {
   FORK_UPDATE_KEEP_MS,
+  checkLatestForkRelease,
   discardForkUpdate,
   downloadForkUpdate,
   getForkUpdateState,
@@ -30,6 +31,36 @@ describe("parseSha256Sums", () => {
   });
 });
 
+describe("checkLatestForkRelease", () => {
+  it.effect.each([
+    { location: "/owner/repo/releases/tag/v0.1.12+sidebar.1", valid: true },
+    { location: "https://github.com/owner/repo/releases/tag/v0.1.12%2Bsidebar.1", valid: true },
+    { location: "https://example.com/owner/repo/releases/tag/v0.1.12+sidebar.1", valid: false },
+    { location: "/other/repo/releases/tag/v0.1.12+sidebar.1", valid: false },
+    { location: "/owner/repo/releases/tag/v0.1.12", valid: false },
+  ])("validates the latest release redirect at $location", ({ location, valid }) =>
+    Effect.gen(function* () {
+      const client = HttpClient.make((request) => {
+        assert.strictEqual(request.method, "HEAD");
+        assert.strictEqual(request.url, "https://github.com/owner/repo/releases/latest");
+        const response = new Response(null, { status: 302, headers: { location } });
+        return Effect.succeed(HttpClientResponse.fromWeb(request, response));
+      });
+      const result = yield* checkLatestForkRelease("owner/repo").pipe(
+        Effect.provideService(HttpClient.HttpClient, client),
+        Effect.result,
+      );
+      assert.strictEqual(result._tag, valid ? "Success" : "Failure");
+      if (result._tag === "Success") {
+        assert.deepEqual(result.success, {
+          tag: "v0.1.12+sidebar.1",
+          url: "https://github.com/owner/repo/releases/tag/v0.1.12%2Bsidebar.1",
+        });
+      }
+    }),
+  );
+});
+
 describe("downloadForkUpdate", () => {
   it.effect("identifies itself to GitHub and downloads a checksum-verified installer", () =>
     Effect.gen(function* () {
@@ -37,32 +68,24 @@ describe("downloadForkUpdate", () => {
       const path = yield* Path.Path;
       const dir = path.join(yield* fs.makeTempDirectoryScoped(), "fork-update");
       const host = { dir, platform: "win32", arch: "x64", execPath: "", pid: 1 } as const;
-      const base = "https://github.com/owner/repo/releases/download/v1%2Bsidebar.2";
+      const base = "https://github.com/owner/repo/releases/download/v1.0.0%2Bsidebar.2";
       const name = "T3-Code-1.0.0-x64.exe";
       const client = HttpClient.make((request) => {
+        assert.strictEqual(request.headers["user-agent"], "T3-Code-Fork-Updater");
         const response =
-          request.url === "https://api.github.com/repos/owner/repo/releases/tags/v1%2Bsidebar.2"
-            ? request.headers["user-agent"]
-              ? Response.json({
-                  assets: [
-                    { name, browser_download_url: `${base}/${name}` },
-                    { name: "SHA256SUMS", browser_download_url: `${base}/SHA256SUMS` },
-                  ],
-                })
-              : new Response("User-Agent required", { status: 403 })
-            : request.url === `${base}/SHA256SUMS`
-              ? new Response(
-                  `2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824  ./${name}\n`,
-                )
-              : request.url === `${base}/${name}`
-                ? new Response("hello")
-                : new Response("Not found", { status: 404 });
+          request.url === `${base}/SHA256SUMS`
+            ? new Response(
+                `2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824  ./${name}\n`,
+              )
+            : request.url === `${base}/${name}`
+              ? new Response("hello")
+              : new Response("Not found", { status: 404 });
         return Effect.succeed(HttpClientResponse.fromWeb(request, response));
       });
       yield* Effect.gen(function* () {
-        const result = yield* downloadForkUpdate(host, "owner/repo", "v1+sidebar.2");
+        const result = yield* downloadForkUpdate(host, "owner/repo", "v1.0.0+sidebar.2");
         assert.strictEqual(result.status, "downloaded");
-        assert.strictEqual(result.tag, "v1+sidebar.2");
+        assert.strictEqual(result.tag, "v1.0.0+sidebar.2");
         assert.strictEqual(yield* fs.readFileString(path.join(dir, name)), "hello");
         assert.isFalse(yield* fs.exists(path.join(dir, `${name}.part`)));
       }).pipe(

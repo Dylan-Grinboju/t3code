@@ -15,7 +15,6 @@ import * as Schema from "effect/Schema";
 import * as Stream from "effect/Stream";
 import * as HttpClient from "effect/http/HttpClient";
 import * as HttpClientRequest from "effect/http/HttpClientRequest";
-import * as HttpClientResponse from "effect/http/HttpClientResponse";
 import * as ChildProcess from "effect/process/ChildProcess";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 
@@ -39,9 +38,8 @@ const ManifestJson = Schema.fromJsonString(Manifest);
 const decodeManifest = Schema.decodeEffect(ManifestJson);
 const encodeManifest = Schema.encodeEffect(ManifestJson);
 
-const Release = Schema.Struct({
-  assets: Schema.Array(Schema.Struct({ name: Schema.String, browser_download_url: Schema.String })),
-});
+const REPOSITORY_NAME = /^[\w.-]+\/[\w.-]+$/;
+const RELEASE_TAG = /^v\d+\.\d+\.\d+\+sidebar\.\d+$/;
 
 export interface ForkUpdateHost {
   readonly dir: string;
@@ -161,6 +159,30 @@ export const discardForkUpdate = Effect.fn("ForkUpdate.discard")(function* (host
   return yield* getForkUpdateState(host);
 });
 
+export const checkLatestForkRelease = Effect.fn("ForkUpdate.checkLatest")(function* (
+  repository: string,
+) {
+  if (!REPOSITORY_NAME.test(repository)) {
+    return yield* new ForkUpdateError({ message: "Invalid release repository." });
+  }
+  const url = `https://github.com/${repository}/releases/latest`;
+  const response = yield* HttpClient.head(url).pipe(Effect.timeout("15 seconds"));
+  const location = URL.parse(response.headers.location ?? "", url);
+  const prefix = `/${repository}/releases/tag/`;
+  const tag = location?.pathname.slice(prefix.length).replace(/%2b/gi, "+");
+  if (
+    response.status < 300 ||
+    response.status >= 400 ||
+    location?.origin !== "https://github.com" ||
+    location.pathname.slice(0, prefix.length).toLowerCase() !== prefix.toLowerCase() ||
+    tag === undefined ||
+    !RELEASE_TAG.test(tag)
+  ) {
+    return yield* new ForkUpdateError({ message: "GitHub did not return a fork release." });
+  }
+  return { tag, url: `https://github.com${prefix}${encodeURIComponent(tag)}` };
+});
+
 const downloadRelease = Effect.fn("ForkUpdate.downloadRelease")(function* (
   host: ForkUpdateHost,
   repository: string,
@@ -176,44 +198,34 @@ const downloadRelease = Effect.fn("ForkUpdate.downloadRelease")(function* (
   const suffix = forkUpdateAssetSuffix(host.platform, host.arch);
   if (suffix === null) return yield* new ForkUpdateError({ message: "No fork build here." });
 
-  const release = yield* client
-    .execute(
-      HttpClientRequest.get(
-        `https://api.github.com/repos/${repository}/releases/tags/${encodeURIComponent(tag)}`,
-      ).pipe(HttpClientRequest.acceptJson),
-    )
-    .pipe(Effect.flatMap(HttpClientResponse.schemaBodyJson(Release)));
-  const asset = release.assets.find((candidate) => candidate.name.endsWith(suffix));
-  const sumsAsset = release.assets.find((candidate) => candidate.name === "SHA256SUMS");
-  if (!asset || !sumsAsset) {
+  const base = `https://github.com/${repository}/releases/download/${encodeURIComponent(tag)}`;
+  const sums = parseSha256Sums(
+    yield* client.get(`${base}/SHA256SUMS`).pipe(Effect.flatMap((response) => response.text)),
+  );
+  const installer = [...sums].find(([name]) => /^[\w.-]+$/.test(name) && name.endsWith(suffix));
+  if (installer === undefined) {
     return yield* new ForkUpdateError({ message: `Release ${tag} has no ${suffix} build.` });
   }
-  const sums = parseSha256Sums(
-    yield* client.get(sumsAsset.browser_download_url).pipe(Effect.flatMap((r) => r.text)),
-  );
-  const expected = sums.get(asset.name);
-  if (!expected) {
-    return yield* new ForkUpdateError({ message: `SHA256SUMS has no entry for ${asset.name}.` });
-  }
+  const [name, expected] = installer;
 
   yield* removeDir(host.dir);
   yield* fs.makeDirectory(host.dir, { recursive: true });
-  const target = path.join(host.dir, asset.name);
+  const target = path.join(host.dir, name);
   const partial = `${target}.part`;
   const hash = NodeCrypto.createHash("sha256");
-  const response = yield* client.get(asset.browser_download_url);
+  const response = yield* client.get(`${base}/${encodeURIComponent(name)}`);
   yield* response.stream.pipe(
     Stream.tap((chunk) => Effect.sync(() => hash.update(chunk))),
     Stream.run(fs.sink(partial)),
   );
   if (hash.digest("hex") !== expected) {
     yield* removeDir(host.dir);
-    return yield* new ForkUpdateError({ message: `Checksum mismatch for ${asset.name}.` });
+    return yield* new ForkUpdateError({ message: `Checksum mismatch for ${name}.` });
   }
   yield* fs.rename(partial, target);
   const manifest: Manifest = {
     tag,
-    file: asset.name,
+    file: name,
     downloadedAt: yield* Clock.currentTimeMillis,
   };
   yield* fs.writeFileString(path.join(host.dir, MANIFEST), yield* encodeManifest(manifest));
@@ -227,8 +239,11 @@ export const downloadForkUpdate = Effect.fn("ForkUpdate.download")(function* (
 ) {
   let done = inFlight?.done;
   if (done === undefined) {
-    if (!/^[\w.-]+\/[\w.-]+$/.test(repository)) {
+    if (!REPOSITORY_NAME.test(repository)) {
       return state("failed", { tag, message: "Invalid release repository." });
+    }
+    if (!RELEASE_TAG.test(tag)) {
+      return state("failed", { tag, message: "Invalid fork release tag." });
     }
     failure = null;
     const settled = yield* Deferred.make<void>();

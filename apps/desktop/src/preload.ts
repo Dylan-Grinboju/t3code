@@ -341,6 +341,8 @@ contextBridge.exposeInMainWorld("desktopBridge", {
   installUpdate: (expectedVersion) =>
     ipcRenderer.invoke(IpcChannels.UPDATE_INSTALL_CHANNEL, expectedVersion),
   forkUpdate: {
+    checkLatest: (repository) =>
+      ipcRenderer.invoke(IpcChannels.FORK_UPDATE_CHECK_LATEST_CHANNEL, repository),
     getState: () => ipcRenderer.invoke(IpcChannels.FORK_UPDATE_GET_STATE_CHANNEL),
     download: (repository, tag) =>
       ipcRenderer.invoke(IpcChannels.FORK_UPDATE_DOWNLOAD_CHANNEL, { repository, tag }),

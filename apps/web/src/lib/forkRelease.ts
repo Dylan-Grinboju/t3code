@@ -67,6 +67,8 @@ function latestOf(current: ForkReleaseStatus) {
 }
 
 async function fetchLatestRelease(signal: AbortSignal): Promise<ForkRelease> {
+  const bridge = forkUpdateBridge();
+  if (bridge?.checkLatest) return bridge.checkLatest(REPOSITORY);
   const response = await fetch(`https://api.github.com/repos/${REPOSITORY}/releases/latest`, {
     headers: { Accept: "application/vnd.github+json" },
     signal,
@@ -85,15 +87,16 @@ function checkForkReleaseNow(): Promise<boolean> {
   publish({ status: { kind: "checking", latest: latestOf(snapshot.status) } });
   const done = fetchLatestRelease(controller.signal).then(
     (latest) => {
+      if (controller.signal.aborted) return false;
       inFlight = null;
       publish({ status: { kind: "checked", latest } });
       replaceStaleDownload();
       return true;
     },
     () => {
+      if (controller.signal.aborted) return false;
       inFlight = null;
-      if (!controller.signal.aborted)
-        publish({ status: { kind: "failed", latest: latestOf(snapshot.status) } });
+      publish({ status: { kind: "failed", latest: latestOf(snapshot.status) } });
       return false;
     },
   );

@@ -362,6 +362,9 @@ export const DesktopForkUpdateStateSchema = Schema.Struct({
 });
 export type DesktopForkUpdateState = typeof DesktopForkUpdateStateSchema.Type;
 
+export const DesktopForkReleaseSchema = Schema.Struct({ tag: Schema.String, url: Schema.String });
+export type DesktopForkRelease = typeof DesktopForkReleaseSchema.Type;
+
 export const DesktopCliCommandStateSchema = Schema.Struct({
   supported: Schema.Boolean,
   installedPath: Schema.NullOr(Schema.String),
@@ -1248,6 +1251,7 @@ export interface DesktopBridge {
   installUpdate: (expectedVersion?: string) => Promise<DesktopUpdateActionResult>;
   onUpdateState: (listener: (state: DesktopUpdateState) => void) => () => void;
   forkUpdate: {
+    checkLatest?: (repository: string) => Promise<DesktopForkRelease>;
     getState: () => Promise<DesktopForkUpdateState>;
     /** Resolves when the download settles; a second call joins the one in flight. */
     download: (repository: string, tag: string) => Promise<DesktopForkUpdateState>;

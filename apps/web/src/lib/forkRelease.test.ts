@@ -27,7 +27,7 @@ const downloaded = (tag: string): DesktopForkUpdateState => ({
   message: null,
 });
 
-async function createFixture() {
+async function createFixture(useDesktopCheck = false) {
   vi.resetModules();
   vi.clearAllMocks();
   vi.useFakeTimers({ now: 1_800_000_000_000 });
@@ -35,7 +35,12 @@ async function createFixture() {
   vi.stubEnv("T3CODE_DESKTOP_UPDATE_REPOSITORY", "owner/repo");
   const local = deferred<DesktopForkUpdateState>();
   const download = deferred<DesktopForkUpdateState>();
+  const checkLatest = vi.fn(async () => ({
+    tag: "v1+sidebar.3",
+    url: "https://github.com/owner/repo/releases/tag/v1%2Bsidebar.3",
+  }));
   const bridge = {
+    ...(useDesktopCheck ? { checkLatest } : {}),
     getState: vi.fn(() => local.promise),
     discard: vi.fn(async (): Promise<DesktopForkUpdateState> => ({
       status: "idle",
@@ -73,6 +78,7 @@ async function createFixture() {
     download,
     bridge,
     fetchRelease,
+    checkLatest,
     getSnapshot,
     downloadSettled: downloadSettled.promise,
     [Symbol.dispose]: stop,
@@ -83,6 +89,18 @@ afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
+});
+
+it("checks for the latest fork release through the desktop bridge without browser REST calls", async () => {
+  using fixture = await createFixture(true);
+  await fixture.release.checkForkReleaseFromButton();
+
+  expect(fixture.checkLatest).toHaveBeenCalledExactlyOnceWith("owner/repo");
+  expect(fixture.fetchRelease).not.toHaveBeenCalled();
+  expect(fixture.getSnapshot().status).toMatchObject({
+    kind: "checked",
+    latest: { tag: "v1+sidebar.3" },
+  });
 });
 
 describe("fork release downloads", () => {

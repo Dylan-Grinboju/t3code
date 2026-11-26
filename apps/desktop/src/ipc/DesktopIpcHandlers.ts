@@ -33,6 +33,7 @@ import {
   resolveSshPasswordPrompt,
 } from "./methods/sshEnvironment.ts";
 import {
+  checkLatestForkRelease,
   discardForkUpdate,
   downloadForkUpdate,
   getForkUpdateState,
@@ -186,6 +187,7 @@ export const installDesktopIpcHandlers = Effect.fn("desktop.ipc.installHandlers"
   yield* ipc.handle(downloadUpdate);
   yield* ipc.handle(installUpdate);
   yield* ipc.handle(checkForUpdate);
+  yield* ipc.handle(checkLatestForkRelease);
   yield* ipc.handle(getForkUpdateState);
   yield* ipc.handle(downloadForkUpdate);
   yield* ipc.handle(installForkUpdate);

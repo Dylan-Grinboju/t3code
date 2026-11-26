@@ -1,4 +1,4 @@
-import { DesktopForkUpdateStateSchema } from "@t3tools/contracts";
+import { DesktopForkReleaseSchema, DesktopForkUpdateStateSchema } from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 
@@ -17,6 +17,13 @@ const forkUpdateHost = Effect.gen(function* () {
     execPath: process.execPath,
     pid: process.pid,
   } satisfies ForkUpdate.ForkUpdateHost;
+});
+
+export const checkLatestForkRelease = makeIpcMethod({
+  channel: IpcChannels.FORK_UPDATE_CHECK_LATEST_CHANNEL,
+  payload: Schema.String,
+  result: DesktopForkReleaseSchema,
+  handler: ForkUpdate.checkLatestForkRelease,
 });
 
 export const getForkUpdateState = makeIpcMethod({
