@@ -119,6 +119,7 @@ jobs:
       rust_target: aarch64-apple-darwin
       resource_key: darwin-arm64
       launch_check: true
+      fork_update_check: true
       version: ${{ needs.bundle.outputs.version }}
       ref: ${{ github.sha }}
       release_channel: stable
@@ -135,6 +136,7 @@ jobs:
       label: Windows x64
       runner: ubuntu-24.04
       verify_runner: windows-2025
+      fork_update_check: true
       platform: win
       target: nsis
       arch: x64

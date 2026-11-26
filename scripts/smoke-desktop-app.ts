@@ -7,6 +7,7 @@ import * as NodeOS from "node:os";
 import * as NodePath from "node:path";
 import * as NodeTimersPromises from "node:timers/promises";
 import * as NodeUtil from "node:util";
+import type { DesktopBridge } from "@t3tools/contracts";
 import { _electron, type ElectronApplication } from "playwright-core";
 
 // A snapshot from an older build on purpose: the packaged server must migrate it forward, as it
@@ -22,12 +23,13 @@ const { values } = NodeUtil.parseArgs({
     // An unpackaged app directory for a plain Electron executable, as PR CI runs it.
     app: { type: "string" },
     "artifacts-dir": { type: "string" },
+    "fork-update": { type: "string" },
   },
 });
 const executable = values.executable;
 if (!executable)
   throw new Error(
-    "Usage: smoke-desktop-app.ts --executable <app> [--app <dir>] [--artifacts-dir <dir>]",
+    "Usage: smoke-desktop-app.ts --executable <app> [--app <dir>] [--artifacts-dir <dir>] [--fork-update <owner/repo>]",
   );
 const artifactsDir = NodePath.resolve(values["artifacts-dir"] ?? "desktop-launch-check");
 
@@ -66,6 +68,25 @@ try {
     step = "opening the thread";
     await thread.click();
     await page.getByText(THREAD_MESSAGE).waitFor({ timeout: STEP_TIMEOUT_MS });
+    const forkRepository = values["fork-update"];
+    if (forkRepository) {
+      step = "checking and downloading a fork update in the packaged app";
+      const tag = await page.evaluate(async (repository) => {
+        const bridge = (globalThis as typeof globalThis & { desktopBridge?: DesktopBridge })
+          .desktopBridge?.forkUpdate;
+        if (!bridge?.checkLatest) throw new Error("The packaged updater bridge is missing.");
+        const release = await bridge.checkLatest(repository);
+        const download = await bridge.download(repository, release.tag);
+        if (download.status !== "downloaded" || download.tag !== release.tag) {
+          throw new Error(download.message ?? `Expected ${release.tag}, got ${download.status}.`);
+        }
+        const discarded = await bridge.discard();
+        if (discarded.status !== "idle")
+          throw new Error("The updater did not discard the download.");
+        return release.tag;
+      }, forkRepository);
+      console.log(`Fork updater check passed: downloaded and checksum-verified ${tag}.`);
+    }
   } catch (error) {
     NodeFS.mkdirSync(artifactsDir, { recursive: true });
     await page

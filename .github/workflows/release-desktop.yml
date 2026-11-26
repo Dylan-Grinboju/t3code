@@ -70,6 +70,10 @@ on:
         required: false
         default: false
         type: boolean
+      fork_update_check:
+        required: false
+        default: false
+        type: boolean
       # Whether the JS bundle came from a pull request. This job holds the
       # signing secrets, so packaging then skips every step that runs the bundle.
       untrusted_bundle:
@@ -142,10 +146,10 @@ jobs:
     steps:
       # The launch check and the CLI archive smoke test both run the bundle.
       - name: Reject running an untrusted bundle
-        if: inputs.untrusted_bundle && (inputs.launch_check || inputs.cli_archive)
+        if: inputs.untrusted_bundle && (inputs.launch_check || inputs.cli_archive || inputs.fork_update_check)
         shell: bash
         run: |
-          echo "::error::untrusted_bundle cannot be combined with launch_check or cli_archive, which run the bundle."
+          echo "::error::untrusted_bundle cannot be combined with launch_check, cli_archive, or fork_update_check, which run the bundle."
           exit 1
 
       # This repository is public, so Git needs no credentials. checkout's
@@ -729,6 +733,9 @@ jobs:
         run: |
           set -euo pipefail
           check=(node scripts/smoke-desktop-app.ts --artifacts-dir "$RUNNER_TEMP/desktop-launch-check")
+          if [[ "${{ inputs.fork_update_check }}" == "true" ]]; then
+            check+=(--fork-update "$GITHUB_REPOSITORY")
+          fi
           if [[ "${{ inputs.platform }}" == "mac" ]]; then
             mount="$RUNNER_TEMP/desktop-launch-dmg"
             hdiutil attach -nobrowse -readonly -mountpoint "$mount" "$(ls "$GITHUB_WORKSPACE"/release/*.dmg)"
@@ -760,6 +767,12 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p verify
+          if [[ "${{ inputs.fork_update_check }}" == "true" ]]; then
+            mkdir -p verify/node_modules verify/fixtures
+            cp -RL scripts/node_modules/playwright-core verify/node_modules/
+            cp -R scripts/fixtures/desktop-launch verify/fixtures/
+            cp scripts/smoke-desktop-app.ts verify/
+          fi
           unpacked=$(ls -d "${TMPDIR:-/tmp}"/t3code-desktop-${{ inputs.platform }}-stage-*/app/dist/"$UNPACKED_DIR")
           tar -C "$(dirname "$unpacked")" -cf verify/unpacked.tar "$(basename "$unpacked")"
           esbuild=scripts/node_modules/.bin/esbuild
@@ -884,6 +897,24 @@ jobs:
           node verify/verify-windows-desktop-artifact.mjs \
             --app-dir "$(cygpath -w "$PWD/verify/$UNPACKED_DIR")" \
             --arch "${{ inputs.arch }}" --build-version "${{ inputs.version }}" --verbose
+
+      - name: Verify packaged fork updater
+        if: inputs.fork_update_check
+        shell: bash
+        run: |
+          set -euo pipefail
+          executable=$(find "verify/$UNPACKED_DIR" -maxdepth 1 -iname '*.exe' -print -quit)
+          test -n "$executable"
+          node verify/smoke-desktop-app.ts --executable "$(cygpath -aw "$executable")" \
+            --artifacts-dir "$RUNNER_TEMP/desktop-launch-check" --fork-update "$GITHUB_REPOSITORY"
+
+      - name: Upload fork updater check output
+        if: failure() && inputs.fork_update_check
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: desktop-fork-updater-check-${{ inputs.platform }}-${{ inputs.arch }}
+          path: ${{ runner.temp }}/desktop-launch-check
+          if-no-files-found: ignore
 
       - name: Smoke-test CLI archive
         if: inputs.cli_archive
