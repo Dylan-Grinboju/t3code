@@ -79,6 +79,7 @@ export function FloatingChatDock({
   onRestore,
   children,
   className,
+  style,
   ...props
 }: ComponentProps<"div"> & {
   presentation: MaximizedChatPresentation | null;
@@ -285,6 +286,7 @@ export function FloatingChatDock({
         style={
           floating
             ? ({
+                ...style,
                 left: position.left,
                 width: bounds.width,
                 transformOrigin: `${iconPosition.left + FLOATING_CHAT_ICON_SIZE * anchorX - position.left}px ${anchorY * 100}%`,
@@ -294,7 +296,7 @@ export function FloatingChatDock({
                 "--floating-chat-top": `${collapsedPosition.top}px`,
                 "--floating-chat-top-travel": `${expandedPosition.top - collapsedPosition.top}px`,
               } as CSSProperties)
-            : undefined
+            : style
         }
         data-floating-chat-dock={floating || undefined}
         data-floating-chat-minimized={floating ? minimized : undefined}

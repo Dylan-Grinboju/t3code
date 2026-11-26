@@ -28,6 +28,7 @@ const clientSettings: ClientSettings = {
   browserRecordingFrameRate: 60,
   browserLinkTarget: "app",
   browserTrustSlackLinks: true,
+  sideThreadOpenTarget: "main",
   browserAutoShowFloatingPreview: false,
   browserProfiles: [{ id: "work", name: "Work", kind: "persistent" }],
   browserDefaultProfileId: "work",

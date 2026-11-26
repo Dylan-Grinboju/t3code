@@ -30,9 +30,9 @@ import { environmentThreadShells } from "../state/threads";
  * surface, which already embeds a thread's chat, persists, and reopens; the pane tells a real
  * side chat of the host apart from a thread tab.
  */
-export type ThreadTabSurface = Extract<RightPanelSurface, { kind: "side-chat" }>;
+export type ThreadTabSurface = Extract<RightPanelSurface, { kind: "thread" }>;
 
-export const threadTabSurfaceId = (threadId: ThreadId) => `side-chat:${threadId}` as const;
+export const threadTabSurfaceId = (threadId: ThreadId) => `thread:${threadId}` as const;
 
 export function isSideChatOf(
   shell: Pick<EnvironmentThreadShell, "lineage"> | null,
@@ -48,7 +48,7 @@ export function threadTabSurfaces(
   readShell: (ref: ScopedThreadRef) => EnvironmentThreadShell | null = readThreadShell,
 ): ThreadTabSurface[] {
   return state.surfaces.filter((surface): surface is ThreadTabSurface => {
-    if (surface.kind !== "side-chat" || surface.threadId === host.threadId) return false;
+    if (surface.kind !== "thread" || surface.threadId === host.threadId) return false;
     const shell = readShell(scopeThreadRef(host.environmentId, surface.threadId));
     return shell !== null && !isSideChatOf(shell, host);
   });
@@ -62,7 +62,7 @@ export function canOpenAsThreadTab(host: ScopedThreadRef | null, target: ScopedT
 }
 
 export function openThreadTab(host: ScopedThreadRef, threadId: ThreadId): void {
-  useRightPanelStore.getState().openSideChat(host, threadId);
+  useRightPanelStore.getState().openThread(host, threadId);
 }
 
 function withoutSurfaces(
@@ -119,7 +119,7 @@ export function promoteThreadTab(
     );
     const hostTab: ThreadTabSurface = {
       id: threadTabSurfaceId(host.threadId),
-      kind: "side-chat",
+      kind: "thread",
       threadId: host.threadId,
     };
     const added = options.closeHost ? moved : [hostTab, ...moved];
@@ -154,7 +154,7 @@ export function openSubagentTab(parent: ScopedThreadRef, threadId: ThreadId): vo
   const hostKey = scopedThreadKey(host);
   const surface: ThreadTabSurface = {
     id: threadTabSurfaceId(threadId),
-    kind: "side-chat",
+    kind: "thread",
     threadId,
   };
   const fullScreen = readPanelAlwaysFullScreen();
@@ -202,7 +202,7 @@ function closeGoneThreadTabs(gone: ReadonlySet<string>): void {
       if (host === null) continue;
       const removed = new Set(
         panel.surfaces.flatMap((surface) =>
-          surface.kind === "side-chat" &&
+          surface.kind === "thread" &&
           gone.has(scopedThreadKey(scopeThreadRef(host.environmentId, surface.threadId)))
             ? [surface.id]
             : [],

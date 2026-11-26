@@ -103,9 +103,9 @@ describe("promoteThreadTab", () => {
     ]);
     const store = useRightPanelStore.getState();
     store.open(main, "diff");
-    store.openSideChat(main, ThreadId.make("side"));
-    store.openSideChat(main, ThreadId.make("a"));
-    store.openSideChat(main, ThreadId.make("b"));
+    store.openThread(main, ThreadId.make("side"));
+    store.openThread(main, ThreadId.make("a"));
+    store.openThread(main, ThreadId.make("b"));
 
     const target = promoteThreadTab(main, ThreadId.make("a"), { closeHost: false });
 
@@ -124,8 +124,8 @@ describe("promoteThreadTab", () => {
   it("closing the main thread hands its thread tabs to the next one without adding itself", () => {
     setup([shell("main"), shell("a"), shell("b")]);
     const store = useRightPanelStore.getState();
-    store.openSideChat(main, ThreadId.make("a"));
-    store.openSideChat(main, ThreadId.make("b"));
+    store.openThread(main, ThreadId.make("a"));
+    store.openThread(main, ThreadId.make("b"));
 
     promoteThreadTab(main, ThreadId.make("a"), { closeHost: true });
 
@@ -136,8 +136,8 @@ describe("promoteThreadTab", () => {
 
   it("drops a tab of the new main thread that would show itself", () => {
     setup([shell("main"), shell("a")]);
-    useRightPanelStore.getState().openSideChat(main, ThreadId.make("a"));
-    useRightPanelStore.getState().openSideChat(ref("a"), ThreadId.make("a"));
+    useRightPanelStore.getState().openThread(main, ThreadId.make("a"));
+    useRightPanelStore.getState().openThread(ref("a"), ThreadId.make("a"));
 
     promoteThreadTab(main, ThreadId.make("a"), { closeHost: false });
 
@@ -272,7 +272,7 @@ describe("startSubagentThreadTabs", () => {
       shell("child", { parentThreadId: ThreadId.make("main"), relationshipToParent: "subagent" }),
     );
     emit("refs", [main, ref("child"), ref("other")]);
-    useRightPanelStore.getState().openSideChat(main, ThreadId.make("other"));
+    useRightPanelStore.getState().openThread(main, ThreadId.make("other"));
     const childTab = threadTabSurfaceId(ThreadId.make("child"));
     const otherTab = threadTabSurfaceId(ThreadId.make("other"));
     expect(surfaceIds(main)).toEqual([childTab, otherTab]);

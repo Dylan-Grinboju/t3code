@@ -19,7 +19,7 @@ import { useStableCallback } from "../../hooks/useStableCallback";
 import type { SideChatParentPanel } from "../../lib/sideChatPane";
 import { isSideChatOf, openThreadTab, promoteThreadTab } from "../../lib/threadTabs";
 import { newThreadId } from "../../lib/utils";
-import { hostRightPanel } from "../../rightPanelStore";
+import { hostRightPanel, type ThreadSurface } from "../../rightPanelStore";
 import {
   readThreadShell,
   readThreadShells,
@@ -38,7 +38,7 @@ import { Menu, MenuPopup, MenuRadioGroup, MenuRadioItem, MenuTrigger } from "../
 import { toastManager } from "../ui/toast";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { BackgroundThreadContext } from "./backgroundThread";
-import SideChatPane from "./SideChatPane";
+import SideThreadPane from "./SideThreadPane";
 import { ThreadTabDetailsContext } from "./threadTabDetails";
 
 interface PaneProps {
@@ -49,10 +49,15 @@ interface PaneProps {
 }
 
 /** A side chat of the host keeps its own pane; any other thread opens as a thread tab. */
-export default function ThreadSurfacePane(props: PaneProps) {
-  const shell = useQuietThreadShell(scopeThreadRef(props.parentRef.environmentId, props.threadId));
-  if (shell === null || isSideChatOf(shell, props.parentRef)) return <SideChatPane {...props} />;
-  return <ThreadTabPane {...props} />;
+export default function ThreadSurfacePane(
+  props: Omit<PaneProps, "threadId"> & {
+    readonly surface: ThreadSurface;
+  },
+) {
+  const { surface, ...pane } = props;
+  const shell = useQuietThreadShell(scopeThreadRef(pane.parentRef.environmentId, surface.threadId));
+  if (shell === null || isSideChatOf(shell, pane.parentRef)) return <SideThreadPane {...props} />;
+  return <ThreadTabPane {...pane} threadId={surface.threadId} />;
 }
 
 const NEW_THREAD_TITLE = "New thread";
